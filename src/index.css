@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@layer base {
+  :root {
+    --background: 240 10% 4%;
+    --foreground: 210 40% 98%;
+    --card: 230 14% 8%;
+    --card-foreground: 210 40% 98%;
+    --popover: 230 14% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 187 86% 60%;
+    --secondary-foreground: 0 0% 4%;
+    --accent: 187 86% 60%;
+    --accent-foreground: 0 0% 4%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 215 20% 65%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 28% 20%;
+    --input: 215 28% 20%;
+    --ring: 239 84% 67%;
+    --radius: 8px;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
+  }
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  }
+  .glow-secondary {
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+  }
+  .glass {
+    @apply bg-background/80 backdrop-blur-lg border border-border;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-hover text-white font-medium px-6 py-3 rounded-md transition-all duration-200;
+  }
+  .btn-secondary {
+    @apply bg-secondary hover:bg-secondary/90 text-background font-medium px-6 py-3 rounded-md transition-all duration-200;
+  }
+  .card-hover {
+    @apply transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10;
+  }
+}
+
+/* Scrollbar custom */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #121218;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* PWA Install prompt */
+.pwa-install-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to right, #121218, #1a1a24);
+  border-top: 1px solid #1e293b;
+  padding: 1rem;
+  z-index: 50;
+  display: none;
+}
+.pwa-install-banner.show {
+  display: block;
+  animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Loading skeleton */
+.skeleton {
+  @apply bg-muted animate-pulse rounded;
+}
+.skeleton-text {
+  @apply h-4 skeleton mb-2;
+}
+.skeleton-heading {
+  @apply h-8 skeleton mb-4;
+}

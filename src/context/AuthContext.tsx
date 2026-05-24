@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react"
 import { User, Session } from "@supabase/supabase-js"
-import { supabase, signInWithGoogle, signOut as supabaseSignOut } from "@/lib/supabase"
+import { supabase, signInWithEmail, signUpWithEmail, signOut as supabaseSignOut } from "@/lib/supabase"
 
 interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
-  signInWithGoogle: () => Promise<void>
+  signInWithEmail: (email: string, password: string) => Promise<any>
+  signUpWithEmail: (email: string, password: string) => Promise<any>
   signOut: () => Promise<void>
 }
 
@@ -37,11 +38,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const handleSignInWithGoogle = async () => {
+  const handleSignInWithEmail = async (email: string, password: string) => {
     try {
-      await signInWithGoogle()
+      const data = await signInWithEmail(email, password)
+      return data
     } catch (error) {
       console.error("Sign in error:", error)
+      throw error
+    }
+  }
+
+  const handleSignUpWithEmail = async (email: string, password: string) => {
+    try {
+      const data = await signUpWithEmail(email, password)
+      return data
+    } catch (error) {
+      console.error("Sign up error:", error)
       throw error
     }
   }
@@ -61,7 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         loading,
-        signInWithGoogle: handleSignInWithGoogle,
+        signInWithEmail: handleSignInWithEmail,
+        signUpWithEmail: handleSignUpWithEmail,
         signOut: handleSignOut,
       }}
     >

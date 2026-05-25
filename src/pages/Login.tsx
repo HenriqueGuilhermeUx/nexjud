@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
-import { AlertCircle, AlertTriangle } from "lucide-react"
+import { AlertCircle } from "lucide-react"
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -13,7 +13,7 @@ export default function Login() {
   const [name, setName] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const { signInWithEmail, signUpWithEmail, isConfigured } = useAuth()
+  const { signInWithEmail, signUpWithEmail } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,12 +21,6 @@ export default function Login() {
     setLoading(true)
 
     try {
-      if (!isConfigured) {
-        setError("Supabase não está configurado. Verifique as variáveis de ambiente.")
-        setLoading(false)
-        return
-      }
-
       if (isSignUp) {
         await signUpWithEmail(email, password)
         setError("Verifique seu email para confirmar o cadastro!")
@@ -51,16 +45,6 @@ export default function Login() {
           <CardDescription className="text-muted-foreground">Justiça Inteligente onDemand</CardDescription>
         </CardHeader>
         <CardContent>
-          {!isConfigured && (
-            <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-yellow-200">
-                <p className="font-medium">Modo Demo Ativo</p>
-                <p className="text-yellow-300/80">O Supabase não está configurado. O login não funcionará até que as variáveis de ambiente sejam configuradas no Netlify.</p>
-              </div>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <div>
@@ -111,7 +95,7 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full bg-[#6366f1] hover:bg-[#5558e3] text-white"
-              disabled={loading || !isConfigured}
+              disabled={loading}
             >
               {loading ? (
                 <span className="animate-pulse">Processando...</span>

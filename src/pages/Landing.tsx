@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom"
-import { Brain, BookOpen, Zap, Shield, Clock, TrendingUp, ArrowRight, CheckCircle, BarChart3, AlertTriangle } from "lucide-react"
+import { Brain, BookOpen, ArrowRight, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
 
 export default function Landing() {
-  const { user, isConfigured } = useAuth()
+  const { user } = useAuth()
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
@@ -37,18 +37,6 @@ export default function Landing() {
           </div>
         </div>
       </nav>
-
-      {/* Demo Warning Banner */}
-      {!isConfigured && (
-        <div className="pt-20 px-4 sm:px-6 lg:px-8 bg-yellow-500/10 border-b border-yellow-500/20">
-          <div className="max-w-7xl mx-auto py-3 flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-            <p className="text-sm text-yellow-200">
-              <strong>Modo Demo:</strong> O Supabase não está configurado. As variáveis de ambiente precisam ser configuradas no Netlify para que o login funcione.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
@@ -147,14 +135,6 @@ export default function Landing() {
                     <span>Heatmap de argumentos</span>
                   </div>
                 </div>
-                {user && (
-                  <Link to="/dashboard/predictive">
-                    <Button className="w-full mt-4 gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
-                      Acessar
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                )}
               </CardContent>
             </Card>
 
@@ -191,14 +171,6 @@ export default function Landing() {
                     <span>Timeline de mudanças</span>
                   </div>
                 </div>
-                {user && (
-                  <Link to="/dashboard/jurisprudence">
-                    <Button variant="outline" className="w-full mt-4 gap-2 border-[#22d3ee] text-[#22d3ee] hover:bg-[#22d3ee]/10">
-                      Acessar
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                )}
               </CardContent>
             </Card>
           </div>

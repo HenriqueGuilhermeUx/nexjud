@@ -121,7 +121,7 @@ export async function performPredictiveAnalysis(input: PredictiveAnalysisInput):
   const userId = getUserId()
 
   try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-case`, {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/super-responder`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -158,7 +158,7 @@ export async function performJurisprudenceSearch(input: JurisprudenceSearchInput
   const userId = getUserId()
 
   try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/search-jurisprudence`, {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/rapid-api`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

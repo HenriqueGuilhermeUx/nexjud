@@ -1,12 +1,8 @@
-import { serve } from "https://deno.land/std@0.168.0/server/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+// Supabase Edge Function: Pesquisa de Jurisprudência
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@^1";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-interface SearchJurisprudenceInput {
+interface SearchInput {
   theme: string
   court: string
   period: string
@@ -15,22 +11,28 @@ interface SearchJurisprudenceInput {
   userId: string
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      }
+    });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const escavadorKey = Deno.env.get('ESCAVADOR_API_KEY')!
-    const openaiKey = Deno.env.get('OPENAI_API_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const escavadorKey = Deno.env.get('ESCAVADOR_API_KEY')!;
+    const openaiKey = Deno.env.get('OPENAI_API_KEY')!;
 
-    const supabase = createClient(supabaseUrl, supabaseKey)
-    const { theme, court, period, camara, materia, userId }: SearchJurisprudenceInput = await req.json()
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { theme, court, period, camara, materia, userId }: SearchInput = await req.json();
 
     // 1. Buscar jurisprudência via Escavador
-    let jurisprudenceData: any[] = []
+    let jurisprudenceData: any[] = [];
 
     try {
       const escavadorResponse = await fetch(
@@ -41,20 +43,20 @@ serve(async (req) => {
             'Content-Type': 'application/json'
           }
         }
-      )
+      );
 
       if (escavadorResponse.ok) {
-        const escavadorData = await escavadorResponse.json()
-        jurisprudenceData = escavadorData?.data || []
+        const escavadorData = await escavadorResponse.json();
+        jurisprudenceData = escavadorData?.data || [];
       }
     } catch (escavadorError) {
-      console.log('Escavador API não disponível, usando análise padrão')
+      console.log('Escavador API não disponível, usando análise padrão');
     }
 
-    // 2. Análise via OpenAI com os dados reais
+    // 2. Análise via OpenAI
     const jurisprudenceSummary = jurisprudenceData.length > 0
-      ? jurisprudenceData.map(j => `• ${j.titulo || j.descricao || 'Sem título'} (${j.tribunal}) - Resultado: ${j.resultado || 'Não informado'}`).join('\n')
-      : 'Jurisprudência não encontrada via API. Usando análise padrão.'
+      ? jurisprudenceData.map((j: any) => `• ${j.titulo || j.descricao || 'Sem título'} (${j.tribunal}) - Resultado: ${j.resultado || 'Não informado'}`).join('\n')
+      : 'Jurisprudência não encontrada via API. Usando análise padrão.';
 
     const prompt = `Você é um assistente jurídico especializado em pesquisa jurisprudencial.
 
@@ -80,7 +82,7 @@ Com base no tema e nos dados disponíveis, forneça uma análise de jurisprudên
     "zonaVermelha": ["argumento 1", "argumento 2"]
   },
   "recommendations": ["recomendação 1", "recomendação 2", "recomendação 3"]
-}`
+}`;
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -99,22 +101,22 @@ Com base no tema e nos dados disponíveis, forneça uma análise de jurisprudên
         ],
         temperature: 0.7
       })
-    })
+    });
 
-    let searchResult: any
+    let searchResult: any;
 
     if (openaiResponse.ok) {
-      const openaiData = await openaiResponse.json()
-      const content = openaiData.choices?.[0]?.message?.content || '{}'
+      const openaiData = await openaiResponse.json();
+      const content = openaiData.choices?.[0]?.message?.content || '{}';
 
-      let cleanContent = content.trim()
+      let cleanContent = content.trim();
       if (cleanContent.startsWith('```json')) {
-        cleanContent = cleanContent.replace(/```json\n?|```\n?/g, '')
+        cleanContent = cleanContent.replace(/```json\n?|```\n?/g, '');
       } else if (cleanContent.startsWith('```')) {
-        cleanContent = cleanContent.replace(/```\n?/g, '')
+        cleanContent = cleanContent.replace(/```\n?/g, '');
       }
 
-      searchResult = JSON.parse(cleanContent)
+      searchResult = JSON.parse(cleanContent);
     } else {
       // Fallback
       searchResult = {
@@ -128,7 +130,7 @@ Com base no tema e nos dados disponíveis, forneça uma análise de jurisprudên
           zonaVermelha: ['Posições minoritárias', 'Teses rejeitadas']
         },
         recommendations: ['Fundamentar em precedentes', 'Citar jurisprudência consolidada']
-      }
+      };
     }
 
     const fullResult = {
@@ -139,7 +141,7 @@ Com base no tema e nos dados disponíveis, forneça uma análise de jurisprudên
       successRate: searchResult.successRate,
       heatmap: searchResult.heatmap,
       recommendations: searchResult.recommendations
-    }
+    };
 
     // 3. Salvar no banco
     await supabase.from('analysis_history').insert({
@@ -147,16 +149,22 @@ Com base no tema e nos dados disponíveis, forneça uma análise de jurisprudên
       type: 'jurisprudence',
       input_data: { theme, court, period, camara, materia },
       result: fullResult
-    })
+    });
 
     return new Response(JSON.stringify(fullResult), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      }
+    });
 
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      }
+    });
   }
-})
+});

@@ -1,5 +1,5 @@
-// Mock API for development - simulates backend responses
-// In production, replace with actual Supabase Edge Functions calls
+// NexJud API - Connects to Supabase Edge Functions
+// Uses real APIs: CNJ, Escavador, OpenAI
 
 export interface PredictiveAnalysisInput {
   caseNumber: string
@@ -55,10 +55,23 @@ export interface JurisprudenceSearchResult {
   recommendations: string[]
 }
 
-// Simulated delay to mimic API call
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+// Get Supabase URL from environment
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// DNA do Juiz mock data
+// Get user ID from localStorage (set during auth)
+const getUserId = (): string => {
+  try {
+    const sessionData = localStorage.getItem('supabase.session')
+    if (sessionData) {
+      const session = JSON.parse(sessionData)
+      return session?.user?.id || 'anonymous'
+    }
+  } catch (e) {}
+  return 'anonymous'
+}
+
+// DNA do Juiz chart data (static mock - real data would come from analysis)
 const DNA_JUIZ_DATA = [
   { subject: "Trabalhista", score: 78, fullMark: 100 },
   { subject: "Previdenciário", score: 65, fullMark: 100 },
@@ -68,7 +81,7 @@ const DNA_JUIZ_DATA = [
   { subject: "Civil", score: 71, fullMark: 100 },
 ]
 
-// Score recursal mock data
+// Score recursal chart data (static mock)
 const SCORE_RECURSAL = [
   { instancia: "1ª Inst.", favoravel: 72, desfavoravel: 28 },
   { instancia: "2ª Inst.", favoravel: 58, desfavoravel: 42 },
@@ -76,7 +89,7 @@ const SCORE_RECURSAL = [
   { instancia: "STF", favoravel: 21, desfavoravel: 79 },
 ]
 
-// Alertas jurisprudência mock data
+// Alertas jurisprudência (static mock - real alerts would come from CNJ)
 const ALERTAS_JURISPRUDENCIA = [
   { msg: "STJ alterou entendimento sobre correção IPCA-E (Tema 905)", data: "08/05/2026", impacto: "alto" },
   { msg: "TRF-3 uniformizou tese sobre prescrição quinquenal", data: "02/05/2026", impacto: "medio" },
@@ -101,133 +114,81 @@ const TIMELINE_MUDANCAS = [
 ]
 
 export async function performPredictiveAnalysis(input: PredictiveAnalysisInput): Promise<PredictiveAnalysisResult> {
-  // Simulate API delay
-  await delay(2000 + Math.random() * 1000)
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error("Supabase não configurado. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY")
+  }
 
-  // Generate dynamic result based on input
-  const baseProbability = Math.floor(Math.random() * 30) + 55
-  const caseTypeBonus = {
-    TRABALHISTA: 5,
-    PREVIDENCIARIO: 8,
-    TRIBUTARIO: -3,
-  }[input.caseType]
+  const userId = getUserId()
 
-  const successProbability = Math.min(95, Math.max(25, baseProbability + caseTypeBonus))
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/analyze-case`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        caseNumber: input.caseNumber,
+        caseDescription: input.caseDescription,
+        caseType: input.caseType,
+        userId: userId,
+      }),
+    })
 
-  return {
-    caseNumber: input.caseNumber,
-    analysisDate: new Date().toISOString(),
-    summary: {
-      successProbability,
-      riskLevel: successProbability >= 70 ? "BAIXO" : successProbability >= 40 ? "MÉDIO" : "ALTO",
-      recommendation: successProbability >= 70
-        ? "Caso apresenta fortes argumentos. Recomenda-se prosseguir com a ação."
-        : successProbability >= 40
-        ? "Caso tem mérito, mas requer усиление dos argumentos. Considere adicionar precedentes."
-        : "Caso apresenta riscos significativos. Recomenda-se revisão da estratégia ou acordo.",
-      goldSuggestions: [
-        "Fundamente em jurisprudência consolidada do tribunal",
-        "Apresente laudos periciais complementares",
-        "Cite precedentes favoráveis do STJ e STF",
-        "Demonstre repercussão social do caso",
-      ],
-    },
-    judgeDNA: {
-      padroes: [
-        "Prefere decisões fundamentadas em provas documentais",
-        "Rejeita argumentos baseados apenas em jurisprudência minoritária",
-        "Dá peso significativo a precedentes dos últimos 3 anos",
-        "Avalia favoravelmente casos com impacto social",
-      ],
-      perfil: "Garantista",
-      nivelExigencia: "Médio",
-    },
-    redTeam: {
-      fraquezasDoSeuCaso: [
-        "Falta de prova documental para alguns fatos",
-        "Arguição já rejeitada em casos similares",
-        "Prazo prescricional pode ser questionado",
-      ],
-      probabilidadeDeNegacao: 100 - successProbability,
-      comoCorrigir: [
-        "Coletar documentos complementares",
-        "Buscar precedente específico do tribunal",
-        "Preparar resposta para alegação de prescrição",
-      ],
-    },
-    heatmap: {
-      zonaVerde: [
-        "Violação de direito líquido e certo",
-        "Prova documental robusta",
-        "Precedente direto do STJ",
-      ],
-      zonaAmarela: [
-        "Argumentos baseados em interpretação econômica",
-        "Tese novo sem precedentes consolidados",
-        "Questão de valor inferior a 40 salários mínimos",
-      ],
-      zonaVermelha: [
-        "Arguição genérica sem fundamentação",
-        "Violação a súmula vinculante",
-        "Caso prescrito segundo entendimento majoritário",
-      ],
-    },
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Erro ao analisar caso')
+    }
+
+    const result = await response.json()
+    return result
+
+  } catch (error) {
+    console.error('Erro na análise preditiva:', error)
+    // Re-throw for UI to handle
+    throw error
   }
 }
 
 export async function performJurisprudenceSearch(input: JurisprudenceSearchInput): Promise<JurisprudenceSearchResult> {
-  // Simulate API delay
-  await delay(1500 + Math.random() * 1000)
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error("Supabase não configurado. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY")
+  }
 
-  // Generate dynamic result based on input
-  const baseSuccessRate = Math.floor(Math.random() * 25) + 60
-  const courtBonus = {
-    STJ: 5,
-    STF: -5,
-    TRF1: 2,
-    TRF2: 3,
-    TRF3: 8,
-    TRF4: 4,
-  }[input.court]
+  const userId = getUserId()
 
-  const successRate = Math.min(95, Math.max(35, baseSuccessRate + courtBonus))
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/search-jurisprudence`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        theme: input.theme,
+        court: input.court,
+        period: input.period,
+        camara: input.camara || '',
+        materia: input.materia || '',
+        userId: userId,
+      }),
+    })
 
-  return {
-    theme: input.theme,
-    decisionsCount: Math.floor(Math.random() * 500) + 100,
-    analysis: `Análise jurisprudencial completa sobre "${input.theme}" em ${input.court}.\n\nA jurisprudência predominante nesta matéria é FAVORÁVEL ao autor, com ${successRate}% das decisões siding com a tese apresentada.\n\nPrincipais precedentes:\n- REsp 1.234.567/STJ: Reconhece direito ao benefício\n- REsp 987.654/STJ: Estabelece critérios de cálculo\n- ADI 4.357/STF: Define marco regulatório\n\nTendência: A jurisprudência está em CONSTANTE EVOLUÇÃO, com recentes mudanças favoráveis ao entendimento majoritário.`,
-    trend: successRate >= 60 ? "FAVORÁVEL" : successRate >= 40 ? "NEUTRO" : "DESFAVORÁVEL",
-    successRate,
-    heatmap: {
-      zonaVerde: [
-        "Argumentos baseados em jurisprudência pacífica",
-        "Precedentes do STJ favoráveis",
-        "Jurisprudência consolidada",
-        "Fundamentação em súmulas",
-      ],
-      zonaAmarela: [
-        "Argumentos com jurisprudência dividida",
-        "Precedentes recentes e ainda não consolidados",
-        "Tendência em evolução",
-        "Posição minoritária com força crescente",
-      ],
-      zonaVermelha: [
-        "Argumentos contrários à jurisprudência dominante",
-        "Posições minoritárias",
-        "Teses já rejeitadas pelo tribunal",
-        "Interpretação contrária ao entendimento atual",
-      ],
-    },
-    recommendations: [
-      "Fundamentar em precedentes do STJ",
-      "Citar jurisprudência pacífica",
-      "Evitar argumentos minoritários",
-      "Acompanhar evolução jurisprudencial",
-    ],
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Erro ao buscar jurisprudência')
+    }
+
+    const result = await response.json()
+    return result
+
+  } catch (error) {
+    console.error('Erro na busca de jurisprudência:', error)
+    throw error
   }
 }
 
-// Export mock data for charts
+// Export mock data for charts (these remain static - could be dynamic in future)
 export const getMockData = () => ({
   DNA_JUIZ_DATA,
   SCORE_RECURSAL,

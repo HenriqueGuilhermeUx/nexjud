@@ -1,10 +1,11 @@
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Brain, BookOpen, Menu, X, LogOut, User } from "lucide-react"
+import { Brain, BookOpen, Menu, LogOut, User, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
 import PredictiveAI from "./PredictiveAI"
 import Jurisprudence from "./Jurisprudence"
+import Onboarding from "./Onboarding"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -13,6 +14,7 @@ export default function Dashboard() {
 
   const isPredictiveActive = location.pathname.includes("predictive")
   const isJurisprudenceActive = location.pathname.includes("jurisprudence")
+  const isOnboardingActive = location.pathname.includes("onboarding")
 
   const NavItem = ({ to, icon: Icon, label, active }: { to: string; icon: any; label: string; active: boolean }) => (
     <Link
@@ -58,6 +60,12 @@ export default function Dashboard() {
         </div>
 
         <nav className="p-4 space-y-2">
+          <NavItem
+            to="/dashboard/onboarding"
+            icon={Zap}
+            label="Setup Zero (OAB)"
+            active={isOnboardingActive}
+          />
           <NavItem
             to="/dashboard/predictive"
             icon={Brain}
@@ -109,7 +117,15 @@ export default function Dashboard() {
 
         {/* Page content */}
         <main>
-          {isPredictiveActive ? <PredictiveAI /> : isJurisprudenceActive ? <Jurisprudence /> : <PredictiveAI />}
+          {isOnboardingActive ? (
+            <Onboarding />
+          ) : isPredictiveActive ? (
+            <PredictiveAI />
+          ) : isJurisprudenceActive ? (
+            <Jurisprudence />
+          ) : (
+            <Onboarding />
+          )}
         </main>
       </div>
     </div>

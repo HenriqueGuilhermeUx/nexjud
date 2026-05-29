@@ -15,4 +15,7 @@ declare module "recharts" {
   export class Radar extends React.Component<any> {}
   export class PolarGrid extends React.Component<any> {}
   export class PolarAngleAxis extends React.Component<any> {}
+  export class PieChart extends React.Component<any> {}
+  export class Pie extends React.Component<any> {}
+  export class Cell extends React.Component<any> {}
 }

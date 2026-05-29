@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { Brain, BookOpen, ArrowRight, CheckCircle } from "lucide-react"
+import { Brain, BookOpen, ArrowRight, CheckCircle, Shield, Zap, Target, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
@@ -97,7 +97,7 @@ export default function Landing() {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0f0f14]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">2 Soluções Jurídicas Inteligentes</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">4 Soluções Jurídicas Inteligentes</h2>
             <p className="text-gray-400 text-lg">Cada ferramenta foi desenvolvida para resolver um problema específico dos advogados</p>
           </div>
 
@@ -115,7 +115,7 @@ export default function Landing() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-gray-400">
-                  Análise inteligente de processos com previsão de resultado baseada em padrões jurisprudenciais e DNA do juiz.
+                  Preveja resultados de processos com 85% de precisão. Nossa IA analisa padrões jurisprudenciais e o histórico do juiz para dar a você a melhor estratégia.
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 text-sm text-gray-300">
@@ -151,7 +151,7 @@ export default function Landing() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-gray-400">
-                  Busque decisões em múltiplos tribunais e identifique tendências jurisprudenciais em segundos. Economize 3-4 horas de pesquisa manual.
+                  Encontre decisões favoráveis em segundos. Nossa IA busca em 6 tribunais e identifica padrões que você levaria horas para encontrar.
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 text-sm text-gray-300">
@@ -169,6 +169,78 @@ export default function Landing() {
                   <div className="flex items-center gap-2 text-sm text-gray-300">
                     <CheckCircle className="w-4 h-4 text-green-400" />
                     <span>Timeline de mudanças</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Feature 3: Setup Zero OAB */}
+            <Card className="border-[#f59e0b]/20 bg-[#121218]">
+              <div className="h-2 bg-gradient-to-r from-[#f59e0b] to-amber-400" />
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-[#f59e0b]/10 rounded-lg flex items-center justify-center">
+                    <Zap className="w-7 h-7 text-[#f59e0b]" />
+                  </div>
+                  <CardTitle className="text-2xl text-white">Setup Zero por OAB</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-gray-400">
+                  Carregue todo seu histórico de processos em segundos. Descubra suas taxas de vitória, casos similares e oportunidades perdidas automaticamente.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>Histórico completo</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>Taxa de sucesso</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>Valor total processos</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>Gráficos visuais</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Feature 4: Red Team */}
+            <Card className="border-[#ef4444]/20 bg-[#121218]">
+              <div className="h-2 bg-gradient-to-r from-[#ef4444] to-red-400" />
+              <CardHeader>
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-[#ef4444]/10 rounded-lg flex items-center justify-center">
+                    <Target className="w-7 h-7 text-[#ef4444]" />
+                  </div>
+                  <CardTitle className="text-2xl text-white">Red Team Simulation</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-gray-400">
+                  Teste sua estratégia contra os melhores argumentos da parte contrária. Nossa IA simula o advogado do outro lado para fortalecer sua causa.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>Contra-argumentos</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>Pontos fracos</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>Fortalecer causa</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span>Relatório final</span>
                   </div>
                 </div>
               </CardContent>

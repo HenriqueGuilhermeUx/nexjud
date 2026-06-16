@@ -235,36 +235,46 @@ export async function performJurisprudenceSearch(input: JurisprudenceSearchInput
 }
 
 // Objeto de conexão à Woovi (Pix Automático) via Edge Functions
+// Objeto de conexão à Woovi adaptado para RPC Direto
 export const wooviApi = {
   createSubscription: async (planId: string, customer: WooviCustomerInput): Promise<WooviSubscriptionResult> => {
     if (!SUPABASE_URL) {
-      throw new Error("Supabase URL não configurada.")
+      throw new Error("Supabase URL não configurada.");
     }
 
-    const token = getAuthHeader()
+    const token = getAuthHeader();
 
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/woovi-subscription`, {
+    // Chamamos a função 'create_woovi_subscription' que criamos no banco de dados
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_woovi_subscription`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token,
+        'apikey': SUPABASE_ANON_KEY
       },
       body: JSON.stringify({
-        action: 'create',
-        planId,
-        customer
+        plan_id: planId,
+        customer_name: customer.name,
+        customer_email: customer.email,
+        customer_tax_id: customer.taxID
       }),
-    })
+    });
 
     if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Erro ao gerar assinatura por Pix.')
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao gerar assinatura por Pix.');
     }
 
-    return await response.json()
-  }
-}
+    const result = await response.json();
+    
+    // Se o banco retornar um erro interno da Woovi, repassa para o front
+    if (result.error) {
+      throw new Error(result.error);
+    }
 
+    return result;
+  }
+};
 // Export mock data for charts (these remain static - could be dynamic in future)
 export const getMockData = () => ({
   DNA_JUIZ_DATA,

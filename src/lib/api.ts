@@ -55,6 +55,20 @@ export interface JurisprudenceSearchResult {
   recommendations: string[]
 }
 
+// Interfaces adicionadas para o ecossistema da Woovi (Pix Automático)
+export interface WooviCustomerInput {
+  name: string
+  email: string
+  taxID: string
+}
+
+export interface WooviSubscriptionResult {
+  success: boolean
+  qrcode: string
+  brCode: string
+  subscriptionId: string
+}
+
 // Get Supabase URL from environment
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -69,6 +83,20 @@ const getUserId = (): string => {
     }
   } catch (e) {}
   return 'anonymous'
+}
+
+// Função auxiliar para pegar o token JWT de sessão real do Supabase
+const getAuthHeader = (): string => {
+  try {
+    const sessionData = localStorage.getItem('supabase.session')
+    if (sessionData) {
+      const session = JSON.parse(sessionData)
+      if (session?.access_token) {
+        return `Bearer ${session.access_token}`
+      }
+    }
+  } catch (e) {}
+  return `Bearer ${SUPABASE_ANON_KEY}`
 }
 
 // DNA do Juiz chart data (static mock - real data would come from analysis)
@@ -145,7 +173,6 @@ export async function performPredictiveAnalysis(input: PredictiveAnalysisInput):
 
   } catch (error) {
     console.error('Erro na análise preditiva:', error)
-    // Re-throw for UI to handle
     throw error
   }
 }
@@ -185,6 +212,37 @@ export async function performJurisprudenceSearch(input: JurisprudenceSearchInput
   } catch (error) {
     console.error('Erro na busca de jurisprudência:', error)
     throw error
+  }
+}
+
+// Objeto de conexão à Woovi (Pix Automático) via Edge Functions
+export const wooviApi = {
+  createSubscription: async (planId: string, customer: WooviCustomerInput): Promise<WooviSubscriptionResult> => {
+    if (!SUPABASE_URL) {
+      throw new Error("Supabase URL não configurada.")
+    }
+
+    const token = getAuthHeader()
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/woovi-subscription`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token,
+      },
+      body: JSON.stringify({
+        action: 'create',
+        planId,
+        customer
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Erro ao gerar assinatura por Pix.')
+    }
+
+    return await response.json()
   }
 }
 

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, CheckCircle2 } from "lucide-react"
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -12,23 +12,32 @@ export default function Login() {
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const { signInWithEmail, signUpWithEmail } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setSuccessMessage(null)
     setLoading(true)
 
     try {
       if (isSignUp) {
-        await signUpWithEmail(email, password)
-        setError("Verifique seu email para confirmar o cadastro!")
+        // Correção Crucial: Passa o objeto contendo os metadados do Nome para o Auth do Supabase
+        await signUpWithEmail(email, password, {
+          data: { name: name }
+        })
+        setSuccessMessage("Cadastro realizado! Acesse a caixa de entrada do seu e-mail para validar sua conta antes de fazer o login.")
+        // Limpa o formulário após registrar
+        setName("")
+        setEmail("")
+        setPassword("")
       } else {
         await signInWithEmail(email, password)
       }
     } catch (err: any) {
-      setError(err.message || "Erro ao fazer login")
+      setError(err.message || "Erro ao processar requisição.")
     } finally {
       setLoading(false)
     }
@@ -92,6 +101,13 @@ export default function Login() {
               </div>
             )}
 
+            {successMessage && (
+              <div className="flex items-start gap-2 text-sm text-green-400 p-3 bg-green-500/10 rounded-md text-left">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{successMessage}</span>
+              </div>
+            )}
+
             <Button
               type="submit"
               className="w-full bg-[#6366f1] hover:bg-[#5558e3] text-white"
@@ -115,6 +131,7 @@ export default function Login() {
                 onClick={() => {
                   setIsSignUp(!isSignUp)
                   setError(null)
+                  setSuccessMessage(null)
                 }}
                 className="text-[#6366f1] hover:underline font-medium"
               >

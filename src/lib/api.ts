@@ -143,10 +143,21 @@ const TIMELINE_MUDANCAS = [
 
 export async function performPredictiveAnalysis(input: PredictiveAnalysisInput): Promise<PredictiveAnalysisResult> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error("Supabase não configurado. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY")
+    throw new Error("Supabase não configurado.");
   }
 
-  const userId = getUserId()
+  // 1. Verificar o status atual e contagem do usuário no Supabase antes de rodar a IA
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('free_uses_count, is_premium')
+    .single();
+
+  // 2. Se o usuário não for premium e já usou 3 ou mais vezes, barra aqui!
+  if (!profile?.is_premium && (profile?.free_uses_count || 0) >= 3) {
+    throw new Error("LIMIT_EXCEEDED"); // Enviamos um erro específico para o componente tratar
+  }
+
+  const userId = getUserId();
 
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/super-responder`, {
@@ -161,22 +172,30 @@ export async function performPredictiveAnalysis(input: PredictiveAnalysisInput):
         caseType: input.caseType,
         userId: userId,
       }),
-    })
+    });
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Erro ao analisar caso')
+      const error = await response.json();
+      throw new Error(error.error || 'Erro ao analisar caso');
     }
 
-    const result = await response.json()
-    return result
+    const result = await response.json();
+
+    // 3. Se a análise deu certo e ele é usuário free, incrementa +1 uso no banco
+    if (!profile?.is_premium) {
+      await supabase
+        .from('profiles')
+        .update({ free_uses_count: (profile?.free_uses_count || 0) + 1 })
+        .eq('id', userId);
+    }
+
+    return result;
 
   } catch (error) {
-    console.error('Erro na análise preditiva:', error)
-    throw error
+    console.error('Erro na análise preditiva:', error);
+    throw error;
   }
 }
-
 export async function performJurisprudenceSearch(input: JurisprudenceSearchInput): Promise<JurisprudenceSearchResult> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error("Supabase não configurado. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY")

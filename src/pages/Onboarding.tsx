@@ -57,9 +57,10 @@ export default function Onboarding() {
       const response = await fetch(`${supabaseUrl}/functions/v1/setup-oab`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseKey}`,
-        },
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${supabaseKey}`,
+  'apikey': supabaseKey,
+},
         body: JSON.stringify({
           oabNumber: oabNumber.toUpperCase(),
           userId: user?.id || 'anonymous',

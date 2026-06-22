@@ -150,18 +150,13 @@ export async function performPredictiveAnalysis(input: PredictiveAnalysisInput):
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-  // 1. Verificar o status atual e contagem do usuário no Supabase antes de rodar a IA
-  const { data: profile } = await supabase
-
-  // 1. Verificar o status atual e contagem do usuário no Supabase antes de rodar a IA
   const { data: profile } = await supabase
     .from('profiles')
     .select('free_uses_count, is_premium')
     .single();
 
-  // 2. Se o usuário não for premium e já usou 3 ou mais vezes, barra aqui!
   if (!profile?.is_premium && (profile?.free_uses_count || 0) >= 3) {
-    throw new Error("LIMIT_EXCEEDED"); // Enviamos um erro específico para o componente tratar
+    throw new Error("LIMIT_EXCEEDED");
   }
 
   const userId = getUserId();
@@ -188,7 +183,6 @@ export async function performPredictiveAnalysis(input: PredictiveAnalysisInput):
 
     const result = await response.json();
 
-    // 3. Se a análise deu certo e ele é usuário free, incrementa +1 uso no banco
     if (!profile?.is_premium) {
       await supabase
         .from('profiles')
@@ -203,6 +197,7 @@ export async function performPredictiveAnalysis(input: PredictiveAnalysisInput):
     throw error;
   }
 }
+
 export async function performJurisprudenceSearch(input: JurisprudenceSearchInput): Promise<JurisprudenceSearchResult> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error("Supabase não configurado. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY")

@@ -28,8 +28,9 @@ export default function Login() {
         await signUpWithEmail(email, password, {
           data: { name: name }
         })
-        setSuccessMessage("Cadastro realizado! Acesse a caixa de entrada do seu e-mail para validar sua conta antes de fazer o login.")
-        // Limpa o formulário após registrar
+        setSuccessMessage("Cadastro realizado com sucesso! Agora você já pode fazer login.")
+        setIsSignUp(false)
+       
         setName("")
         setEmail("")
         setPassword("")

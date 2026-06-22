@@ -6,6 +6,7 @@ import Dashboard from "@/pages/Dashboard"
 import Onboarding from "@/pages/Onboarding"
 import PredictiveAI from "@/pages/PredictiveAI"
 import Jurisprudence from "@/pages/Jurisprudence"
+import RedTeam from "@/pages/RedTeam"
 
 // Componente Guardião de Rotas Privadas
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="predictive" element={<PredictiveAI />} />
             <Route path="jurisprudence" element={<Jurisprudence />} />
+            <Route path="red-team" element={<RedTeam />} />
             {/* Redirecionamento base do painel */}
             <Route index element={<Navigate to="onboarding" replace />} />
           </Route>

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -52,15 +53,26 @@ export default function Onboarding() {
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-      const response = await fetch(`${supabaseUrl}/functions/v1/setup-oab`, {
-        method: 'POST',
-        headers: {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${supabaseKey}`,
-  'apikey': supabaseKey,
-},
+if (!supabase) {
+  throw new Error("Supabase não inicializado")
+}
+
+const { data: sessionData } = await supabase.auth.getSession()
+const accessToken = sessionData.session?.access_token
+
+if (!accessToken) {
+  throw new Error("Sessão expirada. Faça login novamente.")
+}
+
+const response = await fetch(`${supabaseUrl}/functions/v1/setup-oab`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${accessToken}`,
+    'apikey': supabaseKey,
+  },
         body: JSON.stringify({
           oabNumber: oabNumber.toUpperCase(),
           userId: user?.id || 'anonymous',

@@ -165,9 +165,10 @@ export async function performPredictiveAnalysis(input: PredictiveAnalysisInput):
     const response = await fetch(`${SUPABASE_URL}/functions/v1/super-responder`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      },
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  'apikey': SUPABASE_ANON_KEY,
+},
       body: JSON.stringify({
         caseNumber: input.caseNumber,
         caseDescription: input.caseDescription,
@@ -209,9 +210,10 @@ export async function performJurisprudenceSearch(input: JurisprudenceSearchInput
     const response = await fetch(`${SUPABASE_URL}/functions/v1/rapid-api`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      },
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  'apikey': SUPABASE_ANON_KEY,
+},
       body: JSON.stringify({
         theme: input.theme,
         court: input.court,

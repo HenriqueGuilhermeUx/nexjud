@@ -1,3 +1,5 @@
+import { createClient } from "@supabase/supabase-js"
+
 // NexJud API - Connects to Supabase Edge Functions
 // Uses real APIs: CNJ, Escavador, OpenAI
 
@@ -145,6 +147,11 @@ export async function performPredictiveAnalysis(input: PredictiveAnalysisInput):
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error("Supabase não configurado.");
   }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+  // 1. Verificar o status atual e contagem do usuário no Supabase antes de rodar a IA
+  const { data: profile } = await supabase
 
   // 1. Verificar o status atual e contagem do usuário no Supabase antes de rodar a IA
   const { data: profile } = await supabase

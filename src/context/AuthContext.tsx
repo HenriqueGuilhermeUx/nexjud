@@ -7,7 +7,7 @@ interface AuthContextType {
   session: Session | null
   loading: boolean
   signInWithEmail: (email: string, password: string) => Promise<any>
-  signUpWithEmail: (email: string, password: string) => Promise<any>
+  signUpWithEmail: (email: string, password: string, options?: any) => Promise<any>
   signOut: () => Promise<void>
   isConfigured: boolean
 }
@@ -63,15 +63,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data
   }
 
-  const signUpWithEmail = async (email: string, password: string) => {
+  const signUpWithEmail = async (email: string, password: string, options?: any) => {
     if (!supabase) throw new Error("Supabase not configured")
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin + "/dashboard",
-      },
-    })
+  email,
+  password,
+  options: {
+    emailRedirectTo: window.location.origin + "/dashboard",
+    ...options,
+  },
+})
     if (error) throw error
     return data
   }

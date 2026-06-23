@@ -9,6 +9,7 @@ import {
   FileText,
   History as HistoryIcon,
   ShieldAlert,
+  Wand2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
@@ -19,6 +20,7 @@ import StrategicReport from "./StrategicReport"
 import HomeDashboard from "./HomeDashboard"
 import History from "./History"
 import RedTeamSimulator from "./RedTeamSimulator"
+import DraftGenerator from "./DraftGenerator"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -36,6 +38,7 @@ export default function Dashboard() {
 
   const isHomeActive = location.pathname === "/dashboard"
   const isRedTeamSimulatorActive = location.pathname.includes("red-team-simulator")
+  const isDraftGeneratorActive = location.pathname.includes("draft-generator")
   const isReportsActive = location.pathname.includes("reports")
   const isHistoryActive = location.pathname.includes("history")
 
@@ -137,6 +140,12 @@ export default function Dashboard() {
             label="Simulador Red Team"
             active={isRedTeamSimulatorActive}
           />
+          <NavItem
+            to="/dashboard/draft-generator"
+            icon={Wand2}
+            label="Gerador de Minutas"
+            active={isDraftGeneratorActive}
+          />
           <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
           <NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
         </nav>
@@ -199,6 +208,8 @@ export default function Dashboard() {
             <HomeDashboard />
           ) : isRedTeamSimulatorActive ? (
             <RedTeamSimulator />
+          ) : isDraftGeneratorActive ? (
+            <DraftGenerator />
           ) : isReportsActive ? (
             <StrategicReport />
           ) : isHistoryActive ? (

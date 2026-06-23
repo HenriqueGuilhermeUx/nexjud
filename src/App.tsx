@@ -10,6 +10,7 @@ import Jurisprudence from "@/pages/Jurisprudence"
 import RedTeam from "@/pages/RedTeam"
 import StrategicReport from "@/pages/StrategicReport"
 import HomeDashboard from "@/pages/HomeDashboard"
+import History from "@/pages/History"
 
 // Componente Guardião de Rotas Privadas
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="jurisprudence" element={<Jurisprudence />} />
             <Route path="red-team" element={<RedTeam />} />
             <Route path="reports" element={<StrategicReport />} />
+            <Route path="history" element={<History />} />
             {/* Redirecionamento base do painel */}
             <Route index element={<Navigate to="onboarding" replace />} />
           </Route>

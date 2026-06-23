@@ -128,7 +128,6 @@ export default function Dashboard() {
 
         <nav className="p-4 space-y-2">
           <NavItem to="/dashboard" icon={LayoutDashboard} label="Home" active={isHomeActive} />
-          <NavItem to="/dashboard/onboarding" icon={Zap} label="Setup Zero (OAB)" active={isOnboardingActive} />
           <NavItem to="/dashboard/process-check" icon={FileSearch} label="Verificar Processo" active={isProcessCheckActive} />
           <NavItem to="/dashboard/predictive" icon={Brain} label="IA Preditiva" active={isPredictiveActive} />
           <NavItem to="/dashboard/jurisprudence" icon={BookOpen} label="Jurisprudência" active={isJurisprudenceActive} />

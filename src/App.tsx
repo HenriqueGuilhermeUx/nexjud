@@ -8,6 +8,7 @@ import ProcessCheck from "@/pages/ProcessCheck"
 import PredictiveAI from "@/pages/PredictiveAI"
 import Jurisprudence from "@/pages/Jurisprudence"
 import RedTeam from "@/pages/RedTeam"
+import StrategicReport from "@/pages/StrategicReport"
 
 // Componente Guardião de Rotas Privadas
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="predictive" element={<PredictiveAI />} />
             <Route path="jurisprudence" element={<Jurisprudence />} />
             <Route path="red-team" element={<RedTeam />} />
+            <Route path="reports" element={<StrategicReport />} />
             {/* Redirecionamento base do painel */}
             <Route index element={<Navigate to="onboarding" replace />} />
           </Route>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from "react"
 import {
   Brain,
   Target,
@@ -9,30 +9,36 @@ import {
   FileText,
   Loader2,
   Sparkles,
-} from "lucide-react";
+} from "lucide-react"
 
-import { useAuth } from "@/context/AuthContext";
-import { saveAnalysis } from "@/services/strategicAnalysisService";
+import { useAuth } from "@/context/AuthContext"
+import { saveAnalysis } from "@/services/strategicAnalysisService"
 
 export default function HomeDashboard() {
-  const { user } = useAuth();
+  const { user } = useAuth()
 
-  const [caseText, setCaseText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [caseText, setCaseText] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [analysisResult, setAnalysisResult] = useState<any>(null)
+
+  function loadExample() {
+    setCaseText(
+      "Ação trabalhista. Reclamante pede reconhecimento de vínculo empregatício e horas extras. Há mensagens de WhatsApp com ordens diárias, comprovantes de pagamento recorrente, testemunhas e registros de entrada no local. A empresa alega autonomia e prestação eventual."
+    )
+  }
 
   async function handleAnalyze() {
     if (!caseText.trim()) {
-      alert("Cole um caso, tese, petição ou número CNJ primeiro.");
-      return;
+      alert("Cole um caso, tese, petição ou número CNJ primeiro.")
+      return
     }
 
     if (!user?.id) {
-      alert("Faça login novamente para salvar a análise.");
-      return;
+      alert("Faça login novamente para salvar a análise.")
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
 
     try {
       const result = {
@@ -40,7 +46,6 @@ export default function HomeDashboard() {
         riskLevel: "Médio",
         complexity: "Baixa",
         financialPotential: "R$ 180.000",
-
         heatmap: [
           ["Força das Provas", 92],
           ["Jurisprudência Favorável", 84],
@@ -48,7 +53,6 @@ export default function HomeDashboard() {
           ["Nexo Causal", 78],
           ["Dano Moral", 55],
         ],
-
         caseDna: {
           provas: 92,
           jurisprudencia: 84,
@@ -56,35 +60,30 @@ export default function HomeDashboard() {
           nexo: 78,
           danoMoral: 55,
         },
-
         dealBreakers: [
           "Ausência de prova documental relevante pode enfraquecer o pedido principal.",
           "Jurisprudência recente desfavorável pode reduzir margem de êxito.",
           "Prescrição parcial deve ser analisada antes de protocolar.",
         ],
-
         redTeam: [
           "Parte contrária alegará ausência de vínculo direto entre fato e dano.",
           "Defesa pode sustentar fragilidade probatória e ausência de documento essencial.",
           "Pode haver tentativa de deslocar a discussão para culpa exclusiva do autor.",
         ],
-
         strategyEngine: [
           "Organizar linha do tempo objetiva dos fatos.",
           "Anexar documentos centrais antes de ampliar a tese.",
           "Antecipar a principal objeção da parte contrária na petição.",
           "Avaliar acordo se o custo operacional superar o retorno provável.",
         ],
-
         judgeDna: {
           valoriza: ["Documentos", "Perícia técnica", "Linha do tempo clara"],
           rejeita: ["Alegações genéricas", "Dano moral sem prova", "Pedidos excessivos"],
         },
-
         partnerDecision: "ACEITARIA",
         partnerReason:
           "O caso possui boa relação risco-retorno, desde que a prova documental seja reforçada antes do próximo movimento processual.",
-      };
+      }
 
       await saveAnalysis({
         userId: user.id,
@@ -98,15 +97,15 @@ export default function HomeDashboard() {
         redTeam: result.redTeam,
         strategyEngine: result.strategyEngine,
         partnerDecision: result.partnerDecision,
-      });
+      })
 
-      setAnalysisResult(result);
-      alert("Análise salva no histórico.");
+      setAnalysisResult(result)
+      alert("Análise salva no histórico.")
     } catch (error) {
-      console.error(error);
-      alert("Erro ao gerar/salvar análise.");
+      console.error(error)
+      alert("Erro ao gerar/salvar análise.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
@@ -116,7 +115,7 @@ export default function HomeDashboard() {
     ["Risco de Prescrição", 0],
     ["Nexo Causal", 0],
     ["Dano Moral", 0],
-  ];
+  ]
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -140,28 +139,28 @@ export default function HomeDashboard() {
                 Cole um resumo, tese, petição ou número CNJ. O NexJud transforma o caso em score,
                 riscos, Red Team, estratégia e parecer executivo.
               </p>
-
-              <div className="grid sm:grid-cols-3 gap-3 text-sm text-gray-300">
-                <div className="rounded-xl bg-white/5 border border-white/10 p-3">
-                  ✓ Case DNA™
-                </div>
-                <div className="rounded-xl bg-white/5 border border-white/10 p-3">
-                  ✓ Deal Breakers™
-                </div>
-                <div className="rounded-xl bg-white/5 border border-white/10 p-3">
-                  ✓ Sócio IA™
-                </div>
-              </div>
             </div>
 
             <div className="w-full lg:w-[380px] rounded-2xl border border-primary/20 bg-primary/5 p-5">
               <p className="text-sm text-gray-400 mb-2">Diagnóstico rápido</p>
-              <div className="text-5xl font-bold text-green-400">
-                {analysisResult?.successProbability || 0}%
-              </div>
-              <p className="text-sm text-gray-400 mt-2">
-                chance estratégica estimada
-              </p>
+
+              {analysisResult ? (
+                <>
+                  <div className="text-5xl font-bold text-green-400">
+                    {analysisResult.successProbability}%
+                  </div>
+                  <p className="text-sm text-gray-400 mt-2">chance estratégica estimada</p>
+                </>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-gray-300">
+                    Aguardando caso
+                  </div>
+                  <p className="text-sm text-gray-400 mt-2">
+                    Cole um caso para gerar seu primeiro diagnóstico.
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
@@ -193,6 +192,7 @@ export default function HomeDashboard() {
               </button>
 
               <button
+                onClick={loadExample}
                 className="px-7 py-4 rounded-2xl bg-[#171721] border border-[#2a2a35] font-bold hover:bg-[#20202b]"
               >
                 Exemplo de caso
@@ -202,42 +202,14 @@ export default function HomeDashboard() {
         </section>
 
         <section className="grid md:grid-cols-4 gap-4">
-          <div className="bg-[#111118] rounded-2xl p-5 border border-[#2a2a35]">
-            <p className="text-sm text-gray-400">Chance de Êxito</p>
-            <h2 className="text-4xl font-bold text-green-400">
-              {analysisResult?.successProbability || 0}%
-            </h2>
-          </div>
-
-          <div className="bg-[#111118] rounded-2xl p-5 border border-[#2a2a35]">
-            <p className="text-sm text-gray-400">Risco</p>
-            <h2 className="text-3xl font-bold text-yellow-400">
-              {analysisResult?.riskLevel || "-"}
-            </h2>
-          </div>
-
-          <div className="bg-[#111118] rounded-2xl p-5 border border-[#2a2a35]">
-            <p className="text-sm text-gray-400">Complexidade</p>
-            <h2 className="text-3xl font-bold">
-              {analysisResult?.complexity || "-"}
-            </h2>
-          </div>
-
-          <div className="bg-[#111118] rounded-2xl p-5 border border-[#2a2a35]">
-            <p className="text-sm text-gray-400">Potencial Financeiro</p>
-            <h2 className="text-3xl font-bold text-primary">
-              {analysisResult?.financialPotential || "-"}
-            </h2>
-          </div>
+          <Metric title="Chance de Êxito" value={analysisResult ? `${analysisResult.successProbability}%` : "-"} color="text-green-400" />
+          <Metric title="Risco" value={analysisResult?.riskLevel || "-"} color="text-yellow-400" />
+          <Metric title="Complexidade" value={analysisResult?.complexity || "-"} />
+          <Metric title="Potencial Financeiro" value={analysisResult?.financialPotential || "-"} color="text-primary" />
         </section>
 
         <section className="grid lg:grid-cols-2 gap-6">
-          <div className="bg-[#111118] rounded-2xl border border-[#2a2a35] p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <TrendingUp className="text-primary" />
-              <h2 className="font-bold text-xl">Heatmap Jurídico™</h2>
-            </div>
-
+          <CardTitle icon={<TrendingUp className="text-primary" />} title="Heatmap Jurídico™">
             <div className="space-y-4">
               {heatmap.map(([label, value]: any) => (
                 <div key={label}>
@@ -251,65 +223,44 @@ export default function HomeDashboard() {
                 </div>
               ))}
             </div>
-          </div>
+          </CardTitle>
 
-          <div className="bg-[#111118] rounded-2xl border border-red-900/70 p-6">
-            <div className="flex items-center gap-2 mb-4 text-red-400">
-              <AlertTriangle />
-              <h2 className="font-bold text-xl">Deal Breakers™</h2>
-            </div>
-
-            <ul className="space-y-3 text-gray-300">
-              {(analysisResult?.dealBreakers || []).map((item: string, index: number) => (
-                <li key={index}>❌ {item}</li>
-              ))}
-            </ul>
-
-            {!analysisResult && (
-              <p className="text-gray-500">
-                Os fatores críticos aparecerão aqui após a análise.
-              </p>
+          <CardTitle icon={<AlertTriangle />} title="Deal Breakers™" danger>
+            {analysisResult ? (
+              <ul className="space-y-3 text-gray-300">
+                {analysisResult.dealBreakers.map((item: string, index: number) => (
+                  <li key={index}>❌ {item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500">Os fatores críticos aparecerão aqui após a análise.</p>
             )}
-          </div>
+          </CardTitle>
         </section>
 
         <section className="grid lg:grid-cols-2 gap-6">
-          <div className="bg-[#111118] rounded-2xl border border-[#2a2a35] p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <ShieldAlert className="text-red-400" />
-              <h2 className="font-bold text-xl">Red Team™</h2>
-            </div>
+          <CardTitle icon={<ShieldAlert className="text-red-400" />} title="Red Team™">
+            {analysisResult ? (
+              <div className="space-y-4">
+                {analysisResult.redTeam.map((item: string, index: number) => (
+                  <div key={index} className="p-4 rounded-xl bg-[#0f0f15] border border-white/5">
+                    <h3 className="font-bold mb-2">Ataque #{index + 1}</h3>
+                    <p className="text-gray-300">{item}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">A simulação da parte contrária aparecerá aqui.</p>
+            )}
+          </CardTitle>
 
-            <div className="space-y-4">
-              {(analysisResult?.redTeam || []).map((item: string, index: number) => (
-                <div key={index} className="p-4 rounded-xl bg-[#0f0f15] border border-white/5">
-                  <h3 className="font-bold mb-2">Ataque #{index + 1}</h3>
-                  <p className="text-gray-300">{item}</p>
-                </div>
-              ))}
-
-              {!analysisResult && (
-                <p className="text-gray-500">
-                  A simulação da parte contrária aparecerá aqui.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-[#111118] rounded-2xl border border-[#2a2a35] p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Scale className="text-primary" />
-              <h2 className="font-bold text-xl">Judge DNA™</h2>
-            </div>
-
+          <CardTitle icon={<Scale className="text-primary" />} title="Judge DNA™">
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <h3 className="font-semibold mb-2 text-green-400">Valoriza</h3>
                 <ul className="space-y-2">
                   {(analysisResult?.judgeDna?.valoriza || ["Documentos", "Perícia técnica", "Linha do tempo clara"]).map(
-                    (item: string, index: number) => (
-                      <li key={index}>✓ {item}</li>
-                    )
+                    (item: string, index: number) => <li key={index}>✓ {item}</li>
                   )}
                 </ul>
               </div>
@@ -318,58 +269,73 @@ export default function HomeDashboard() {
                 <h3 className="font-semibold mb-2 text-red-400">Rejeita</h3>
                 <ul className="space-y-2">
                   {(analysisResult?.judgeDna?.rejeita || ["Alegações genéricas", "Dano moral sem prova", "Pedidos excessivos"]).map(
-                    (item: string, index: number) => (
-                      <li key={index}>✗ {item}</li>
-                    )
+                    (item: string, index: number) => <li key={index}>✗ {item}</li>
                   )}
                 </ul>
               </div>
             </div>
-          </div>
+          </CardTitle>
         </section>
 
         <section className="grid lg:grid-cols-2 gap-6">
-          <div className="bg-gradient-to-r from-primary/10 to-indigo-500/10 rounded-2xl border border-primary/30 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Target className="text-primary" />
-              <h2 className="font-bold text-xl">Se eu fosse seu sócio™</h2>
-            </div>
-
+          <CardTitle icon={<Target className="text-primary" />} title="Se eu fosse seu sócio™" highlight>
             <h3 className="text-3xl font-bold text-green-400 mb-3">
               {analysisResult?.partnerDecision || "-"}
             </h3>
-
             <p className="text-gray-300">
-              {analysisResult?.partnerReason ||
-                "A decisão estratégica aparecerá aqui após a análise."}
+              {analysisResult?.partnerReason || "A decisão estratégica aparecerá aqui após a análise."}
             </p>
-          </div>
+          </CardTitle>
 
-          <div className="bg-[#111118] rounded-2xl border border-[#2a2a35] p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="text-primary" />
-              <h2 className="font-bold text-xl">Strategy Engine™</h2>
-            </div>
-
-            <ul className="space-y-3 text-gray-300">
-              {(analysisResult?.strategyEngine || []).map((item: string, index: number) => (
-                <li key={index}>✓ {item}</li>
-              ))}
-            </ul>
-
-            {!analysisResult && (
-              <p className="text-gray-500">
-                O plano de ação recomendado aparecerá aqui.
-              </p>
+          <CardTitle icon={<FileText className="text-primary" />} title="Strategy Engine™">
+            {analysisResult ? (
+              <ul className="space-y-3 text-gray-300">
+                {analysisResult.strategyEngine.map((item: string, index: number) => (
+                  <li key={index}>✓ {item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500">O plano de ação recomendado aparecerá aqui.</p>
             )}
-          </div>
+          </CardTitle>
         </section>
 
-        <button className="w-full py-5 rounded-2xl bg-primary font-bold text-lg hover:opacity-90">
-          <FileText className="inline mr-2" />
-          GERAR RELATÓRIO EXECUTIVO
-        </button>
+        {analysisResult && (
+          <button className="w-full py-5 rounded-2xl bg-primary font-bold text-lg hover:opacity-90">
+            <FileText className="inline mr-2" />
+            GERAR RELATÓRIO EXECUTIVO
+          </button>
+        )}
       </div>
     </div>
-  );
+  )
+}
+
+function Metric({ title, value, color = "" }: { title: string; value: string; color?: string }) {
+  return (
+    <div className="bg-[#111118] rounded-2xl p-5 border border-[#2a2a35]">
+      <p className="text-sm text-gray-400">{title}</p>
+      <h2 className={`text-3xl font-bold ${color}`}>{value}</h2>
+    </div>
+  )
+}
+
+function CardTitle({ icon, title, children, danger, highlight }: any) {
+  return (
+    <div
+      className={`rounded-2xl border p-6 ${
+        highlight
+          ? "bg-gradient-to-r from-primary/10 to-indigo-500/10 border-primary/30"
+          : danger
+          ? "bg-[#111118] border-red-900/70"
+          : "bg-[#111118] border-[#2a2a35]"
+      }`}
+    >
+      <div className={`flex items-center gap-2 mb-4 ${danger ? "text-red-400" : ""}`}>
+        {icon}
+        <h2 className="font-bold text-xl">{title}</h2>
+      </div>
+      {children}
+    </div>
+  )
 }

@@ -1,35 +1,172 @@
 import { supabase } from "@/lib/supabase"
 
-export async function saveAnalysis(data: any) {
-  const {
-    userId,
-    title,
-    caseText,
-    successProbability,
-    riskLevel,
-    financialPotential,
-    caseDna,
-    dealBreakers,
-    redTeam,
-    strategyEngine,
-    partnerDecision,
-  } = data
+export interface StrategicAnalysis {
+  id?: string
 
-  const { error } = await supabase
+  userId: string
+
+  title: string
+  caseText: string
+
+  successProbability: number
+  riskLevel: string
+  financialPotential: string
+
+  caseDna?: any
+  dealBreakers?: any[]
+  redTeam?: any[]
+  strategyEngine?: any[]
+
+  partnerDecision?: string
+
+  createdAt?: string
+}
+
+/*
+|--------------------------------------------------------------------------
+| SALVAR ANÁLISE
+|--------------------------------------------------------------------------
+*/
+
+export async function saveAnalysis(
+  analysis: StrategicAnalysis
+) {
+  const { data, error } = await supabase
     .from("strategic_analyses")
     .insert({
-      user_id: userId,
-      title,
-      case_text: caseText,
-      success_probability: successProbability,
-      risk_level: riskLevel,
-      financial_potential: financialPotential,
-      case_dna: caseDna,
-      deal_breakers: dealBreakers,
-      red_team: redTeam,
-      strategy_engine: strategyEngine,
-      partner_decision: partnerDecision,
+      user_id: analysis.userId,
+
+      title: analysis.title,
+      case_text: analysis.caseText,
+
+      success_probability: analysis.successProbability,
+      risk_level: analysis.riskLevel,
+      financial_potential: analysis.financialPotential,
+
+      case_dna: analysis.caseDna || {},
+      deal_breakers: analysis.dealBreakers || [],
+      red_team: analysis.redTeam || [],
+      strategy_engine: analysis.strategyEngine || [],
+
+      partner_decision: analysis.partnerDecision || "",
+
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error("Erro ao salvar análise:", error)
+    throw error
+  }
+
+  return data
+}
+
+/*
+|--------------------------------------------------------------------------
+| LISTAR ANÁLISES DO USUÁRIO
+|--------------------------------------------------------------------------
+*/
+
+export async function getUserAnalyses(
+  userId: string
+) {
+  const { data, error } = await supabase
+    .from("strategic_analyses")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", {
+      ascending: false,
     })
 
-  if (error) throw error
+  if (error) {
+    console.error("Erro ao buscar análises:", error)
+    throw error
+  }
+
+  return data || []
+}
+
+/*
+|--------------------------------------------------------------------------
+| BUSCAR ANÁLISE ESPECÍFICA
+|--------------------------------------------------------------------------
+*/
+
+export async function getAnalysisById(
+  analysisId: string
+) {
+  const { data, error } = await supabase
+    .from("strategic_analyses")
+    .select("*")
+    .eq("id", analysisId)
+    .single()
+
+  if (error) {
+    console.error("Erro ao buscar análise:", error)
+    throw error
+  }
+
+  return data
+}
+
+/*
+|--------------------------------------------------------------------------
+| EXCLUIR ANÁLISE
+|--------------------------------------------------------------------------
+*/
+
+export async function deleteAnalysis(
+  analysisId: string
+) {
+  const { error } = await supabase
+    .from("strategic_analyses")
+    .delete()
+    .eq("id", analysisId)
+
+  if (error) {
+    console.error("Erro ao excluir análise:", error)
+    throw error
+  }
+
+  return true
+}
+
+/*
+|--------------------------------------------------------------------------
+| ESTATÍSTICAS DO USUÁRIO
+|--------------------------------------------------------------------------
+*/
+
+export async function getAnalysisStats(
+  userId: string
+) {
+  const analyses = await getUserAnalyses(userId)
+
+  const total = analyses.length
+
+  const averageSuccess =
+    total > 0
+      ? Math.round(
+          analyses.reduce(
+            (acc, item) =>
+              acc + (item.success_probability || 0),
+            0
+          ) / total
+        )
+      : 0
+
+  const acceptedCases = analyses.filter(
+    (item) =>
+      item.partner_decision
+        ?.toUpperCase()
+        .includes("ACEIT")
+  ).length
+
+  return {
+    total,
+    averageSuccess,
+    acceptedCases,
+  }
 }

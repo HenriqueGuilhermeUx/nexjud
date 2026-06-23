@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Brain, BookOpen, Menu, LogOut, User, Zap, CreditCard, ShieldAlert } from "lucide-react"
+import { Brain, BookOpen, Menu, LogOut, User, Zap, CreditCard, ShieldAlert, FileSearch } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
 import { wooviApi } from "@/lib/api"
@@ -10,6 +10,7 @@ import PredictiveAI from "./PredictiveAI"
 import Jurisprudence from "./Jurisprudence"
 import Onboarding from "./Onboarding"
 import RedTeam from "./RedTeam"
+import ProcessCheck from "./ProcessCheck"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -25,9 +26,10 @@ export default function Dashboard() {
 
   const WOOVI_PLAN_ID = "SEU_ID_DE_PLANO_WOOVI_AQUI"
 
+  const isOnboardingActive = location.pathname.includes("onboarding")
+  const isProcessCheckActive = location.pathname.includes("process-check")
   const isPredictiveActive = location.pathname.includes("predictive")
   const isJurisprudenceActive = location.pathname.includes("jurisprudence")
-  const isOnboardingActive = location.pathname.includes("onboarding")
   const isRedTeamActive = location.pathname.includes("red-team")
 
   useEffect(() => {
@@ -120,6 +122,7 @@ export default function Dashboard() {
 
         <nav className="p-4 space-y-2">
           <NavItem to="/dashboard/onboarding" icon={Zap} label="Setup Zero (OAB)" active={isOnboardingActive} />
+          <NavItem to="/dashboard/process-check" icon={FileSearch} label="Verificar Processo" active={isProcessCheckActive} />
           <NavItem to="/dashboard/predictive" icon={Brain} label="IA Preditiva" active={isPredictiveActive} />
           <NavItem to="/dashboard/jurisprudence" icon={BookOpen} label="Jurisprudência" active={isJurisprudenceActive} />
           <NavItem to="/dashboard/red-team" icon={ShieldAlert} label="Red Team" active={isRedTeamActive} />
@@ -174,6 +177,8 @@ export default function Dashboard() {
         <main>
           {isOnboardingActive ? (
             <Onboarding />
+          ) : isProcessCheckActive ? (
+            <ProcessCheck />
           ) : isPredictiveActive ? (
             <PredictiveAI />
           ) : isJurisprudenceActive ? (

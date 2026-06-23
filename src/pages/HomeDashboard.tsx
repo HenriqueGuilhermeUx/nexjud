@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/context/AuthContext"
 import { saveAnalysis } from "@/services/strategicAnalysisService"
 import { getDashboardStats } from "@/services/dashboardService"
+import { runStrategicAnalysis } from "@/services/strategicAiService"
 
 export default function HomeDashboard() {
   const { user } = useAuth()
@@ -64,62 +65,20 @@ export default function HomeDashboard() {
     setLoading(true)
 
     try {
-      const result = {
-        successProbability: 78,
-        riskLevel: "Médio",
-        complexity: "Baixa",
-        financialPotential: "R$ 180.000",
-        heatmap: [
-          ["Força das Provas", 92],
-          ["Jurisprudência Favorável", 84],
-          ["Risco de Prescrição", 35],
-          ["Nexo Causal", 78],
-          ["Dano Moral", 55],
-        ],
-        caseDna: {
-          provas: 92,
-          jurisprudencia: 84,
-          prescricao: 65,
-          nexo: 78,
-          danoMoral: 55,
-        },
-        dealBreakers: [
-          "Ausência de prova documental relevante pode enfraquecer o pedido principal.",
-          "Jurisprudência recente desfavorável pode reduzir margem de êxito.",
-          "Prescrição parcial deve ser analisada antes de protocolar.",
-        ],
-        redTeam: [
-          "Parte contrária alegará ausência de vínculo direto entre fato e dano.",
-          "Defesa pode sustentar fragilidade probatória e ausência de documento essencial.",
-          "Pode haver tentativa de deslocar a discussão para culpa exclusiva do autor.",
-        ],
-        strategyEngine: [
-          "Organizar linha do tempo objetiva dos fatos.",
-          "Anexar documentos centrais antes de ampliar a tese.",
-          "Antecipar a principal objeção da parte contrária na petição.",
-          "Avaliar acordo se o custo operacional superar o retorno provável.",
-        ],
-        judgeDna: {
-          valoriza: ["Documentos", "Perícia técnica", "Linha do tempo clara"],
-          rejeita: ["Alegações genéricas", "Dano moral sem prova", "Pedidos excessivos"],
-        },
-        partnerDecision: "ACEITARIA",
-        partnerReason:
-          "O caso possui boa relação risco-retorno, desde que a prova documental seja reforçada antes do próximo movimento processual.",
-      }
+      const result = await runStrategicAnalysis(caseText)
 
       await saveAnalysis({
         userId: user.id,
-        title: `Strategic Analysis ${new Date().toLocaleDateString("pt-BR")}`,
+        title: result.title || `Strategic Analysis ${new Date().toLocaleDateString("pt-BR")}`,
         caseText,
-        successProbability: result.successProbability,
-        riskLevel: result.riskLevel,
-        financialPotential: result.financialPotential,
-        caseDna: result.caseDna,
-        dealBreakers: result.dealBreakers,
-        redTeam: result.redTeam,
-        strategyEngine: result.strategyEngine,
-        partnerDecision: result.partnerDecision,
+        successProbability: result.successProbability || 0,
+        riskLevel: result.riskLevel || "-",
+        financialPotential: result.financialPotential || "-",
+        caseDna: result.caseDna || {},
+        dealBreakers: result.dealBreakers || [],
+        redTeam: result.redTeam || [],
+        strategyEngine: result.strategyEngine || [],
+        partnerDecision: result.partnerDecision || "-",
       })
 
       setAnalysisResult(result)
@@ -127,7 +86,7 @@ export default function HomeDashboard() {
       alert("Análise salva no histórico.")
     } catch (error) {
       console.error(error)
-      alert("Erro ao gerar/salvar análise.")
+      alert("Erro ao gerar/salvar análise. Verifique os logs da Edge Function strategic-analysis.")
     } finally {
       setLoading(false)
     }
@@ -171,7 +130,7 @@ export default function HomeDashboard() {
               {analysisResult ? (
                 <>
                   <div className="text-5xl font-bold text-green-400">
-                    {analysisResult.successProbability}%
+                    {analysisResult.successProbability || 0}%
                   </div>
                   <p className="text-sm text-gray-400 mt-2">chance estratégica estimada</p>
                 </>
@@ -250,7 +209,7 @@ export default function HomeDashboard() {
           <CardTitle icon={<AlertTriangle />} title="Deal Breakers™" danger>
             {analysisResult ? (
               <ul className="space-y-3 text-gray-300">
-                {analysisResult.dealBreakers.map((item: string, index: number) => (
+                {(analysisResult.dealBreakers || []).map((item: string, index: number) => (
                   <li key={index}>❌ {item}</li>
                 ))}
               </ul>
@@ -264,7 +223,7 @@ export default function HomeDashboard() {
           <CardTitle icon={<ShieldAlert className="text-red-400" />} title="Red Team™">
             {analysisResult ? (
               <div className="space-y-4">
-                {analysisResult.redTeam.map((item: string, index: number) => (
+                {(analysisResult.redTeam || []).map((item: string, index: number) => (
                   <div key={index} className="p-4 rounded-xl bg-[#0f0f15] border border-white/5">
                     <h3 className="font-bold mb-2">Ataque #{index + 1}</h3>
                     <p className="text-gray-300">{item}</p>
@@ -312,7 +271,7 @@ export default function HomeDashboard() {
           <CardTitle icon={<FileText className="text-primary" />} title="Strategy Engine™">
             {analysisResult ? (
               <ul className="space-y-3 text-gray-300">
-                {analysisResult.strategyEngine.map((item: string, index: number) => (
+                {(analysisResult.strategyEngine || []).map((item: string, index: number) => (
                   <li key={index}>✓ {item}</li>
                 ))}
               </ul>

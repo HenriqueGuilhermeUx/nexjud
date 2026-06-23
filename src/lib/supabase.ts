@@ -151,3 +151,28 @@ export async function getFavorites(userId: string, type?: string) {
   if (error) throw error
   return data
 }
+
+export async function deleteAnalysisHistoryItem(id: string, userId: string) {
+  const client = getSupabase()
+
+  const { error } = await client
+    .from("analysis_history")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId)
+
+  if (error) throw error
+}
+
+export function getAnalysisTypeLabel(type: string) {
+  const labels: Record<string, string> = {
+    predictive: "IA Preditiva",
+    jurisprudence: "Jurisprudência",
+    red_team: "Red Team",
+    process_check: "Verificação de Processo",
+    setup_oab: "Setup Zero OAB",
+    report: "Relatório Estratégico",
+  }
+
+  return labels[type] || "Análise"
+}

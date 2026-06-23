@@ -1,5 +1,17 @@
 import { Link } from "react-router-dom"
-import { Brain, BookOpen, ArrowRight, CheckCircle, Shield, Zap, Target, Users } from "lucide-react"
+import {
+  Brain,
+  BookOpen,
+  ArrowRight,
+  CheckCircle,
+  ShieldAlert,
+  Zap,
+  Target,
+  FileSearch,
+  FileText,
+  Clock,
+  BarChart3,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
@@ -7,9 +19,77 @@ import { useAuth } from "@/context/AuthContext"
 export default function Landing() {
   const { user } = useAuth()
 
+  const ctaLink = user ? "/dashboard" : "/login"
+  const ctaLabel = user ? "Acessar Plataforma" : "Começar Grátis"
+
+  const features = [
+    {
+      title: "Setup Zero OAB",
+      icon: Zap,
+      color: "text-amber-400",
+      border: "border-amber-500/20",
+      line: "from-amber-500 to-yellow-400",
+      description: "Digite a OAB e veja carteira, vitórias, derrotas, valores e oportunidades escondidas.",
+      items: ["Histórico processual", "Taxa de sucesso", "Valor total", "Oportunidades"],
+    },
+    {
+      title: "Verificar Processo",
+      icon: FileSearch,
+      color: "text-blue-400",
+      border: "border-blue-500/20",
+      line: "from-blue-500 to-cyan-400",
+      description: "Entenda fase, risco, última movimentação e próximo evento provável do processo.",
+      items: ["Fase processual", "Risco atual", "Alertas", "Próximos passos"],
+    },
+    {
+      title: "IA Preditiva",
+      icon: Brain,
+      color: "text-indigo-400",
+      border: "border-indigo-500/20",
+      line: "from-indigo-500 to-violet-500",
+      description: "Analise a força da tese, risco estratégico, heatmap e DNA decisório simulado.",
+      items: ["Chance estratégica", "DNA do juiz", "Heatmap", "Recomendação"],
+    },
+    {
+      title: "Jurisprudência",
+      icon: BookOpen,
+      color: "text-cyan-400",
+      border: "border-cyan-500/20",
+      line: "from-cyan-500 to-sky-400",
+      description: "Descubra tendências, argumentos vencedores e riscos jurisprudenciais por tribunal.",
+      items: ["Tendência", "Argumentos fortes", "Riscos", "Recomendações"],
+    },
+    {
+      title: "Red Team Jurídico",
+      icon: ShieldAlert,
+      color: "text-red-400",
+      border: "border-red-500/20",
+      line: "from-red-500 to-orange-400",
+      description: "Simule o ataque da parte contrária antes que ele aconteça no processo.",
+      items: ["Contra-argumentos", "Pontos fracos", "Provas faltantes", "Blindagem"],
+    },
+    {
+      title: "Relatórios Premium",
+      icon: FileText,
+      color: "text-purple-400",
+      border: "border-purple-500/20",
+      line: "from-purple-500 to-fuchsia-400",
+      description: "Transforme análises em relatórios estratégicos para decisão, cliente ou escritório.",
+      items: ["Resumo executivo", "Score", "Checklist", "Conclusão"],
+    },
+    {
+      title: "Histórico Estratégico",
+      icon: Clock,
+      color: "text-emerald-400",
+      border: "border-emerald-500/20",
+      line: "from-emerald-500 to-green-400",
+      description: "Salve análises e construa patrimônio jurídico dentro da plataforma.",
+      items: ["Análises salvas", "Relatórios", "Casos", "Memória do escritório"],
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
-      {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[#1e293b] bg-[#0a0a0f]/80 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -18,304 +98,212 @@ export default function Landing() {
             </div>
             <div>
               <span className="text-xl font-bold text-white">NexJud</span>
-              <p className="text-xs text-gray-400">Justiça Inteligente onDemand</p>
+              <p className="text-xs text-gray-400">Inteligência Jurídica Estratégica</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <Link to="/dashboard">
-                <Button className="bg-[#6366f1] hover:bg-[#5558e3] text-white">Acessar Plataforma</Button>
-              </Link>
-            ) : (
-              <Link to="/login">
-                <Button className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
-                  Login
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            )}
-          </div>
+
+          <Link to={ctaLink}>
+            <Button className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
+              {ctaLabel}
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
+      <section className="pt-36 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#6366f1]/10 via-transparent to-transparent" />
+
+        <div className="relative max-w-7xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#6366f1]/10 border border-[#6366f1]/20 mb-6">
-            <Brain className="w-4 h-4 text-[#22d3ee]" />
-            <span className="text-sm text-gray-400">Powered by Claude AI</span>
+            <Target className="w-4 h-4 text-[#22d3ee]" />
+            <span className="text-sm text-gray-300">Estratégia processual antes da decisão</span>
           </div>
 
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 text-white">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] to-[#22d3ee]">IA Preditiva</span>
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white leading-tight">
+            Descubra a força real da sua tese
             <br />
-            para Advogados
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] to-[#22d3ee]">
+              antes de protocolar, recorrer ou fazer acordo.
+            </span>
           </h1>
 
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
-            Análise inteligente de processos com previsão de resultado baseada em padrões jurisprudenciais.
-            DNA do juiz, heatmap de argumentos e muito mais.
+          <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-10">
+            O NexJud combina IA preditiva, jurisprudência estratégica, Red Team, verificação de processos,
+            relatórios premium e histórico inteligente em uma única plataforma para advogados.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            {user ? (
-              <Link to="/dashboard">
-                <Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
-                  Acessar Dashboard
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            ) : (
-              <Link to="/login">
-                <Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
-                  Começar Grátis
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            )}
+            <Link to={ctaLink}>
+              <Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
+                {ctaLabel}
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+
+            <a href="#funcionalidades">
+              <Button size="lg" variant="outline" className="gap-2 border-[#334155] text-white hover:bg-[#111827]">
+                Ver funcionalidades
+              </Button>
+            </a>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-8 max-w-3xl mx-auto">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-[#6366f1] mb-1">314K+</div>
-              <div className="text-sm text-gray-400">Advogados no Brasil</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="rounded-2xl border border-[#1e293b] bg-[#121218] p-6">
+              <div className="text-4xl font-bold text-[#6366f1] mb-1">7</div>
+              <div className="text-sm text-gray-400">módulos estratégicos</div>
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-[#22d3ee] mb-1">6 TRFs</div>
-              <div className="text-sm text-gray-400">Cobertura Nacional</div>
+            <div className="rounded-2xl border border-[#1e293b] bg-[#121218] p-6">
+              <div className="text-4xl font-bold text-[#22d3ee] mb-1">1</div>
+              <div className="text-sm text-gray-400">cockpit jurídico completo</div>
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-green-400 mb-1">&lt;2s</div>
-              <div className="text-sm text-gray-400">Tempo de Análise</div>
+            <div className="rounded-2xl border border-[#1e293b] bg-[#121218] p-6">
+              <div className="text-4xl font-bold text-green-400 mb-1">Pro</div>
+              <div className="text-sm text-gray-400">relatórios e histórico salvos</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0f0f14]">
+      <section id="funcionalidades" className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0f0f14]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">4 Soluções Jurídicas Inteligentes</h2>
-            <p className="text-gray-400 text-lg">Cada ferramenta foi desenvolvida para resolver um problema específico dos advogados</p>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-white">
+              Uma plataforma para decidir melhor
+            </h2>
+            <p className="text-gray-400 text-lg max-w-3xl mx-auto">
+              Não é apenas um chat jurídico. É um processo estratégico para avaliar, atacar,
+              fortalecer e documentar cada decisão importante.
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Feature 1: IA Preditiva */}
-            <Card className="border-[#6366f1]/20 bg-[#121218]">
-              <div className="h-2 bg-gradient-to-r from-[#6366f1] to-indigo-600" />
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-[#6366f1]/10 rounded-lg flex items-center justify-center">
-                    <Brain className="w-7 h-7 text-[#6366f1]" />
-                  </div>
-                  <CardTitle className="text-2xl text-white">IA Preditiva Jurídica</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-gray-400">
-                  Preveja resultados de processos com 85% de precisão. Nossa IA analisa padrões jurisprudenciais e o histórico do juiz para dar a você a melhor estratégia.
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Previsão de resultado</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>DNA do juiz</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Red Team simulation</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Heatmap de argumentos</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {features.map((feature) => {
+              const Icon = feature.icon
 
-            {/* Feature 2: Jurisprudência */}
-            <Card className="border-[#22d3ee]/20 bg-[#121218]">
-              <div className="h-2 bg-gradient-to-r from-[#22d3ee] to-cyan-400" />
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-[#22d3ee]/10 rounded-lg flex items-center justify-center">
-                    <BookOpen className="w-7 h-7 text-[#22d3ee]" />
-                  </div>
-                  <CardTitle className="text-2xl text-white">Pesquisa de Jurisprudência</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-gray-400">
-                  Encontre decisões favoráveis em segundos. Nossa IA busca em 6 tribunais e identifica padrões que você levaria horas para encontrar.
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Busca em 6 tribunais</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Identifica tendências</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Argumentos que funcionam</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Timeline de mudanças</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Feature 3: Setup Zero OAB */}
-            <Card className="border-[#f59e0b]/20 bg-[#121218]">
-              <div className="h-2 bg-gradient-to-r from-[#f59e0b] to-amber-400" />
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-[#f59e0b]/10 rounded-lg flex items-center justify-center">
-                    <Zap className="w-7 h-7 text-[#f59e0b]" />
-                  </div>
-                  <CardTitle className="text-2xl text-white">Setup Zero por OAB</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-gray-400">
-                  Carregue todo seu histórico de processos em segundos. Descubra suas taxas de vitória, casos similares e oportunidades perdidas automaticamente.
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Histórico completo</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Taxa de sucesso</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Valor total processos</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Gráficos visuais</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Feature 4: Red Team */}
-            <Card className="border-[#ef4444]/20 bg-[#121218]">
-              <div className="h-2 bg-gradient-to-r from-[#ef4444] to-red-400" />
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-[#ef4444]/10 rounded-lg flex items-center justify-center">
-                    <Target className="w-7 h-7 text-[#ef4444]" />
-                  </div>
-                  <CardTitle className="text-2xl text-white">Red Team Simulation</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-gray-400">
-                  Teste sua estratégia contra os melhores argumentos da parte contrária. Nossa IA simula o advogado do outro lado para fortalecer sua causa.
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Contra-argumentos</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Pontos fracos</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Fortalecer causa</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Relatório final</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              return (
+                <Card key={feature.title} className={`${feature.border} bg-[#121218] overflow-hidden`}>
+                  <div className={`h-2 bg-gradient-to-r ${feature.line}`} />
+                  <CardHeader>
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-white/5 rounded-lg flex items-center justify-center">
+                        <Icon className={`w-7 h-7 ${feature.color}`} />
+                      </div>
+                      <CardTitle className="text-2xl text-white">{feature.title}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <p className="text-gray-400">{feature.description}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {feature.items.map((item) => (
+                        <div key={item} className="flex items-center gap-2 text-sm text-gray-300">
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                          <span>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         </div>
       </section>
 
-      {/* How it Works */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Como Funciona</h2>
-            <p className="text-gray-400 text-lg">4 passos simples para decisões baseadas em dados</p>
-          </div>
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#22d3ee]/10 border border-[#22d3ee]/20 mb-6">
+                <BarChart3 className="w-4 h-4 text-[#22d3ee]" />
+                <span className="text-sm text-gray-300">Processo NexJud</span>
+              </div>
 
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-[#6366f1]/10 rounded-full flex items-center justify-center mb-4 relative">
-                <span className="text-2xl font-bold text-[#6366f1]">1</span>
-              </div>
-              <h3 className="font-bold mb-2 text-white">Insira os Dados</h3>
-              <p className="text-sm text-gray-400">Número do processo ou tema jurídico</p>
+              <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">
+                Do caso bruto ao relatório estratégico.
+              </h2>
+
+              <p className="text-gray-400 text-lg mb-8">
+                O NexJud organiza o raciocínio jurídico em uma sequência simples: entender o processo,
+                medir risco, buscar base jurisprudencial, simular a parte contrária e gerar relatório final.
+              </p>
+
+              <Link to={ctaLink}>
+                <Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
+                  Testar agora
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-[#6366f1]/10 rounded-full flex items-center justify-center mb-4 relative">
-                <span className="text-2xl font-bold text-[#6366f1]">2</span>
-              </div>
-              <h3 className="font-bold mb-2 text-white">IA Analisa</h3>
-              <p className="text-sm text-gray-400">Claude LLM processa em tempo real</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-[#6366f1]/10 rounded-full flex items-center justify-center mb-4 relative">
-                <span className="text-2xl font-bold text-[#6366f1]">3</span>
-              </div>
-              <h3 className="font-bold mb-2 text-white">Receba Insights</h3>
-              <p className="text-sm text-gray-400">Heatmap, previsão e recomendações</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-[#6366f1]/10 rounded-full flex items-center justify-center mb-4">
-                <span className="text-2xl font-bold text-[#6366f1]">4</span>
-              </div>
-              <h3 className="font-bold mb-2 text-white">Exporte</h3>
-              <p className="text-sm text-gray-400">PDF ou integre com seu fluxo</p>
+
+            <div className="space-y-4">
+              {[
+                "Informe OAB, processo ou tese",
+                "A IA identifica riscos, fase e força estratégica",
+                "A jurisprudência mostra tendências e argumentos úteis",
+                "O Red Team simula o ataque da parte contrária",
+                "O relatório final registra a decisão e salva no histórico",
+              ].map((step, index) => (
+                <div key={step} className="flex gap-4 rounded-2xl border border-[#1e293b] bg-[#121218] p-5">
+                  <div className="w-10 h-10 rounded-full bg-[#6366f1]/10 flex items-center justify-center shrink-0">
+                    <span className="font-bold text-[#6366f1]">{index + 1}</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white mb-1">Etapa {index + 1}</h3>
+                    <p className="text-gray-400">{step}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0f0f14]">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Pronto para Revolucionar Sua Prática?</h2>
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-3xl md:text-5xl font-bold mb-4 text-white">
+            Comece grátis. Evolua para o plano Pro.
+          </h2>
           <p className="text-gray-400 text-lg mb-8">
-            Junte-se a advogados que já economizam tempo e aumentam seus resultados com NexJud
+            Ideal para advogados que querem transformar análise jurídica em estratégia,
+            decisão e histórico profissional.
           </p>
-          {user ? (
-            <Link to="/dashboard">
+
+          <div className="rounded-3xl border border-[#6366f1]/20 bg-[#121218] p-8 mb-8">
+            <div className="text-gray-400 mb-2">Plano Pro</div>
+            <div className="text-5xl font-bold text-white mb-2">R$ 179,90</div>
+            <div className="text-gray-500 mb-6">por mês</div>
+
+            <div className="grid md:grid-cols-2 gap-3 text-left max-w-2xl mx-auto mb-8">
+              {[
+                "Análises estratégicas",
+                "Red Team jurídico",
+                "Relatórios premium",
+                "Histórico salvo",
+                "Jurisprudência estratégica",
+                "Cockpit do advogado",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-2 text-gray-300">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <Link to={ctaLink}>
               <Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
-                Acessar Dashboard
+                {ctaLabel}
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-          ) : (
-            <Link to="/login">
-              <Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
-                Começar Grátis
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          )}
+          </div>
+
+          <p className="text-xs text-gray-500">
+            O NexJud oferece apoio estratégico. A decisão jurídica final é sempre do advogado responsável.
+          </p>
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="border-t border-[#1e293b] py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -324,12 +312,8 @@ export default function Landing() {
             </div>
             <span className="text-white font-bold">NexJud</span>
           </div>
-          <p className="text-sm text-gray-400">
-            © 2026 NexJud. Todos os direitos reservados.
-          </p>
-          <p className="text-xs text-gray-500">
-            Desenvolvido por advogados, para advogados.
-          </p>
+          <p className="text-sm text-gray-400">© 2026 NexJud. Todos os direitos reservados.</p>
+          <p className="text-xs text-gray-500">Desenvolvido para decisões jurídicas mais estratégicas.</p>
         </div>
       </footer>
     </div>

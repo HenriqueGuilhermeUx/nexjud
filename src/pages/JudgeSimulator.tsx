@@ -8,8 +8,12 @@ import {
   Target,
 } from "lucide-react"
 import { runJudgeSimulator } from "@/services/judgeSimulatorService"
+import { useAuth } from "@/context/AuthContext"
+import { saveJudgeSession } from "@/services/judgeSessionService"
 
 export default function JudgeSimulator() {
+  const { user } = useAuth()
+
   const [caseText, setCaseText] = useState("")
   const [argument, setArgument] = useState("")
   const [hearingType, setHearingType] = useState("audiencia")
@@ -57,17 +61,31 @@ export default function JudgeSimulator() {
         history: nextHistory,
       })
 
-      setHistory([
+      const finalHistory = [
         ...nextHistory,
         {
           type: "judge",
           content: result.judgeReply,
           meta: result,
         },
-      ])
+      ]
+
+      setHistory(finalHistory)
+
+      if (user?.id) {
+        await saveJudgeSession({
+          userId: user.id,
+          title: `Judge Simulator ${new Date().toLocaleDateString("pt-BR")}`,
+          caseText,
+          hearingType,
+          difficulty,
+          history: finalHistory,
+          lastScore: Number(result.performanceScore || 0),
+        })
+      }
     } catch (error) {
       console.error(error)
-      alert("Erro ao simular juiz.")
+      alert("Erro ao simular/salvar juiz.")
     } finally {
       setLoading(false)
     }

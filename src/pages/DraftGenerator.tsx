@@ -12,6 +12,8 @@ import { useAuth } from "@/context/AuthContext"
 import { saveDraft } from "@/services/draftService"
 
 export default function DraftGenerator() {
+  const { user } = useAuth()
+
   const [caseText, setCaseText] = useState("")
   const [focus, setFocus] = useState("")
   const [draftType, setDraftType] = useState("peticao_inicial")
@@ -23,10 +25,8 @@ export default function DraftGenerator() {
 
     if (saved) {
       const parsed = JSON.parse(saved)
-
       setCaseText(parsed.caseText || "")
       setFocus(parsed.focus || "")
-
       localStorage.removeItem("nexjud_draft_context")
     }
   }, [])
@@ -57,25 +57,25 @@ export default function DraftGenerator() {
       })
 
       setResult(data)
+
+      if (user?.id) {
+        await saveDraft({
+          userId: user.id,
+          title: data.title || "Minuta NexJud",
+          draftType,
+          caseText,
+          focus,
+          result: data,
+        })
+      }
     } catch (error) {
       console.error(error)
-      alert("Erro ao gerar minuta.")
+      alert("Erro ao gerar/salvar minuta.")
     } finally {
       setLoading(false)
     }
   }
 
-if (user?.id) {
-  await saveDraft({
-    userId: user.id,
-    title: data.title || "Minuta NexJud",
-    draftType,
-    caseText,
-    focus,
-    result: data,
-  })
-}
-  
   function copyFullDraft() {
     if (!result) return
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Brain, BookOpen, Menu, LogOut, User, Zap, CreditCard, ShieldAlert, FileSearch, FileText, LayoutDashboard } from "lucide-react"
+import { Brain, BookOpen, Menu, LogOut, User, Zap, CreditCard, ShieldAlert, FileSearch, FileText, LayoutDashboard, History as HistoryIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
 import { wooviApi } from "@/lib/api"
@@ -13,6 +13,7 @@ import RedTeam from "./RedTeam"
 import ProcessCheck from "./ProcessCheck"
 import StrategicReport from "./StrategicReport"
 import HomeDashboard from "./HomeDashboard"
+import History from "./History"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const isJurisprudenceActive = location.pathname.includes("jurisprudence")
   const isRedTeamActive = location.pathname.includes("red-team")
   const isReportsActive = location.pathname.includes("reports")
+  const isHistoryActive = location.pathname.includes("history")
 
   useEffect(() => {
     async function checkUserSubscription() {
@@ -132,6 +134,7 @@ export default function Dashboard() {
           <NavItem to="/dashboard/jurisprudence" icon={BookOpen} label="Jurisprudência" active={isJurisprudenceActive} />
           <NavItem to="/dashboard/red-team" icon={ShieldAlert} label="Red Team" active={isRedTeamActive} />
           <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
+          <NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
         </nav>
 
         <div className="mx-4 p-3 bg-muted rounded-lg border border-border">
@@ -194,10 +197,12 @@ export default function Dashboard() {
   ) : isRedTeamActive ? (
     <RedTeam />
   ) : isReportsActive ? (
-    <StrategicReport />
-  ) : (
-    <HomeDashboard />
-  )}
+  <StrategicReport />
+) : isHistoryActive ? (
+  <History />
+) : (
+  <HomeDashboard />
+)}
 </main>
       </div>
 

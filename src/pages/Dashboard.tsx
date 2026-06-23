@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Wand2,
   Gavel,
+  Archive,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
@@ -22,6 +23,7 @@ import HomeDashboard from "./HomeDashboard"
 import History from "./History"
 import RedTeamSimulator from "./RedTeamSimulator"
 import DraftGenerator from "./DraftGenerator"
+import DraftHistory from "./DraftHistory"
 import JudgeSimulator from "./JudgeSimulator"
 
 export default function Dashboard() {
@@ -41,6 +43,7 @@ export default function Dashboard() {
   const isHomeActive = location.pathname === "/dashboard"
   const isRedTeamSimulatorActive = location.pathname.includes("red-team-simulator")
   const isDraftGeneratorActive = location.pathname.includes("draft-generator")
+  const isDraftHistoryActive = location.pathname.includes("draft-history")
   const isJudgeSimulatorActive = location.pathname.includes("judge-simulator")
   const isReportsActive = location.pathname.includes("reports")
   const isHistoryActive = location.pathname.includes("history")
@@ -159,6 +162,13 @@ export default function Dashboard() {
             active={isDraftGeneratorActive}
           />
 
+          <NavItem
+            to="/dashboard/draft-history"
+            icon={Archive}
+            label="Minutas Salvas"
+            active={isDraftHistoryActive}
+          />
+
           <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
           <NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
         </nav>
@@ -225,6 +235,8 @@ export default function Dashboard() {
             <JudgeSimulator />
           ) : isDraftGeneratorActive ? (
             <DraftGenerator />
+          ) : isDraftHistoryActive ? (
+            <DraftHistory />
           ) : isReportsActive ? (
             <StrategicReport />
           ) : isHistoryActive ? (

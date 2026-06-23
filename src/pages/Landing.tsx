@@ -23,15 +23,7 @@ export default function Landing() {
   const ctaLabel = user ? "Acessar Plataforma" : "Começar Grátis"
 
   const features = [
-    {
-      title: "Setup Zero OAB",
-      icon: Zap,
-      color: "text-amber-400",
-      border: "border-amber-500/20",
-      line: "from-amber-500 to-yellow-400",
-      description: "Digite a OAB e veja carteira, vitórias, derrotas, valores e oportunidades escondidas.",
-      items: ["Histórico processual", "Taxa de sucesso", "Valor total", "Oportunidades"],
-    },
+   
     {
       title: "Verificar Processo",
       icon: FileSearch,
@@ -150,8 +142,8 @@ export default function Landing() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             <div className="rounded-2xl border border-[#1e293b] bg-[#121218] p-6">
-              <div className="text-4xl font-bold text-[#6366f1] mb-1">7</div>
-              <div className="text-sm text-gray-400">módulos estratégicos</div>
+              <div className="text-4xl font-bold text-[#6366f1] mb-1">6</div>
+<div className="text-sm text-gray-400">módulos estratégicos</div>
             </div>
             <div className="rounded-2xl border border-[#1e293b] bg-[#121218] p-6">
               <div className="text-4xl font-bold text-[#22d3ee] mb-1">1</div>
@@ -238,7 +230,7 @@ export default function Landing() {
 
             <div className="space-y-4">
               {[
-                "Informe OAB, processo ou tese",
+                "Cole um processo, petição, tese ou resumo do caso",
                 "A IA identifica riscos, fase e força estratégica",
                 "A jurisprudência mostra tendências e argumentos úteis",
                 "O Red Team simula o ataque da parte contrária",

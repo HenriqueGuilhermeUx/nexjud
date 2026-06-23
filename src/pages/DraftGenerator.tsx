@@ -10,6 +10,7 @@ import {
 import { generateDraft } from "@/services/draftGeneratorService"
 import { useAuth } from "@/context/AuthContext"
 import { saveDraft } from "@/services/draftService"
+import { generateDraftPdf } from "@/services/draftPdf"
 
 export default function DraftGenerator() {
   const { user } = useAuth()
@@ -230,17 +231,26 @@ ${result.finalNote || "-"}
               </h2>
 
               {result && (
-                <button
-                  onClick={copyFullDraft}
-                  className="px-4 py-2 rounded-xl bg-primary text-white font-semibold flex items-center gap-2"
-                >
-                  <Copy size={16} />
-                  Copiar tudo
-                </button>
-              )}
-            </div>
+  <div className="flex gap-3">
+    <button
+      onClick={copyFullDraft}
+      className="px-4 py-2 rounded-xl bg-primary text-white font-semibold flex items-center gap-2"
+    >
+      <Copy size={16} />
+      Copiar tudo
+    </button>
 
-            {!result ? (
+    <button
+      onClick={() => generateDraftPdf(result)}
+      className="px-4 py-2 rounded-xl bg-[#171721] border border-[#2a2a35] font-semibold flex items-center gap-2"
+    >
+      <FileText size={16} />
+      Exportar PDF
+    </button>
+  </div>
+)}
+  
+              {!result ? (
               <p className="text-gray-500">
                 A minuta aparecerá aqui após a geração.
               </p>

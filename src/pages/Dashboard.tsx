@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Brain, BookOpen, Menu, LogOut, User, Zap, CreditCard, ShieldAlert, FileSearch } from "lucide-react"
+import { Brain, BookOpen, Menu, LogOut, User, Zap, CreditCard, ShieldAlert, FileSearch, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
 import { wooviApi } from "@/lib/api"
@@ -11,6 +11,7 @@ import Jurisprudence from "./Jurisprudence"
 import Onboarding from "./Onboarding"
 import RedTeam from "./RedTeam"
 import ProcessCheck from "./ProcessCheck"
+import StrategicReport from "./StrategicReport"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const isPredictiveActive = location.pathname.includes("predictive")
   const isJurisprudenceActive = location.pathname.includes("jurisprudence")
   const isRedTeamActive = location.pathname.includes("red-team")
+  const isReportsActive = location.pathname.includes("reports")
 
   useEffect(() => {
     async function checkUserSubscription() {
@@ -185,6 +187,8 @@ export default function Dashboard() {
             <Jurisprudence />
           ) : isRedTeamActive ? (
             <RedTeam />
+      ) : isReportsActive ? (
+  <StrategicReport />
           ) : (
             <Onboarding />
           )}

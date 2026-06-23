@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Brain, BookOpen, Menu, LogOut, User, Zap, CreditCard, ShieldAlert, FileSearch, FileText } from "lucide-react"
+import { Brain, BookOpen, Menu, LogOut, User, Zap, CreditCard, ShieldAlert, FileSearch, FileText, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
 import { wooviApi } from "@/lib/api"
@@ -12,6 +12,7 @@ import Onboarding from "./Onboarding"
 import RedTeam from "./RedTeam"
 import ProcessCheck from "./ProcessCheck"
 import StrategicReport from "./StrategicReport"
+import HomeDashboard from "./HomeDashboard"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -27,6 +28,7 @@ export default function Dashboard() {
 
   const WOOVI_PLAN_ID = "SEU_ID_DE_PLANO_WOOVI_AQUI"
 
+  const isHomeActive = location.pathname === "/dashboard"
   const isOnboardingActive = location.pathname.includes("onboarding")
   const isProcessCheckActive = location.pathname.includes("process-check")
   const isPredictiveActive = location.pathname.includes("predictive")
@@ -123,11 +125,13 @@ export default function Dashboard() {
         </div>
 
         <nav className="p-4 space-y-2">
+          <NavItem to="/dashboard" icon={LayoutDashboard} label="Home" active={isHomeActive} />
           <NavItem to="/dashboard/onboarding" icon={Zap} label="Setup Zero (OAB)" active={isOnboardingActive} />
           <NavItem to="/dashboard/process-check" icon={FileSearch} label="Verificar Processo" active={isProcessCheckActive} />
           <NavItem to="/dashboard/predictive" icon={Brain} label="IA Preditiva" active={isPredictiveActive} />
           <NavItem to="/dashboard/jurisprudence" icon={BookOpen} label="Jurisprudência" active={isJurisprudenceActive} />
           <NavItem to="/dashboard/red-team" icon={ShieldAlert} label="Red Team" active={isRedTeamActive} />
+          <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
         </nav>
 
         <div className="mx-4 p-3 bg-muted rounded-lg border border-border">
@@ -177,22 +181,24 @@ export default function Dashboard() {
         </header>
 
         <main>
-          {isOnboardingActive ? (
-            <Onboarding />
-          ) : isProcessCheckActive ? (
-            <ProcessCheck />
-          ) : isPredictiveActive ? (
-            <PredictiveAI />
-          ) : isJurisprudenceActive ? (
-            <Jurisprudence />
-          ) : isRedTeamActive ? (
-            <RedTeam />
-      ) : isReportsActive ? (
-  <StrategicReport />
-          ) : (
-            <Onboarding />
-          )}
-        </main>
+  {isHomeActive ? (
+    <HomeDashboard />
+  ) : isOnboardingActive ? (
+    <Onboarding />
+  ) : isProcessCheckActive ? (
+    <ProcessCheck />
+  ) : isPredictiveActive ? (
+    <PredictiveAI />
+  ) : isJurisprudenceActive ? (
+    <Jurisprudence />
+  ) : isRedTeamActive ? (
+    <RedTeam />
+  ) : isReportsActive ? (
+    <StrategicReport />
+  ) : (
+    <HomeDashboard />
+  )}
+</main>
       </div>
 
       {isPaywallOpen && (

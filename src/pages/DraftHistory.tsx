@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { FileText, Trash2, Copy } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { getUserDrafts, deleteDraft } from "@/services/draftService"
+import { generateDraftPdf } from "@/services/draftPdf"
 
 export default function DraftHistory() {
   const { user } = useAuth()
@@ -99,6 +100,14 @@ ${s.content}
                       <Copy size={16} />
                       Copiar
                     </button>
+
+                    <button
+  onClick={() => generateDraftPdf(item)}
+  className="px-4 py-2 rounded-xl bg-[#171721] border border-border font-semibold flex items-center gap-2"
+>
+  <FileText size={16} />
+  Exportar PDF
+</button>
 
                     <button
                       onClick={() => remove(item.id)}

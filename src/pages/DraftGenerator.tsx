@@ -8,6 +8,8 @@ import {
   CheckCircle,
 } from "lucide-react"
 import { generateDraft } from "@/services/draftGeneratorService"
+import { useAuth } from "@/context/AuthContext"
+import { saveDraft } from "@/services/draftService"
 
 export default function DraftGenerator() {
   const [caseText, setCaseText] = useState("")
@@ -63,6 +65,17 @@ export default function DraftGenerator() {
     }
   }
 
+if (user?.id) {
+  await saveDraft({
+    userId: user.id,
+    title: data.title || "Minuta NexJud",
+    draftType,
+    caseText,
+    focus,
+    result: data,
+  })
+}
+  
   function copyFullDraft() {
     if (!result) return
 

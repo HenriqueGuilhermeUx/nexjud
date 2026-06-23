@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   FileText,
   Loader2,
@@ -15,6 +15,19 @@ export default function DraftGenerator() {
   const [draftType, setDraftType] = useState("peticao_inicial")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
+
+  useEffect(() => {
+    const saved = localStorage.getItem("nexjud_draft_context")
+
+    if (saved) {
+      const parsed = JSON.parse(saved)
+
+      setCaseText(parsed.caseText || "")
+      setFocus(parsed.focus || "")
+
+      localStorage.removeItem("nexjud_draft_context")
+    }
+  }, [])
 
   function loadExample() {
     setCaseText(

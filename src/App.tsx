@@ -11,6 +11,7 @@ import RedTeam from "@/pages/RedTeam"
 import StrategicReport from "@/pages/StrategicReport"
 import HomeDashboard from "@/pages/HomeDashboard"
 import History from "@/pages/History"
+import RedTeamSimulator from "@/pages/RedTeamSimulator"
 
 // Componente Guardião de Rotas Privadas
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="red-team" element={<RedTeam />} />
             <Route path="reports" element={<StrategicReport />} />
             <Route path="history" element={<History />} />
+            <Route path="red-team-simulator" element={<RedTeamSimulator />} />
             {/* Redirecionamento base do painel */}
             <Route index element={<HomeDashboard />} />
           </Route>

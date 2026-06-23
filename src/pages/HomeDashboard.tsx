@@ -15,6 +15,7 @@ import { useAuth } from "@/context/AuthContext"
 import { saveAnalysis } from "@/services/strategicAnalysisService"
 import { getDashboardStats } from "@/services/dashboardService"
 import { runStrategicAnalysis } from "@/services/strategicAiService"
+import { generateStrategicPdf } from "@/services/pdfReport"
 
 export default function HomeDashboard() {
   const { user } = useAuth()
@@ -43,6 +44,42 @@ export default function HomeDashboard() {
     } catch (err) {
       console.error(err)
     }
+  }
+
+  function normalizePercent(value: any) {
+    const num = Number(value || 0)
+    if (num > 0 && num <= 10) return num * 10
+    if (num > 100) return 100
+    return num
+  }
+
+  function buildPdfAnalysis() {
+    if (!analysisResult) return null
+
+    return {
+      title: analysisResult.title || "NexJud Strategic Analysis",
+      created_at: new Date().toISOString(),
+      case_text: caseText,
+      success_probability: analysisResult.successProbability || 0,
+      risk_level: analysisResult.riskLevel || "-",
+      financial_potential: analysisResult.financialPotential || "-",
+      partner_decision: analysisResult.partnerDecision || "-",
+      case_dna: analysisResult.caseDna || {},
+      deal_breakers: analysisResult.dealBreakers || [],
+      red_team: analysisResult.redTeam || [],
+      strategy_engine: analysisResult.strategyEngine || [],
+    }
+  }
+
+  function handleGeneratePdf() {
+    const pdfData = buildPdfAnalysis()
+
+    if (!pdfData) {
+      alert("Gere uma análise primeiro.")
+      return
+    }
+
+    generateStrategicPdf(pdfData)
   }
 
   function loadExample() {
@@ -192,17 +229,22 @@ export default function HomeDashboard() {
         <section className="grid lg:grid-cols-2 gap-6">
           <CardTitle icon={<TrendingUp className="text-primary" />} title="Heatmap Jurídico™">
             <div className="space-y-4">
-              {heatmap.map(([label, value]: any) => (
-                <div key={label}>
-                  <div className="flex justify-between mb-1">
-                    <span>{label}</span>
-                    <span>{value}%</span>
+              {heatmap.map(([label, value]: any) => {
+                const normalized = normalizePercent(value)
+
+                return (
+                  <div key={label}>
+                    <div className="flex justify-between mb-1">
+                      <span>{label}</span>
+                      <span>{normalized}%</span>
+                    </div>
+
+                    <div className="h-3 bg-[#222] rounded-full overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: `${normalized}%` }} />
+                    </div>
                   </div>
-                  <div className="h-3 bg-[#222] rounded-full overflow-hidden">
-                    <div className="h-full bg-primary" style={{ width: `${value}%` }} />
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </CardTitle>
 
@@ -282,7 +324,10 @@ export default function HomeDashboard() {
         </section>
 
         {analysisResult && (
-          <button className="w-full py-5 rounded-2xl bg-primary font-bold text-lg hover:opacity-90">
+          <button
+            onClick={handleGeneratePdf}
+            className="w-full py-5 rounded-2xl bg-primary font-bold text-lg hover:opacity-90"
+          >
             <FileText className="inline mr-2" />
             GERAR RELATÓRIO EXECUTIVO
           </button>

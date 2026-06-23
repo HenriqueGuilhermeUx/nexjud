@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   Brain,
   Target,
@@ -9,6 +10,7 @@ import {
   FileText,
   Loader2,
   Sparkles,
+  Wand2,
 } from "lucide-react"
 
 import { useAuth } from "@/context/AuthContext"
@@ -19,6 +21,7 @@ import { generateStrategicPdf } from "@/services/pdfReport"
 
 export default function HomeDashboard() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   const [caseText, setCaseText] = useState("")
   const [loading, setLoading] = useState(false)
@@ -80,6 +83,34 @@ export default function HomeDashboard() {
     }
 
     generateStrategicPdf(pdfData)
+  }
+
+  function handleGenerateDraftFromAnalysis() {
+    if (!analysisResult) {
+      alert("Gere uma análise primeiro.")
+      return
+    }
+
+    localStorage.setItem(
+      "nexjud_draft_context",
+      JSON.stringify({
+        caseText,
+        focus: [
+          analysisResult.executiveSummary,
+          analysisResult.winningThesis,
+          analysisResult.defenseThesis,
+          analysisResult.settlementRecommendation,
+          ...(analysisResult.dealBreakers || []),
+          ...(analysisResult.redTeam || []),
+          ...(analysisResult.strategyEngine || []),
+          ...(analysisResult.nextMoves || []),
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      })
+    )
+
+    navigate("/dashboard/draft-generator")
   }
 
   function loadExample() {
@@ -391,13 +422,23 @@ export default function HomeDashboard() {
         </section>
 
         {analysisResult && (
-          <button
-            onClick={handleGeneratePdf}
-            className="w-full py-5 rounded-2xl bg-primary font-bold text-lg hover:opacity-90"
-          >
-            <FileText className="inline mr-2" />
-            GERAR RELATÓRIO EXECUTIVO
-          </button>
+          <div className="grid md:grid-cols-2 gap-4">
+            <button
+              onClick={handleGeneratePdf}
+              className="w-full py-5 rounded-2xl bg-primary font-bold text-lg hover:opacity-90"
+            >
+              <FileText className="inline mr-2" />
+              GERAR RELATÓRIO EXECUTIVO
+            </button>
+
+            <button
+              onClick={handleGenerateDraftFromAnalysis}
+              className="w-full py-5 rounded-2xl bg-[#171721] border border-[#2a2a35] font-bold text-lg hover:bg-[#20202b]"
+            >
+              <Wand2 className="inline mr-2" />
+              GERAR MINUTA COM ESTA ANÁLISE
+            </button>
+          </div>
         )}
       </div>
     </div>

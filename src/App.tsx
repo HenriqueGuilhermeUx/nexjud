@@ -62,7 +62,7 @@ export default function App() {
           </Route>
 
           {/* Fallback de rotas seguras */}
-          <Route index element={<HomeDashboard />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

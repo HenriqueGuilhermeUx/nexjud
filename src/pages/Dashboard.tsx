@@ -2,15 +2,11 @@ import { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
 import {
   Brain,
-  BookOpen,
   Menu,
   LogOut,
   User,
   CreditCard,
-  ShieldAlert,
-  FileSearch,
   FileText,
-  LayoutDashboard,
   History as HistoryIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -18,10 +14,6 @@ import { useAuth } from "@/context/AuthContext"
 import { wooviApi } from "@/lib/api"
 import { supabase } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
-import PredictiveAI from "./PredictiveAI"
-import Jurisprudence from "./Jurisprudence"
-import RedTeam from "./RedTeam"
-import ProcessCheck from "./ProcessCheck"
 import StrategicReport from "./StrategicReport"
 import HomeDashboard from "./HomeDashboard"
 import History from "./History"
@@ -31,20 +23,16 @@ export default function Dashboard() {
   const { user, signOut } = useAuth()
   const location = useLocation()
 
-  const [isPremium, setIsPremium] = useState<boolean>(false)
-  const [freeUses, setFreeUses] = useState<number>(0)
-  const [isPaywallOpen, setIsPaywallOpen] = useState<boolean>(false)
-  const [cpf, setCpf] = useState<string>("")
-  const [loadingPayment, setLoadingPayment] = useState<boolean>(false)
+  const [isPremium, setIsPremium] = useState(false)
+  const [freeUses, setFreeUses] = useState(0)
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false)
+  const [cpf, setCpf] = useState("")
+  const [loadingPayment, setLoadingPayment] = useState(false)
   const [pixData, setPixData] = useState<{ qrcode: string; brCode: string } | null>(null)
 
   const WOOVI_PLAN_ID = "SEU_ID_DE_PLANO_WOOVI_AQUI"
 
   const isHomeActive = location.pathname === "/dashboard"
-  const isProcessCheckActive = location.pathname.includes("process-check")
-  const isPredictiveActive = location.pathname.includes("predictive")
-  const isJurisprudenceActive = location.pathname.includes("jurisprudence")
-  const isRedTeamActive = location.pathname.includes("red-team")
   const isReportsActive = location.pathname.includes("reports")
   const isHistoryActive = location.pathname.includes("history")
 
@@ -99,17 +87,7 @@ export default function Dashboard() {
     }
   }
 
-  const NavItem = ({
-    to,
-    icon: Icon,
-    label,
-    active,
-  }: {
-    to: string
-    icon: any
-    label: string
-    active: boolean
-  }) => (
+  const NavItem = ({ to, icon: Icon, label, active }: any) => (
     <Link
       to={to}
       className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
@@ -127,10 +105,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background flex">
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       <aside
@@ -152,11 +127,7 @@ export default function Dashboard() {
         </div>
 
         <nav className="p-4 space-y-2">
-          <NavItem to="/dashboard" icon={LayoutDashboard} label="Home" active={isHomeActive} />
-          <NavItem to="/dashboard/process-check" icon={FileSearch} label="Verificar Processo" active={isProcessCheckActive} />
-          <NavItem to="/dashboard/predictive" icon={Brain} label="IA Preditiva" active={isPredictiveActive} />
-          <NavItem to="/dashboard/jurisprudence" icon={BookOpen} label="Jurisprudência" active={isJurisprudenceActive} />
-          <NavItem to="/dashboard/red-team" icon={ShieldAlert} label="Red Team" active={isRedTeamActive} />
+          <NavItem to="/dashboard" icon={Brain} label="Strategic Analysis" active={isHomeActive} />
           <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
           <NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
         </nav>
@@ -172,19 +143,13 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground font-medium">
-                Uso gratuito restante:
-              </p>
-
+              <p className="text-xs text-muted-foreground font-medium">Uso gratuito restante:</p>
               <div className="w-full bg-background rounded-full h-2 overflow-hidden border">
                 <div
                   className="bg-primary h-2 transition-all"
-                  style={{
-                    width: `${Math.max(0, ((3 - freeUses) / 3) * 100)}%`,
-                  }}
+                  style={{ width: `${Math.max(0, ((3 - freeUses) / 3) * 100)}%` }}
                 />
               </div>
-
               <p className="text-[10px] text-right font-bold text-primary">
                 {Math.max(0, 3 - freeUses)} / 3 restantes
               </p>
@@ -203,11 +168,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive"
-            onClick={signOut}
-          >
+          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive" onClick={signOut}>
             <LogOut className="w-4 h-4" />
             Sair
           </Button>
@@ -217,13 +178,9 @@ export default function Dashboard() {
       <div className="flex-1 lg:ml-64">
         <header className="sticky top-0 z-30 bg-card border-b border-border p-4 lg:hidden">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 hover:bg-muted rounded-lg"
-            >
+            <button onClick={() => setSidebarOpen(true)} className="p-2 hover:bg-muted rounded-lg">
               <Menu className="w-6 h-6" />
             </button>
-
             <span className="text-lg font-bold">NexJud</span>
           </div>
         </header>
@@ -231,14 +188,6 @@ export default function Dashboard() {
         <main>
           {isHomeActive ? (
             <HomeDashboard />
-          ) : isProcessCheckActive ? (
-            <ProcessCheck />
-          ) : isPredictiveActive ? (
-            <PredictiveAI />
-          ) : isJurisprudenceActive ? (
-            <Jurisprudence />
-          ) : isRedTeamActive ? (
-            <RedTeam />
           ) : isReportsActive ? (
             <StrategicReport />
           ) : isHistoryActive ? (
@@ -251,75 +200,31 @@ export default function Dashboard() {
 
       {isPaywallOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card w-full max-w-md border border-border p-6 rounded-xl shadow-2xl space-y-6 text-center animate-in fade-in zoom-in-95">
+          <div className="bg-card w-full max-w-md border border-border p-6 rounded-xl shadow-2xl space-y-6 text-center">
             <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
               <CreditCard className="w-6 h-6" />
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-xl font-bold text-foreground">
-                Limite gratuito atingido!
-              </h2>
-
+              <h2 className="text-xl font-bold text-foreground">Limite gratuito atingido!</h2>
               <p className="text-sm text-muted-foreground">
-                Suas 3 análises de cortesia acabaram. Assine o{" "}
-                <strong>Plano Premium da NexJud</strong> por{" "}
-                <strong>R$ 179,90/mês</strong> para liberar acessos ilimitados.
+                Suas 3 análises de cortesia acabaram. Assine o <strong>Plano Premium da NexJud</strong> por{" "}
+                <strong>R$ 179,90/mês</strong>.
               </p>
             </div>
 
             {!pixData ? (
               <div className="space-y-4 text-left">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-muted-foreground">
-                    Informe CPF/CNPJ para assinatura:
-                  </label>
-
-                  <Input
-                    placeholder="000.000.000-00"
-                    value={cpf}
-                    onChange={(e) => setCpf(e.target.value)}
-                  />
-                </div>
-
-                <Button
-                  className="w-full h-11 text-base font-medium"
-                  onClick={handleGerarPixAssinatura}
-                  disabled={loadingPayment}
-                >
-                  {loadingPayment ? "Gerando Pix Automático..." : "Ativar Premium Ilimitado"}
+                <Input placeholder="CPF/CNPJ" value={cpf} onChange={(e) => setCpf(e.target.value)} />
+                <Button className="w-full h-11" onClick={handleGerarPixAssinatura} disabled={loadingPayment}>
+                  {loadingPayment ? "Gerando Pix..." : "Ativar Premium"}
                 </Button>
               </div>
             ) : (
               <div className="space-y-4 flex flex-col items-center">
-                <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
-                  Escaneie para autorizar o Pix Recorrente
-                </span>
-
-                <img
-                  src={pixData.qrcode}
-                  alt="QR Code"
-                  className="w-44 h-44 border p-2 rounded bg-white"
-                />
-
-                <div className="w-full text-left space-y-1">
-                  <label className="text-xs font-bold text-muted-foreground">
-                    Copia e Cola:
-                  </label>
-
-                  <div className="flex gap-2">
-                    <Input readOnly value={pixData.brCode} className="font-mono text-xs" />
-
-                    <Button onClick={() => navigator.clipboard.writeText(pixData.brCode)}>
-                      Copiar
-                    </Button>
-                  </div>
-                </div>
-
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Ao pagar o primeiro mês, o banco configurará o Pix Automático para os meses seguintes.
-                  Sua tela destravará segundos após o pagamento.
-                </p>
+                <img src={pixData.qrcode} alt="QR Code" className="w-44 h-44 border p-2 rounded bg-white" />
+                <Input readOnly value={pixData.brCode} className="font-mono text-xs" />
+                <Button onClick={() => navigator.clipboard.writeText(pixData.brCode)}>Copiar Pix</Button>
               </div>
             )}
           </div>

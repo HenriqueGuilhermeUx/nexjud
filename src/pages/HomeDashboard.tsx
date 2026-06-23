@@ -226,6 +226,25 @@ export default function HomeDashboard() {
           <Metric title="Casos recusados" value={String(stats.rejected)} color="text-red-400" />
         </section>
 
+        <CardTitle icon={<Brain className="text-primary" />} title="Executive Summary™" highlight>
+          {analysisResult ? (
+            <div className="space-y-4">
+              <p className="text-gray-300 whitespace-pre-line">
+                {analysisResult.executiveSummary || "Resumo executivo não informado."}
+              </p>
+
+              <div className="grid md:grid-cols-4 gap-4">
+                <MiniBox label="Êxito" value={`${analysisResult.successProbability || 0}%`} color="text-green-400" />
+                <MiniBox label="Risco" value={analysisResult.riskLevel || "-"} />
+                <MiniBox label="Complexidade" value={analysisResult.complexity || "-"} />
+                <MiniBox label="Decisão" value={analysisResult.partnerDecision || "-"} color="text-primary" />
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500">O resumo executivo aparecerá aqui após a análise.</p>
+          )}
+        </CardTitle>
+
         <section className="grid lg:grid-cols-2 gap-6">
           <CardTitle icon={<TrendingUp className="text-primary" />} title="Heatmap Jurídico™">
             <div className="space-y-4">
@@ -301,6 +320,54 @@ export default function HomeDashboard() {
         </section>
 
         <section className="grid lg:grid-cols-2 gap-6">
+          <CardTitle icon={<Target className="text-green-400" />} title="Winning Thesis™" success>
+            <p className="text-gray-300">
+              {analysisResult?.winningThesis || "A tese vencedora aparecerá aqui após a análise."}
+            </p>
+          </CardTitle>
+
+          <CardTitle icon={<ShieldAlert className="text-red-400" />} title="Defense Thesis™" danger>
+            <p className="text-gray-300">
+              {analysisResult?.defenseThesis || "A tese defensiva aparecerá aqui após a análise."}
+            </p>
+          </CardTitle>
+        </section>
+
+        <CardTitle icon={<FileText className="text-primary" />} title="Evidence Checklist™">
+          {analysisResult ? (
+            <div className="grid md:grid-cols-2 gap-3">
+              {(analysisResult.evidenceChecklist || []).map((item: string, index: number) => (
+                <div key={index} className="bg-[#0f0f15] rounded-xl p-4 border border-white/5">
+                  ✓ {item}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">O checklist probatório aparecerá aqui.</p>
+          )}
+        </CardTitle>
+
+        <section className="grid lg:grid-cols-2 gap-6">
+          <CardTitle icon={<Scale className="text-yellow-400" />} title="Settlement Intelligence™" warning>
+            <p className="text-gray-300">
+              {analysisResult?.settlementRecommendation || "A recomendação sobre acordo aparecerá aqui."}
+            </p>
+          </CardTitle>
+
+          <CardTitle icon={<TrendingUp className="text-primary" />} title="Next Moves™">
+            {analysisResult ? (
+              <ul className="space-y-3 text-gray-300">
+                {(analysisResult.nextMoves || []).map((item: string, index: number) => (
+                  <li key={index}>➜ {item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500">Os próximos movimentos aparecerão aqui.</p>
+            )}
+          </CardTitle>
+        </section>
+
+        <section className="grid lg:grid-cols-2 gap-6">
           <CardTitle icon={<Target className="text-primary" />} title="Se eu fosse seu sócio™" highlight>
             <h3 className="text-3xl font-bold text-green-400 mb-3">
               {analysisResult?.partnerDecision || "-"}
@@ -346,7 +413,16 @@ function Metric({ title, value, color = "" }: { title: string; value: string; co
   )
 }
 
-function CardTitle({ icon, title, children, danger, highlight }: any) {
+function MiniBox({ label, value, color = "" }: { label: string; value: string; color?: string }) {
+  return (
+    <div className="bg-black/20 rounded-xl p-4 border border-white/5">
+      <p className="text-xs text-gray-400">{label}</p>
+      <p className={`text-xl font-bold ${color}`}>{value}</p>
+    </div>
+  )
+}
+
+function CardTitle({ icon, title, children, danger, highlight, success, warning }: any) {
   return (
     <div
       className={`rounded-2xl border p-6 ${
@@ -354,10 +430,14 @@ function CardTitle({ icon, title, children, danger, highlight }: any) {
           ? "bg-gradient-to-r from-primary/10 to-indigo-500/10 border-primary/30"
           : danger
           ? "bg-[#111118] border-red-900/70"
+          : success
+          ? "bg-[#111118] border-green-900/70"
+          : warning
+          ? "bg-[#111118] border-yellow-900/70"
           : "bg-[#111118] border-[#2a2a35]"
       }`}
     >
-      <div className={`flex items-center gap-2 mb-4 ${danger ? "text-red-400" : ""}`}>
+      <div className={`flex items-center gap-2 mb-4 ${danger ? "text-red-400" : success ? "text-green-400" : warning ? "text-yellow-400" : ""}`}>
         {icon}
         <h2 className="font-bold text-xl">{title}</h2>
       </div>

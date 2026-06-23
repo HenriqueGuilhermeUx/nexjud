@@ -58,7 +58,7 @@ export default function App() {
             <Route path="reports" element={<StrategicReport />} />
             <Route path="history" element={<History />} />
             {/* Redirecionamento base do painel */}
-            <Route index element={<Navigate to="onboarding" replace />} />
+            <Route index element={<HomeDashboard />} />
           </Route>
 
           {/* Fallback de rotas seguras */}

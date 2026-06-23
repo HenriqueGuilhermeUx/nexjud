@@ -8,6 +8,7 @@ import {
   CreditCard,
   FileText,
   History as HistoryIcon,
+  ShieldAlert,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
@@ -17,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import StrategicReport from "./StrategicReport"
 import HomeDashboard from "./HomeDashboard"
 import History from "./History"
+import RedTeamSimulator from "./RedTeamSimulator"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -33,6 +35,7 @@ export default function Dashboard() {
   const WOOVI_PLAN_ID = "SEU_ID_DE_PLANO_WOOVI_AQUI"
 
   const isHomeActive = location.pathname === "/dashboard"
+  const isRedTeamSimulatorActive = location.pathname.includes("red-team-simulator")
   const isReportsActive = location.pathname.includes("reports")
   const isHistoryActive = location.pathname.includes("history")
 
@@ -128,6 +131,12 @@ export default function Dashboard() {
 
         <nav className="p-4 space-y-2">
           <NavItem to="/dashboard" icon={Brain} label="Strategic Analysis" active={isHomeActive} />
+          <NavItem
+            to="/dashboard/red-team-simulator"
+            icon={ShieldAlert}
+            label="Simulador Red Team"
+            active={isRedTeamSimulatorActive}
+          />
           <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
           <NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
         </nav>
@@ -188,6 +197,8 @@ export default function Dashboard() {
         <main>
           {isHomeActive ? (
             <HomeDashboard />
+          ) : isRedTeamSimulatorActive ? (
+            <RedTeamSimulator />
           ) : isReportsActive ? (
             <StrategicReport />
           ) : isHistoryActive ? (

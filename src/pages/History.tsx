@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Trash2, ChevronDown, ChevronUp, FileText, Target, AlertTriangle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/context/AuthContext"
+import { generateStrategicPdf } from "@/services/pdfReport"
 
 export default function History() {
   const { user } = useAuth()
@@ -116,7 +117,7 @@ export default function History() {
                       </button>
 
                       <button
-                        onClick={() => alert("Exportação PDF entra no próximo passo.")}
+                        onClick={() => generateStrategicPdf(item)}
                         className="px-4 py-2 rounded-xl bg-[#171721] border border-border font-semibold flex items-center gap-2"
                       >
                         <FileText size={16} />

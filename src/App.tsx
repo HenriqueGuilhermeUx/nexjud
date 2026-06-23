@@ -4,6 +4,7 @@ import Landing from "@/pages/Landing"
 import Login from "@/pages/Login"
 import Dashboard from "@/pages/Dashboard"
 import Onboarding from "@/pages/Onboarding"
+import ProcessCheck from "@/pages/ProcessCheck"
 import PredictiveAI from "@/pages/PredictiveAI"
 import Jurisprudence from "@/pages/Jurisprudence"
 import RedTeam from "@/pages/RedTeam"
@@ -47,6 +48,7 @@ export default function App() {
             }
           >
             <Route path="onboarding" element={<Onboarding />} />
+            <Route path="process-check" element={<ProcessCheck />} />
             <Route path="predictive" element={<PredictiveAI />} />
             <Route path="jurisprudence" element={<Jurisprudence />} />
             <Route path="red-team" element={<RedTeam />} />

@@ -9,6 +9,7 @@ import PredictiveAI from "@/pages/PredictiveAI"
 import Jurisprudence from "@/pages/Jurisprudence"
 import RedTeam from "@/pages/RedTeam"
 import StrategicReport from "@/pages/StrategicReport"
+import HomeDashboard from "@/pages/HomeDashboard"
 
 // Componente Guardião de Rotas Privadas
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -59,7 +60,7 @@ export default function App() {
           </Route>
 
           {/* Fallback de rotas seguras */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route index element={<HomeDashboard />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

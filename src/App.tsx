@@ -12,9 +12,9 @@ import StrategicReport from "@/pages/StrategicReport"
 import HomeDashboard from "@/pages/HomeDashboard"
 import History from "@/pages/History"
 import RedTeamSimulator from "@/pages/RedTeamSimulator"
-import draftGenerator from "@/pages/draftGenerator"
+import DraftGenerator from "@/pages/DraftGenerator"
+import JudgeSimulator from "@/pages/JudgeSimulator"
 
-// Componente Guardião de Rotas Privadas
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
 
@@ -26,7 +26,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Se não estiver logado, redireciona estritamente para o login
   if (!user) {
     return <Navigate to="/login" replace />
   }
@@ -39,14 +38,12 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Rotas Públicas */}
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
 
-          {/* Rotas Protegidas e Autenticadas */}
           <Route
             path="/dashboard"
-            element = {
+            element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
@@ -61,11 +58,10 @@ export default function App() {
             <Route path="history" element={<History />} />
             <Route path="red-team-simulator" element={<RedTeamSimulator />} />
             <Route path="draft-generator" element={<DraftGenerator />} />
-            {/* Redirecionamento base do painel */}
+            <Route path="judge-simulator" element={<JudgeSimulator />} />
             <Route index element={<HomeDashboard />} />
           </Route>
 
-          {/* Fallback de rotas seguras */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

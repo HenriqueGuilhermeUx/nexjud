@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Brain,
   Target,
@@ -13,6 +13,7 @@ import {
 
 import { useAuth } from "@/context/AuthContext"
 import { saveAnalysis } from "@/services/strategicAnalysisService"
+import { getDashboardStats } from "@/services/dashboardService"
 
 export default function HomeDashboard() {
   const { user } = useAuth()
@@ -20,6 +21,28 @@ export default function HomeDashboard() {
   const [caseText, setCaseText] = useState("")
   const [loading, setLoading] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
+
+  const [stats, setStats] = useState({
+    total: 0,
+    avgSuccess: 0,
+    accepted: 0,
+    rejected: 0,
+  })
+
+  useEffect(() => {
+    loadStats()
+  }, [user])
+
+  async function loadStats() {
+    if (!user?.id) return
+
+    try {
+      const result = await getDashboardStats(user.id)
+      setStats(result)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   function loadExample() {
     setCaseText(
@@ -100,6 +123,7 @@ export default function HomeDashboard() {
       })
 
       setAnalysisResult(result)
+      await loadStats()
       alert("Análise salva no histórico.")
     } catch (error) {
       console.error(error)
@@ -153,9 +177,7 @@ export default function HomeDashboard() {
                 </>
               ) : (
                 <>
-                  <div className="text-2xl font-bold text-gray-300">
-                    Aguardando caso
-                  </div>
+                  <div className="text-2xl font-bold text-gray-300">Aguardando caso</div>
                   <p className="text-sm text-gray-400 mt-2">
                     Cole um caso para gerar seu primeiro diagnóstico.
                   </p>
@@ -202,10 +224,10 @@ export default function HomeDashboard() {
         </section>
 
         <section className="grid md:grid-cols-4 gap-4">
-          <Metric title="Chance de Êxito" value={analysisResult ? `${analysisResult.successProbability}%` : "-"} color="text-green-400" />
-          <Metric title="Risco" value={analysisResult?.riskLevel || "-"} color="text-yellow-400" />
-          <Metric title="Complexidade" value={analysisResult?.complexity || "-"} />
-          <Metric title="Potencial Financeiro" value={analysisResult?.financialPotential || "-"} color="text-primary" />
+          <Metric title="Análises salvas" value={String(stats.total)} />
+          <Metric title="Chance média" value={`${stats.avgSuccess}%`} color="text-green-400" />
+          <Metric title="Casos aceitos" value={String(stats.accepted)} color="text-primary" />
+          <Metric title="Casos recusados" value={String(stats.rejected)} color="text-red-400" />
         </section>
 
         <section className="grid lg:grid-cols-2 gap-6">

@@ -25,6 +25,7 @@ import RedTeamSimulator from "./RedTeamSimulator"
 import DraftGenerator from "./DraftGenerator"
 import DraftHistory from "./DraftHistory"
 import JudgeSimulator from "./JudgeSimulator"
+import JudgeHistory from "./JudgeHistory"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -45,8 +46,12 @@ export default function Dashboard() {
   const isDraftGeneratorActive = location.pathname.includes("draft-generator")
   const isDraftHistoryActive = location.pathname.includes("draft-history")
   const isJudgeSimulatorActive = location.pathname.includes("judge-simulator")
+  const isJudgeHistoryActive = location.pathname.includes("judge-history")
   const isReportsActive = location.pathname.includes("reports")
-  const isHistoryActive = location.pathname.includes("history")
+  const isHistoryActive =
+    location.pathname.includes("history") &&
+    !isDraftHistoryActive &&
+    !isJudgeHistoryActive
 
   useEffect(() => {
     async function checkUserSubscription() {
@@ -156,6 +161,13 @@ export default function Dashboard() {
           />
 
           <NavItem
+            to="/dashboard/judge-history"
+            icon={HistoryIcon}
+            label="Histórico Judge"
+            active={isJudgeHistoryActive}
+          />
+
+          <NavItem
             to="/dashboard/draft-generator"
             icon={Wand2}
             label="Gerador de Minutas"
@@ -233,6 +245,8 @@ export default function Dashboard() {
             <RedTeamSimulator />
           ) : isJudgeSimulatorActive ? (
             <JudgeSimulator />
+          ) : isJudgeHistoryActive ? (
+            <JudgeHistory />
           ) : isDraftGeneratorActive ? (
             <DraftGenerator />
           ) : isDraftHistoryActive ? (

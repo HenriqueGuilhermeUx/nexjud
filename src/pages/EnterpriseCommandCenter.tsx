@@ -41,29 +41,31 @@ export default function EnterpriseCommandCenter() {
   }, [user])
 
   async function load() {
-    if (!user?.id) return
+  if (!user?.id) return
 
-    setLoading(true)
+  setLoading(true)
 
-    try {
-      const [processData, reportData] = await Promise.all([
-        getUserProcesses(user.id),
-        getBoardReports(user.id),
-      ])
+  try {
+    const processData = await getUserProcesses(user.id).catch((error) => {
+      console.error("Erro ao carregar processos:", error)
+      return []
+    })
 
-      setProcesses(processData)
-      setReports(reportData)
+    const reportData = await getBoardReports(user.id).catch((error) => {
+      console.error("Erro ao carregar board reports:", error)
+      return []
+    })
 
-      if (processData?.[0]?.tribunal) {
-        setTribunal(processData[0].tribunal)
-      }
-    } catch (error) {
-      console.error(error)
-      alert("Erro ao carregar Command Center.")
-    } finally {
-      setLoading(false)
+    setProcesses(processData || [])
+    setReports(reportData || [])
+
+    if (processData?.[0]?.tribunal) {
+      setTribunal(processData[0].tribunal)
     }
+  } finally {
+    setLoading(false)
   }
+}
 
   async function runTribunalDna() {
     if (!user?.id) return

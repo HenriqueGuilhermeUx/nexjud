@@ -29,6 +29,12 @@ export interface StrategicAnalysis {
   dueDiligence?: any
   legalCommandCenter?: any
 
+  oneClickActions?: any[]
+  dealEconomics?: any
+  clientRisk?: any
+  opponentIntelligence?: any
+  boardReport?: any
+
   createdAt?: string
 }
 
@@ -61,6 +67,12 @@ export async function saveAnalysis(analysis: StrategicAnalysis) {
       auditor_findings: analysis.auditorFindings || {},
       due_diligence: analysis.dueDiligence || {},
       legal_command_center: analysis.legalCommandCenter || {},
+
+      one_click_actions: analysis.oneClickActions || [],
+      deal_economics: analysis.dealEconomics || {},
+      client_risk: analysis.clientRisk || {},
+      opponent_intelligence: analysis.opponentIntelligence || {},
+      board_report: analysis.boardReport || {},
 
       created_at: new Date().toISOString(),
     })

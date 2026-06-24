@@ -15,6 +15,7 @@ import RedTeamSimulator from "@/pages/RedTeamSimulator"
 import DraftGenerator from "@/pages/DraftGenerator"
 import DraftHistory from "@/pages/DraftHistory"
 import JudgeSimulator from "@/pages/JudgeSimulator"
+import JudgeHistory from "@/pages/JudgeHistory"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -50,6 +51,7 @@ export default function App() {
               </ProtectedRoute>
             }
           >
+            <Route index element={<HomeDashboard />} />
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="process-check" element={<ProcessCheck />} />
             <Route path="predictive" element={<PredictiveAI />} />
@@ -61,7 +63,7 @@ export default function App() {
             <Route path="draft-generator" element={<DraftGenerator />} />
             <Route path="draft-history" element={<DraftHistory />} />
             <Route path="judge-simulator" element={<JudgeSimulator />} />
-            <Route index element={<HomeDashboard />} />
+            <Route path="judge-history" element={<JudgeHistory />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

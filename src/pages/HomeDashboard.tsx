@@ -153,11 +153,21 @@ export default function HomeDashboard() {
         redTeam: result.redTeam || [],
         strategyEngine: result.strategyEngine || [],
         partnerDecision: result.partnerDecision || "-",
+
+        jurisprudencePrediction: result.jurisprudencePrediction || {},
+        financialExposure: result.financialExposure || {},
+        partnerCouncil: result.partnerCouncil || [],
+        warRoom: result.warRoom || {},
+        caseTimeline: result.caseTimeline || [],
+        tribunalDna: result.tribunalDna || {},
+        auditorFindings: result.auditorFindings || {},
+        dueDiligence: result.dueDiligence || {},
+        legalCommandCenter: result.legalCommandCenter || {},
       })
 
       setAnalysisResult(result)
       await loadStats()
-      alert("Análise salva no histórico.")
+      alert("Análise completa salva no histórico.")
     } catch (error) {
       console.error(error)
       alert("Erro ao gerar/salvar análise. Verifique os logs da Edge Function strategic-analysis.")
@@ -177,7 +187,7 @@ export default function HomeDashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-8">
-        <section className="rounded-3xl border border-[#2a2a35] bg-gradient-to-br from-[#111118] to-[#0c0c12] p-8 lg:p-10 shadow-2xl">
+        <section className="rounded-3xl border border-[#2a2a35] bg-gradient-to-br from-[#111118] via-[#0d0d15] to-[#05050a] p-8 lg:p-10 shadow-2xl">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm mb-5">
@@ -194,8 +204,17 @@ export default function HomeDashboard() {
 
               <p className="text-gray-400 text-lg mb-6">
                 Cole um resumo, tese, petição ou número CNJ. O NexJud transforma o caso em score,
-                riscos, Red Team, estratégia e parecer executivo.
+                riscos, jurisprudência preditiva, exposição financeira, War Room, auditoria e parecer executivo.
               </p>
+
+              <div className="grid sm:grid-cols-3 gap-3 text-sm text-gray-300">
+                <Badge text="Jurisprudência Preditiva™" />
+                <Badge text="Financial Exposure™" />
+                <Badge text="AI Partner Council™" />
+                <Badge text="Litigation War Room™" />
+                <Badge text="Due Diligence IA™" />
+                <Badge text="Legal Command Center™" />
+              </div>
             </div>
 
             <div className="w-full lg:w-[380px] rounded-2xl border border-primary/20 bg-primary/5 p-5">
@@ -207,6 +226,10 @@ export default function HomeDashboard() {
                     {analysisResult.successProbability || 0}%
                   </div>
                   <p className="text-sm text-gray-400 mt-2">chance estratégica estimada</p>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <MiniBox label="Risco" value={analysisResult.riskLevel || "-"} />
+                    <MiniBox label="Prioridade" value={analysisResult.legalCommandCenter?.priority || "-"} />
+                  </div>
                 </>
               ) : (
                 <>
@@ -591,6 +614,14 @@ export default function HomeDashboard() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function Badge({ text }: { text: string }) {
+  return (
+    <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+      ✓ {text}
     </div>
   )
 }

@@ -26,6 +26,10 @@ import {
   formatCnj,
   detectTribunalAliasFromCnj,
 } from "@/services/datajudService"
+import {
+  searchSimilarCasesDatajud,
+  buildRealJurisprudenceText,
+} from "@/services/realJurisprudenceService"
 
 export default function HomeDashboard() {
   const { user } = useAuth()
@@ -36,7 +40,9 @@ export default function HomeDashboard() {
   const [tribunalAlias, setTribunalAlias] = useState("")
   const [datajudLoading, setDatajudLoading] = useState(false)
   const [datajudProcess, setDatajudProcess] = useState<any>(null)
-
+const [realJurisLoading, setRealJurisLoading] = useState(false)
+const [realJurisprudence, setRealJurisprudence] = useState<any>(null)
+  
   const [loading, setLoading] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
 
@@ -94,6 +100,41 @@ export default function HomeDashboard() {
       setDatajudLoading(false)
     }
   }
+
+  async function handleRealJurisprudenceSearch() {
+  if (!datajudProcess) {
+    alert("Busque primeiro um processo no CNJ/DataJud.")
+    return
+  }
+
+  setRealJurisLoading(true)
+
+  try {
+    const alias = tribunalAlias || detectTribunalAliasFromCnj(cnjNumber)
+
+    const result = await searchSimilarCasesDatajud({
+      cnj: cnjNumber,
+      tribunalAlias: alias,
+      classe: datajudProcess.className,
+      assunto: datajudProcess.subject,
+    })
+
+    setRealJurisprudence(result.prediction)
+
+    const text = buildRealJurisprudenceText(result.prediction)
+
+    setCaseText((prev) => `${prev}
+
+${text}`)
+
+    alert("Jurimetria real DataJud adicionada ao caso.")
+  } catch (error) {
+    console.error(error)
+    alert("Erro ao buscar jurisprudência real no DataJud.")
+  } finally {
+    setRealJurisLoading(false)
+  }
+}
 
   function normalizePercent(value: any) {
     const num = Number(value || 0)
@@ -370,6 +411,64 @@ Assunto: ${datajudProcess.subject}`
                 <MiniBox label="Andamentos" value={String(datajudProcess.movements?.length || 0)} color="text-primary" />
               </div>
             )}
+            {datajudProcess && (
+  <div className="mt-5 rounded-2xl border border-green-500/20 bg-green-500/5 p-5">
+    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div>
+        <h3 className="font-bold text-xl text-green-400">
+          Jurisprudência Preditiva Real™
+        </h3>
+        <p className="text-sm text-gray-400 mt-1">
+          Busca casos semelhantes no DataJud usando classe, assunto e tribunal.
+        </p>
+      </div>
+
+      <button
+        onClick={handleRealJurisprudenceSearch}
+        disabled={realJurisLoading}
+        className="px-5 py-3 rounded-xl bg-green-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+      >
+        {realJurisLoading ? (
+          <>
+            <Loader2 className="animate-spin" size={18} />
+            BUSCANDO...
+          </>
+        ) : (
+          <>
+            <TrendingUp size={18} />
+            BUSCAR JURIMETRIA REAL
+          </>
+        )}
+      </button>
+    </div>
+
+    {realJurisprudence && (
+      <div className="mt-5 grid md:grid-cols-4 gap-4">
+        <MiniBox
+          label="Casos encontrados"
+          value={String(realJurisprudence.totalFound || 0)}
+          color="text-green-400"
+        />
+
+        <MiniBox
+          label="Amostra"
+          value={String(realJurisprudence.sampledCases || 0)}
+        />
+
+        <MiniBox
+          label="Sentenças"
+          value={String(realJurisprudence.sentenceSignals || 0)}
+        />
+
+        <MiniBox
+          label="Força histórica"
+          value={realJurisprudence.historicalStrength || "-"}
+          color="text-primary"
+        />
+      </div>
+    )}
+  </div>
+)}
           </div>
 
           <div className="mt-8">

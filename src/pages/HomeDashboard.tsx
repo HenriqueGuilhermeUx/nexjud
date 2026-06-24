@@ -28,11 +28,15 @@ export default function HomeDashboard() {
   const [analysisResult, setAnalysisResult] = useState<any>(null)
 
   const [stats, setStats] = useState({
-    total: 0,
-    avgSuccess: 0,
-    accepted: 0,
-    rejected: 0,
-  })
+  total: 0,
+  avgSuccess: 0,
+  accepted: 0,
+  rejected: 0,
+  draftsTotal: 0,
+  judgeTotal: 0,
+  avgJudgeScore: 0,
+  latestActivities: [] as any[],
+})
 
   useEffect(() => {
     loadStats()
@@ -251,11 +255,45 @@ export default function HomeDashboard() {
         </section>
 
         <section className="grid md:grid-cols-4 gap-4">
-          <Metric title="Análises salvas" value={String(stats.total)} />
-          <Metric title="Chance média" value={`${stats.avgSuccess}%`} color="text-green-400" />
-          <Metric title="Casos aceitos" value={String(stats.accepted)} color="text-primary" />
-          <Metric title="Casos recusados" value={String(stats.rejected)} color="text-red-400" />
-        </section>
+  <Metric title="Análises salvas" value={String(stats.total)} />
+  <Metric title="Minutas salvas" value={String(stats.draftsTotal)} color="text-primary" />
+  <Metric title="Treinos Judge" value={String(stats.judgeTotal)} color="text-yellow-400" />
+  <Metric title="Score médio Judge" value={`${stats.avgJudgeScore}/100`} color="text-green-400" />
+</section>
+
+<section className="grid md:grid-cols-4 gap-4">
+  <Metric title="Chance média" value={`${stats.avgSuccess}%`} color="text-green-400" />
+  <Metric title="Casos aceitos" value={String(stats.accepted)} color="text-primary" />
+  <Metric title="Casos recusados" value={String(stats.rejected)} color="text-red-400" />
+  <Metric
+    title="Patrimônio NexJud"
+    value={String(stats.total + stats.draftsTotal + stats.judgeTotal)}
+    color="text-indigo-400"
+  />
+</section>
+
+<CardTitle icon={<Sparkles className="text-primary" />} title="Últimas Atividades NexJud™" highlight>
+  {stats.latestActivities.length > 0 ? (
+    <div className="space-y-3">
+      {stats.latestActivities.map((item: any, index: number) => (
+        <div
+          key={index}
+          className="rounded-xl bg-black/20 border border-white/5 p-4"
+        >
+          <p className="font-bold">{item.title}</p>
+          <p className="text-sm text-gray-400 mt-1">{item.description}</p>
+          <p className="text-xs text-gray-500 mt-2">
+            {item.date ? new Date(item.date).toLocaleString("pt-BR") : "-"}
+          </p>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="text-gray-500">
+      Suas análises, minutas e treinos aparecerão aqui.
+    </p>
+  )}
+</CardTitle>
 
         <CardTitle icon={<Brain className="text-primary" />} title="Executive Summary™" highlight>
           {analysisResult ? (

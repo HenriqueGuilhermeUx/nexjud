@@ -17,6 +17,7 @@ import DraftHistory from "@/pages/DraftHistory"
 import JudgeSimulator from "@/pages/JudgeSimulator"
 import ProcessPortfolio from "@/pages/ProcessPortfolio"
 import JudgeHistory from "@/pages/JudgeHistory"
+import EnterpriseCommandCenter from "@/pages/EnterpriseCommandCenter"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -65,10 +66,11 @@ export default function App() {
             <Route path="draft-history" element={<DraftHistory />} />
             <Route path="judge-simulator" element={<JudgeSimulator />} />
             <Route path="judge-history" element={<JudgeHistory />} />
+            <Route path="process-portfolio" element={<ProcessPortfolio />} />
             <Route
-  path="process-portfolio"
-  element={<ProcessPortfolio />}
-/>
+              path="enterprise-command-center"
+              element={<EnterpriseCommandCenter />}
+            />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

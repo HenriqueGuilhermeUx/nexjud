@@ -10,16 +10,15 @@ import {
   ShieldAlert,
   FileText,
   Sparkles,
+  AlertTriangle,
+  Target,
+  Database,
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
-import {
-  getUserAnalyses,
-  deleteAnalysis,
-} from "@/services/strategicAnalysisService"
+import { getUserAnalyses, deleteAnalysis } from "@/services/strategicAnalysisService"
 
 export default function History() {
   const { user } = useAuth()
-
   const [analyses, setAnalyses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState<string | null>(null)
@@ -46,42 +45,37 @@ export default function History() {
 
   async function remove(id: string) {
     if (!confirm("Excluir esta análise?")) return
-
     await deleteAnalysis(id)
     setAnalyses((prev) => prev.filter((item) => item.id !== id))
   }
 
   function copyAnalysis(item: any) {
-    const text = `
-${item.title || "Análise Estratégica NexJud"}
-
-Resumo:
-${item.case_text || "-"}
-
-Chance:
-${item.success_probability || 0}%
-
-Risco:
-${item.risk_level || "-"}
-
-Potencial:
-${item.financial_potential || "-"}
-
-Decisão Sócio IA:
-${item.partner_decision || "-"}
-
-Deal Breakers:
-${(item.deal_breakers || []).map((x: string) => `- ${x}`).join("\n")}
-
-Red Team:
-${(item.red_team || []).map((x: string) => `- ${x}`).join("\n")}
-
-Strategy Engine:
-${(item.strategy_engine || []).map((x: string) => `- ${x}`).join("\n")}
-`
-
-    navigator.clipboard.writeText(text)
+    navigator.clipboard.writeText(item.case_text || "")
     alert("Análise copiada.")
+  }
+
+  function extractDatajudInfo(text: string) {
+    if (!text?.includes("DADOS DATAJUD OFICIAIS")) return null
+
+    const get = (label: string) => {
+      const match = text.match(new RegExp(`${label}:\\\\s*(.*)`, "i"))
+      return match?.[1]?.trim() || "-"
+    }
+
+    const movementBlock = text.split("Últimos andamentos:")[1] || ""
+    const movements = movementBlock
+      .split("\n")
+      .filter((line) => line.trim().startsWith("-"))
+      .slice(0, 10)
+
+    return {
+      processo: get("Processo"),
+      tribunal: get("Tribunal"),
+      unidade: get("Unidade"),
+      classe: get("Classe"),
+      assunto: get("Assunto"),
+      movements,
+    }
   }
 
   if (loading) {
@@ -92,10 +86,9 @@ ${(item.strategy_engine || []).map((x: string) => `- ${x}`).join("\n")}
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-6">
         <div>
-          <h1 className="text-4xl font-bold">Histórico Estratégico 2.0</h1>
+          <h1 className="text-4xl font-bold">Histórico Estratégico 3.0</h1>
           <p className="text-muted-foreground mt-2">
-            Reabra análises completas com Jurisprudência Preditiva, War Room,
-            Financial Exposure, Auditoria, Due Diligence e Legal Command Center.
+            Análises completas com CNJ/DataJud, War Room, Financial Exposure, Due Diligence e Board Report.
           </p>
         </div>
 
@@ -107,25 +100,19 @@ ${(item.strategy_engine || []).map((x: string) => `- ${x}`).join("\n")}
           <div className="space-y-4">
             {analyses.map((item) => {
               const isOpen = openId === item.id
+              const datajud = extractDatajudInfo(item.case_text || "")
 
               return (
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-border bg-card p-5"
-                >
+                <div key={item.id} className="rounded-2xl border border-border bg-card p-5">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
                         <Brain className="text-primary" />
-                        <h2 className="font-bold text-lg">
-                          {item.title || "Análise Estratégica"}
-                        </h2>
+                        <h2 className="font-bold text-lg">{item.title || "Análise Estratégica"}</h2>
                       </div>
 
                       <p className="text-xs text-muted-foreground mt-2">
-                        {item.created_at
-                          ? new Date(item.created_at).toLocaleString("pt-BR")
-                          : "-"}
+                        {item.created_at ? new Date(item.created_at).toLocaleString("pt-BR") : "-"}
                       </p>
                     </div>
 
@@ -162,10 +149,31 @@ ${(item.strategy_engine || []).map((x: string) => `- ${x}`).join("\n")}
 
                   {isOpen && (
                     <div className="mt-6 space-y-6 border-t border-border pt-6">
+                      {datajud && (
+                        <Card title="CNJ/DataJud Oficial™" icon={<Database className="text-primary" />} highlight>
+                          <section className="grid md:grid-cols-5 gap-4">
+                            <Metric title="Processo" value={datajud.processo} />
+                            <Metric title="Tribunal" value={datajud.tribunal} />
+                            <Metric title="Unidade" value={datajud.unidade} />
+                            <Metric title="Classe" value={datajud.classe} />
+                            <Metric title="Assunto" value={datajud.assunto} />
+                          </section>
+
+                          {datajud.movements.length > 0 && (
+                            <div className="mt-5">
+                              <p className="font-bold mb-3">Últimos andamentos reais</p>
+                              <ul className="space-y-2 text-gray-300">
+                                {datajud.movements.map((m, i) => (
+                                  <li key={i}>• {m}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </Card>
+                      )}
+
                       <Card title="Resumo do Caso" icon={<FileText className="text-primary" />}>
-                        <p className="text-gray-300 whitespace-pre-line">
-                          {item.case_text || "-"}
-                        </p>
+                        <p className="text-gray-300 whitespace-pre-line">{item.case_text || "-"}</p>
                       </Card>
 
                       <section className="grid md:grid-cols-4 gap-4">
@@ -176,18 +184,40 @@ ${(item.strategy_engine || []).map((x: string) => `- ${x}`).join("\n")}
                       </section>
 
                       <section className="grid lg:grid-cols-2 gap-6">
-                        <Card title="Deal Breakers™" icon={<ShieldAlert className="text-red-400" />} danger>
-                          <List items={item.deal_breakers} prefix="❌" />
+                        <Card title="One Click Actions™" icon={<Sparkles className="text-primary" />} highlight>
+                          <List items={item.one_click_actions?.map((x: any) => `${x.label}: ${x.context}`)} prefix="⚡" />
                         </Card>
 
-                        <Card title="Red Team™" icon={<ShieldAlert className="text-red-400" />}>
-                          <List items={item.red_team} prefix="⚔️" />
+                        <Card title="Deal Economics™" icon={<Scale className="text-green-400" />} success>
+                          <section className="grid md:grid-cols-2 gap-3">
+                            <Metric title="Honorários" value={item.deal_economics?.estimatedFees || "-"} />
+                            <Metric title="Valor esperado" value={item.deal_economics?.expectedValue || "-"} />
+                            <Metric title="Horas" value={item.deal_economics?.estimatedHours || "-"} />
+                            <Metric title="Retorno/hora" value={item.deal_economics?.hourlyReturn || "-"} />
+                          </section>
+                          <p className="text-gray-300 mt-4">{item.deal_economics?.reason || "-"}</p>
                         </Card>
                       </section>
 
-                      <Card title="Strategy Engine™" icon={<Sparkles className="text-primary" />} highlight>
-                        <List items={item.strategy_engine} prefix="✓" />
-                      </Card>
+                      <section className="grid lg:grid-cols-3 gap-6">
+                        <Card title="Cliente Risk Score™" icon={<AlertTriangle className="text-yellow-400" />} warning>
+                          <Metric title="Score" value={`${item.client_risk?.score || 0}/100`} color="text-yellow-400" />
+                          <Metric title="Nível" value={item.client_risk?.level || "-"} />
+                          <List title="Achados" items={item.client_risk?.findings} prefix="⚠️" />
+                        </Card>
+
+                        <Card title="Opponent Intelligence™" icon={<ShieldAlert className="text-red-400" />} danger>
+                          <Metric title="Perfil" value={item.opponent_intelligence?.profile || "-"} />
+                          <Metric title="Chance de acordo" value={item.opponent_intelligence?.settlementChance || "-"} />
+                          <List title="Táticas" items={item.opponent_intelligence?.commonTactics} prefix="⚔️" />
+                        </Card>
+
+                        <Card title="Board Report™" icon={<FileText className="text-primary" />} highlight>
+                          <Metric title="Decisão" value={item.board_report?.decision || "-"} color="text-primary" />
+                          <Metric title="Risco" value={item.board_report?.risk || "-"} />
+                          <p className="text-gray-300 mt-4">{item.board_report?.executiveSummary || "-"}</p>
+                        </Card>
+                      </section>
 
                       <section className="grid lg:grid-cols-2 gap-6">
                         <Card title="Jurisprudência Preditiva™" icon={<TrendingUp className="text-primary" />} highlight>
@@ -196,9 +226,7 @@ ${(item.strategy_engine || []).map((x: string) => `- ${x}`).join("\n")}
                             value={`${item.jurisprudence_prediction?.favorableRate || 0}% favorável`}
                             color="text-green-400"
                           />
-                          <p className="text-gray-300 mt-4">
-                            {item.jurisprudence_prediction?.thesisStrength || "-"}
-                          </p>
+                          <p className="text-gray-300 mt-4">{item.jurisprudence_prediction?.thesisStrength || "-"}</p>
                           <List title="Fatores favoráveis" items={item.jurisprudence_prediction?.favorableFactors} prefix="✓" />
                           <List title="Fatores desfavoráveis" items={item.jurisprudence_prediction?.unfavorableFactors} prefix="⚠️" />
                         </Card>
@@ -209,9 +237,7 @@ ${(item.strategy_engine || []).map((x: string) => `- ${x}`).join("\n")}
                             <Metric title="Provável" value={item.financial_exposure?.probableCase || "-"} color="text-yellow-400" />
                             <Metric title="Pior" value={item.financial_exposure?.worstCase || "-"} color="text-red-400" />
                           </section>
-                          <p className="text-gray-300 mt-4">
-                            {item.financial_exposure?.financialRecommendation || "-"}
-                          </p>
+                          <p className="text-gray-300 mt-4">{item.financial_exposure?.financialRecommendation || "-"}</p>
                         </Card>
                       </section>
 
@@ -242,9 +268,7 @@ ${(item.strategy_engine || []).map((x: string) => `- ${x}`).join("\n")}
                           <Metric title="Perfil" value={item.tribunal_dna?.profile || "-"} color="text-primary" />
                           <List title="Valoriza" items={item.tribunal_dna?.values} prefix="✓" />
                           <List title="Rejeita" items={item.tribunal_dna?.rejects} prefix="✗" />
-                          <p className="text-gray-300 mt-4">
-                            {item.tribunal_dna?.strategicAdvice || "-"}
-                          </p>
+                          <p className="text-gray-300 mt-4">{item.tribunal_dna?.strategicAdvice || "-"}</p>
                         </Card>
 
                         <Card title="Case Timeline™" icon={<TrendingUp className="text-primary" />}>
@@ -276,9 +300,7 @@ ${(item.strategy_engine || []).map((x: string) => `- ${x}`).join("\n")}
                           </section>
                           <List title="Achados" items={item.due_diligence?.keyFindings} prefix="✓" />
                           <List title="Bloqueadores" items={item.due_diligence?.blockers} prefix="⛔" />
-                          <p className="text-gray-300 mt-4">
-                            {item.due_diligence?.recommendation || "-"}
-                          </p>
+                          <p className="text-gray-300 mt-4">{item.due_diligence?.recommendation || "-"}</p>
                         </Card>
                       </section>
 
@@ -289,9 +311,7 @@ ${(item.strategy_engine || []).map((x: string) => `- ${x}`).join("\n")}
                           <Metric title="Ação agora" value={item.legal_command_center?.actionNow || "-"} />
                           <Metric title="Decisão" value={item.legal_command_center?.executiveDecision || "-"} color="text-primary" />
                         </section>
-                        <p className="text-gray-300 mt-4">
-                          {item.legal_command_center?.boardSummary || "-"}
-                        </p>
+                        <p className="text-gray-300 mt-4">{item.legal_command_center?.boardSummary || "-"}</p>
                       </Card>
                     </div>
                   )}
@@ -323,7 +343,7 @@ function Metric({ title, value, color = "" }: { title: string; value: string; co
   )
 }
 
-function Card({ title, icon, children, danger, highlight, warning }: any) {
+function Card({ title, icon, children, danger, highlight, warning, success }: any) {
   return (
     <div
       className={`rounded-2xl border p-5 ${
@@ -333,10 +353,12 @@ function Card({ title, icon, children, danger, highlight, warning }: any) {
           ? "bg-[#111118] border-red-900/70"
           : warning
           ? "bg-[#111118] border-yellow-900/70"
+          : success
+          ? "bg-[#111118] border-green-900/70"
           : "bg-[#111118] border-[#2a2a35]"
       }`}
     >
-      <div className={`flex items-center gap-2 mb-4 ${danger ? "text-red-400" : warning ? "text-yellow-400" : ""}`}>
+      <div className={`flex items-center gap-2 mb-4 ${danger ? "text-red-400" : warning ? "text-yellow-400" : success ? "text-green-400" : ""}`}>
         {icon}
         <h3 className="font-bold text-xl">{title}</h3>
       </div>

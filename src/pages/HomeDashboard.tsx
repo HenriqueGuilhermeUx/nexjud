@@ -28,15 +28,15 @@ export default function HomeDashboard() {
   const [analysisResult, setAnalysisResult] = useState<any>(null)
 
   const [stats, setStats] = useState({
-  total: 0,
-  avgSuccess: 0,
-  accepted: 0,
-  rejected: 0,
-  draftsTotal: 0,
-  judgeTotal: 0,
-  avgJudgeScore: 0,
-  latestActivities: [] as any[],
-})
+    total: 0,
+    avgSuccess: 0,
+    accepted: 0,
+    rejected: 0,
+    draftsTotal: 0,
+    judgeTotal: 0,
+    avgJudgeScore: 0,
+    latestActivities: [] as any[],
+  })
 
   useEffect(() => {
     loadStats()
@@ -104,6 +104,8 @@ export default function HomeDashboard() {
           analysisResult.winningThesis,
           analysisResult.defenseThesis,
           analysisResult.settlementRecommendation,
+          analysisResult.jurisprudencePrediction?.thesisStrength,
+          analysisResult.financialExposure?.financialRecommendation,
           ...(analysisResult.dealBreakers || []),
           ...(analysisResult.redTeam || []),
           ...(analysisResult.strategyEngine || []),
@@ -255,45 +257,42 @@ export default function HomeDashboard() {
         </section>
 
         <section className="grid md:grid-cols-4 gap-4">
-  <Metric title="Análises salvas" value={String(stats.total)} />
-  <Metric title="Minutas salvas" value={String(stats.draftsTotal)} color="text-primary" />
-  <Metric title="Treinos Judge" value={String(stats.judgeTotal)} color="text-yellow-400" />
-  <Metric title="Score médio Judge" value={`${stats.avgJudgeScore}/100`} color="text-green-400" />
-</section>
+          <Metric title="Análises salvas" value={String(stats.total)} />
+          <Metric title="Minutas salvas" value={String(stats.draftsTotal)} color="text-primary" />
+          <Metric title="Treinos Judge" value={String(stats.judgeTotal)} color="text-yellow-400" />
+          <Metric title="Score médio Judge" value={`${stats.avgJudgeScore}/100`} color="text-green-400" />
+        </section>
 
-<section className="grid md:grid-cols-4 gap-4">
-  <Metric title="Chance média" value={`${stats.avgSuccess}%`} color="text-green-400" />
-  <Metric title="Casos aceitos" value={String(stats.accepted)} color="text-primary" />
-  <Metric title="Casos recusados" value={String(stats.rejected)} color="text-red-400" />
-  <Metric
-    title="Patrimônio NexJud"
-    value={String(stats.total + stats.draftsTotal + stats.judgeTotal)}
-    color="text-indigo-400"
-  />
-</section>
+        <section className="grid md:grid-cols-4 gap-4">
+          <Metric title="Chance média" value={`${stats.avgSuccess}%`} color="text-green-400" />
+          <Metric title="Casos aceitos" value={String(stats.accepted)} color="text-primary" />
+          <Metric title="Casos recusados" value={String(stats.rejected)} color="text-red-400" />
+          <Metric
+            title="Patrimônio NexJud"
+            value={String(stats.total + stats.draftsTotal + stats.judgeTotal)}
+            color="text-indigo-400"
+          />
+        </section>
 
-<CardTitle icon={<Sparkles className="text-primary" />} title="Últimas Atividades NexJud™" highlight>
-  {stats.latestActivities.length > 0 ? (
-    <div className="space-y-3">
-      {stats.latestActivities.map((item: any, index: number) => (
-        <div
-          key={index}
-          className="rounded-xl bg-black/20 border border-white/5 p-4"
-        >
-          <p className="font-bold">{item.title}</p>
-          <p className="text-sm text-gray-400 mt-1">{item.description}</p>
-          <p className="text-xs text-gray-500 mt-2">
-            {item.date ? new Date(item.date).toLocaleString("pt-BR") : "-"}
-          </p>
-        </div>
-      ))}
-    </div>
-  ) : (
-    <p className="text-gray-500">
-      Suas análises, minutas e treinos aparecerão aqui.
-    </p>
-  )}
-</CardTitle>
+        <CardTitle icon={<Sparkles className="text-primary" />} title="Últimas Atividades NexJud™" highlight>
+          {stats.latestActivities.length > 0 ? (
+            <div className="space-y-3">
+              {stats.latestActivities.map((item: any, index: number) => (
+                <div key={index} className="rounded-xl bg-black/20 border border-white/5 p-4">
+                  <p className="font-bold">{item.title}</p>
+                  <p className="text-sm text-gray-400 mt-1">{item.description}</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {item.date ? new Date(item.date).toLocaleString("pt-BR") : "-"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">
+              Suas análises, minutas e treinos aparecerão aqui.
+            </p>
+          )}
+        </CardTitle>
 
         <CardTitle icon={<Brain className="text-primary" />} title="Executive Summary™" highlight>
           {analysisResult ? (
@@ -313,6 +312,119 @@ export default function HomeDashboard() {
             <p className="text-gray-500">O resumo executivo aparecerá aqui após a análise.</p>
           )}
         </CardTitle>
+
+        {analysisResult && (
+          <>
+            <section className="grid lg:grid-cols-2 gap-6">
+              <CardTitle icon={<TrendingUp className="text-primary" />} title="Jurisprudência Preditiva™" highlight>
+                <div className="space-y-4">
+                  <MiniBox
+                    label="Tendência estimada"
+                    value={`${analysisResult.jurisprudencePrediction?.favorableRate || 0}% favorável`}
+                    color="text-green-400"
+                  />
+                  <p className="text-gray-300">
+                    {analysisResult.jurisprudencePrediction?.thesisStrength || "-"}
+                  </p>
+                  <List title="Fatores favoráveis" items={analysisResult.jurisprudencePrediction?.favorableFactors} prefix="✓" />
+                  <List title="Fatores desfavoráveis" items={analysisResult.jurisprudencePrediction?.unfavorableFactors} prefix="⚠️" />
+                  <p className="text-xs text-gray-500">
+                    {analysisResult.jurisprudencePrediction?.warning}
+                  </p>
+                </div>
+              </CardTitle>
+
+              <CardTitle icon={<Scale className="text-yellow-400" />} title="Financial Exposure™" warning>
+                <div className="grid md:grid-cols-3 gap-3 mb-4">
+                  <MiniBox label="Melhor cenário" value={analysisResult.financialExposure?.bestCase || "-"} color="text-green-400" />
+                  <MiniBox label="Provável" value={analysisResult.financialExposure?.probableCase || "-"} color="text-yellow-400" />
+                  <MiniBox label="Pior cenário" value={analysisResult.financialExposure?.worstCase || "-"} color="text-red-400" />
+                </div>
+                <p className="text-gray-300 mb-3">{analysisResult.financialExposure?.costRisk || "-"}</p>
+                <p className="text-gray-300 mb-3">Faixa de acordo: {analysisResult.financialExposure?.settlementRange || "-"}</p>
+                <p className="text-gray-300">{analysisResult.financialExposure?.financialRecommendation || "-"}</p>
+              </CardTitle>
+            </section>
+
+            <CardTitle icon={<Target className="text-primary" />} title="AI Partner Council™" highlight>
+              <div className="grid lg:grid-cols-4 gap-4">
+                {(analysisResult.partnerCouncil || []).map((item: any, index: number) => (
+                  <div key={index} className="rounded-xl bg-black/20 border border-white/5 p-4">
+                    <p className="font-bold text-primary">{item.partner}</p>
+                    <p className="text-xl font-bold mt-2">{item.decision}</p>
+                    <p className="text-sm text-gray-400 mt-3">{item.reason}</p>
+                  </div>
+                ))}
+              </div>
+            </CardTitle>
+
+            <CardTitle icon={<ShieldAlert className="text-red-400" />} title="Litigation War Room™" danger>
+              <div className="grid lg:grid-cols-5 gap-4">
+                <List title="Ataque" items={analysisResult.warRoom?.attackPlan} prefix="⚔️" />
+                <List title="Defesa" items={analysisResult.warRoom?.defensePlan} prefix="🛡️" />
+                <List title="Provas" items={analysisResult.warRoom?.evidencePlan} prefix="📎" />
+                <List title="Negociação" items={analysisResult.warRoom?.negotiationPlan} prefix="🤝" />
+                <List title="Urgente" items={analysisResult.warRoom?.emergencyActions} prefix="🚨" />
+              </div>
+            </CardTitle>
+
+            <section className="grid lg:grid-cols-2 gap-6">
+              <CardTitle icon={<Scale className="text-primary" />} title="Tribunal DNA™">
+                <div className="space-y-4">
+                  <MiniBox label="Perfil estimado" value={analysisResult.tribunalDna?.profile || "-"} color="text-primary" />
+                  <List title="Valoriza" items={analysisResult.tribunalDna?.values} prefix="✓" />
+                  <List title="Rejeita" items={analysisResult.tribunalDna?.rejects} prefix="✗" />
+                  <p className="text-gray-300">{analysisResult.tribunalDna?.riskBehavior || "-"}</p>
+                  <p className="text-gray-300">{analysisResult.tribunalDna?.strategicAdvice || "-"}</p>
+                </div>
+              </CardTitle>
+
+              <CardTitle icon={<TrendingUp className="text-primary" />} title="Case Timeline™">
+                <div className="space-y-3">
+                  {(analysisResult.caseTimeline || []).map((item: any, index: number) => (
+                    <div key={index} className="rounded-xl bg-black/20 border border-white/5 p-4">
+                      <p className="text-sm text-primary font-bold">{item.date}</p>
+                      <p className="font-semibold mt-1">{item.event}</p>
+                      <p className="text-sm text-gray-400 mt-1">{item.impact}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardTitle>
+            </section>
+
+            <section className="grid lg:grid-cols-2 gap-6">
+              <CardTitle icon={<AlertTriangle className="text-red-400" />} title="Auditor Jurídico™" danger>
+                <MiniBox label="Audit Score" value={`${analysisResult.auditorFindings?.auditScore || 0}/100`} color="text-yellow-400" />
+                <div className="mt-4 grid md:grid-cols-2 gap-4">
+                  <List title="Riscos críticos" items={analysisResult.auditorFindings?.criticalRisks} prefix="🚨" />
+                  <List title="Inconsistências" items={analysisResult.auditorFindings?.inconsistencies} prefix="⚠️" />
+                  <List title="Documentos ausentes" items={analysisResult.auditorFindings?.missingDocuments} prefix="📄" />
+                  <List title="Passivos ocultos" items={analysisResult.auditorFindings?.hiddenLiabilities} prefix="💣" />
+                </div>
+              </CardTitle>
+
+              <CardTitle icon={<FileText className="text-primary" />} title="Due Diligence IA™">
+                <div className="grid md:grid-cols-2 gap-3 mb-4">
+                  <MiniBox label="Score" value={`${analysisResult.dueDiligence?.score || 0}/100`} color="text-green-400" />
+                  <MiniBox label="Risco" value={analysisResult.dueDiligence?.riskLevel || "-"} color="text-yellow-400" />
+                </div>
+                <List title="Achados relevantes" items={analysisResult.dueDiligence?.keyFindings} prefix="✓" />
+                <List title="Bloqueadores" items={analysisResult.dueDiligence?.blockers} prefix="⛔" />
+                <p className="text-gray-300 mt-4">{analysisResult.dueDiligence?.recommendation || "-"}</p>
+              </CardTitle>
+            </section>
+
+            <CardTitle icon={<Sparkles className="text-primary" />} title="Legal Command Center™" highlight>
+              <div className="grid md:grid-cols-4 gap-4 mb-4">
+                <MiniBox label="Risco geral" value={analysisResult.legalCommandCenter?.overallRisk || "-"} />
+                <MiniBox label="Prioridade" value={analysisResult.legalCommandCenter?.priority || "-"} color="text-yellow-400" />
+                <MiniBox label="Ação agora" value={analysisResult.legalCommandCenter?.actionNow || "-"} />
+                <MiniBox label="Decisão executiva" value={analysisResult.legalCommandCenter?.executiveDecision || "-"} color="text-primary" />
+              </div>
+              <p className="text-gray-300">{analysisResult.legalCommandCenter?.boardSummary || "-"}</p>
+            </CardTitle>
+          </>
+        )}
 
         <section className="grid lg:grid-cols-2 gap-6">
           <CardTitle icon={<TrendingUp className="text-primary" />} title="Heatmap Jurídico™">
@@ -497,6 +609,27 @@ function MiniBox({ label, value, color = "" }: { label: string; value: string; c
     <div className="bg-black/20 rounded-xl p-4 border border-white/5">
       <p className="text-xs text-gray-400">{label}</p>
       <p className={`text-xl font-bold ${color}`}>{value}</p>
+    </div>
+  )
+}
+
+function List({ title, items, prefix }: { title: string; items?: any[]; prefix: string }) {
+  const list = Array.isArray(items) ? items : []
+
+  return (
+    <div className="rounded-xl bg-black/20 border border-white/5 p-4">
+      <p className="font-bold mb-3">{title}</p>
+      {list.length ? (
+        <ul className="space-y-2 text-gray-300">
+          {list.map((item: any, index: number) => (
+            <li key={index}>
+              {prefix} {String(item)}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-500">Sem itens.</p>
+      )}
     </div>
   )
 }

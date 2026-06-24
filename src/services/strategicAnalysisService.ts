@@ -35,6 +35,8 @@ export interface StrategicAnalysis {
   opponentIntelligence?: any
   boardReport?: any
 
+  realJurisprudence?: any
+
   createdAt?: string
 }
 
@@ -73,6 +75,8 @@ export async function saveAnalysis(analysis: StrategicAnalysis) {
       client_risk: analysis.clientRisk || {},
       opponent_intelligence: analysis.opponentIntelligence || {},
       board_report: analysis.boardReport || {},
+
+      real_jurisprudence: analysis.realJurisprudence || {},
 
       created_at: new Date().toISOString(),
     })

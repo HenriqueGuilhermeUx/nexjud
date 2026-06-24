@@ -143,10 +143,10 @@ const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
       )}
 
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-card border-r border-border z-50 transform transition-transform duration-300 lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
+  className={`fixed top-0 left-0 h-screen w-64 bg-card border-r border-border z-50 transform transition-transform duration-300 lg:translate-x-0 flex flex-col ${
+    sidebarOpen ? "translate-x-0" : "-translate-x-full"
+  }`}
+>
         <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-indigo-600 rounded-lg flex items-center justify-center">
@@ -160,7 +160,7 @@ const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
           </div>
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2 pb-6">
           <NavItem to="/dashboard" icon={Brain} label="Strategic Analysis" active={isHomeActive} />
 
           <NavItem
@@ -276,7 +276,7 @@ const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
           )}
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
+        <div className="shrink-0 p-4 border-t border-border bg-card">
           <div className="flex items-center gap-3 mb-4 px-4">
             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
               <User className="w-4 h-4 text-primary" />

@@ -29,6 +29,11 @@ import JudgeSimulator from "./JudgeSimulator"
 import JudgeHistory from "./JudgeHistory"
 import ProcessPortfolio from "./ProcessPortfolio"
 import EnterpriseCommandCenter from "./EnterpriseCommandCenter"
+import WarRoomCenter from "./WarRoomCenter"
+import PartnerCouncilCenter from "./PartnerCouncilCenter"
+import OneClickActionsCenter from "./OneClickActionsCenter"
+import OpponentDatabaseCenter from "./OpponentDatabaseCenter"
+import TribunalHeatmapCenter from "./TribunalHeatmapCenter"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -54,6 +59,11 @@ export default function Dashboard() {
   location.pathname.includes("process-portfolio")
   const isEnterpriseCommandCenterActive =
   location.pathname.includes("enterprise-command-center")
+  const isWarRoomCenterActive = location.pathname.includes("war-room")
+const isPartnerCouncilActive = location.pathname.includes("partner-council")
+const isOneClickActionsActive = location.pathname.includes("one-click-actions")
+const isOpponentDatabaseActive = location.pathname.includes("opponent-database")
+const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
   const isReportsActive = location.pathname.includes("reports")
   const isHistoryActive =
     location.pathname.includes("history") &&
@@ -201,6 +211,41 @@ export default function Dashboard() {
   label="Command Center"
   active={isEnterpriseCommandCenterActive}
 />
+
+          <NavItem
+  to="/dashboard/war-room"
+  icon={ShieldAlert}
+  label="War Room"
+  active={isWarRoomCenterActive}
+/>
+
+<NavItem
+  to="/dashboard/partner-council"
+  icon={Brain}
+  label="Partner Council"
+  active={isPartnerCouncilActive}
+/>
+
+<NavItem
+  to="/dashboard/one-click-actions"
+  icon={Wand2}
+  label="One-Click Actions"
+  active={isOneClickActionsActive}
+/>
+
+<NavItem
+  to="/dashboard/opponent-database"
+  icon={ShieldAlert}
+  label="Opponent Database"
+  active={isOpponentDatabaseActive}
+/>
+
+<NavItem
+  to="/dashboard/tribunal-heatmap"
+  icon={Database}
+  label="Tribunal Heatmap"
+  active={isTribunalHeatmapActive}
+/>
           
           <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
           <NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
@@ -272,6 +317,16 @@ export default function Dashboard() {
   <ProcessPortfolio />
 ) : isEnterpriseCommandCenterActive ? (
   <EnterpriseCommandCenter />
+      ) : isWarRoomCenterActive ? (
+  <WarRoomCenter />
+) : isPartnerCouncilActive ? (
+  <PartnerCouncilCenter />
+) : isOneClickActionsActive ? (
+  <OneClickActionsCenter />
+) : isOpponentDatabaseActive ? (
+  <OpponentDatabaseCenter />
+) : isTribunalHeatmapActive ? (
+  <TribunalHeatmapCenter />
 ) : isDraftGeneratorActive ? (
             <DraftGenerator />
           ) : isDraftHistoryActive ? (

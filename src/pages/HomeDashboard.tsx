@@ -61,23 +61,35 @@ export default function HomeDashboard() {
   }
 
   function buildPdfAnalysis() {
-    if (!analysisResult) return null
+  if (!analysisResult) return null
 
-    return {
-      title: analysisResult.title || "NexJud Strategic Analysis",
-      created_at: new Date().toISOString(),
-      case_text: caseText,
-      success_probability: analysisResult.successProbability || 0,
-      risk_level: analysisResult.riskLevel || "-",
-      financial_potential: analysisResult.financialPotential || "-",
-      partner_decision: analysisResult.partnerDecision || "-",
-      case_dna: analysisResult.caseDna || {},
-      deal_breakers: analysisResult.dealBreakers || [],
-      red_team: analysisResult.redTeam || [],
-      strategy_engine: analysisResult.strategyEngine || [],
-    }
+  return {
+    title: analysisResult.title || "NexJud Strategic Analysis",
+    created_at: new Date().toISOString(),
+    case_text: caseText,
+
+    success_probability: analysisResult.successProbability || 0,
+    risk_level: analysisResult.riskLevel || "-",
+    financial_potential: analysisResult.financialPotential || "-",
+    partner_decision: analysisResult.partnerDecision || "-",
+
+    case_dna: analysisResult.caseDna || {},
+    deal_breakers: analysisResult.dealBreakers || [],
+    red_team: analysisResult.redTeam || [],
+    strategy_engine: analysisResult.strategyEngine || [],
+
+    jurisprudence_prediction: analysisResult.jurisprudencePrediction || {},
+    financial_exposure: analysisResult.financialExposure || {},
+    partner_council: analysisResult.partnerCouncil || [],
+    war_room: analysisResult.warRoom || {},
+    case_timeline: analysisResult.caseTimeline || [],
+    tribunal_dna: analysisResult.tribunalDna || {},
+    auditor_findings: analysisResult.auditorFindings || {},
+    due_diligence: analysisResult.dueDiligence || {},
+    legal_command_center: analysisResult.legalCommandCenter || {},
   }
-
+}
+ 
   function handleGeneratePdf() {
     const pdfData = buildPdfAnalysis()
 

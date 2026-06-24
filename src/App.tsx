@@ -15,6 +15,7 @@ import RedTeamSimulator from "@/pages/RedTeamSimulator"
 import DraftGenerator from "@/pages/DraftGenerator"
 import DraftHistory from "@/pages/DraftHistory"
 import JudgeSimulator from "@/pages/JudgeSimulator"
+import ProcessPortfolio from "@/pages/ProcessPortfolio"
 import JudgeHistory from "@/pages/JudgeHistory"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -64,6 +65,10 @@ export default function App() {
             <Route path="draft-history" element={<DraftHistory />} />
             <Route path="judge-simulator" element={<JudgeSimulator />} />
             <Route path="judge-history" element={<JudgeHistory />} />
+            <Route
+  path="process-portfolio"
+  element={<ProcessPortfolio />}
+/>
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -61,35 +61,41 @@ export default function HomeDashboard() {
   }
 
   function buildPdfAnalysis() {
-  if (!analysisResult) return null
+    if (!analysisResult) return null
 
-  return {
-    title: analysisResult.title || "NexJud Strategic Analysis",
-    created_at: new Date().toISOString(),
-    case_text: caseText,
+    return {
+      title: analysisResult.title || "NexJud Strategic Analysis",
+      created_at: new Date().toISOString(),
+      case_text: caseText,
 
-    success_probability: analysisResult.successProbability || 0,
-    risk_level: analysisResult.riskLevel || "-",
-    financial_potential: analysisResult.financialPotential || "-",
-    partner_decision: analysisResult.partnerDecision || "-",
+      success_probability: analysisResult.successProbability || 0,
+      risk_level: analysisResult.riskLevel || "-",
+      financial_potential: analysisResult.financialPotential || "-",
+      partner_decision: analysisResult.partnerDecision || "-",
 
-    case_dna: analysisResult.caseDna || {},
-    deal_breakers: analysisResult.dealBreakers || [],
-    red_team: analysisResult.redTeam || [],
-    strategy_engine: analysisResult.strategyEngine || [],
+      case_dna: analysisResult.caseDna || {},
+      deal_breakers: analysisResult.dealBreakers || [],
+      red_team: analysisResult.redTeam || [],
+      strategy_engine: analysisResult.strategyEngine || [],
 
-    jurisprudence_prediction: analysisResult.jurisprudencePrediction || {},
-    financial_exposure: analysisResult.financialExposure || {},
-    partner_council: analysisResult.partnerCouncil || [],
-    war_room: analysisResult.warRoom || {},
-    case_timeline: analysisResult.caseTimeline || [],
-    tribunal_dna: analysisResult.tribunalDna || {},
-    auditor_findings: analysisResult.auditorFindings || {},
-    due_diligence: analysisResult.dueDiligence || {},
-    legal_command_center: analysisResult.legalCommandCenter || {},
+      jurisprudence_prediction: analysisResult.jurisprudencePrediction || {},
+      financial_exposure: analysisResult.financialExposure || {},
+      partner_council: analysisResult.partnerCouncil || [],
+      war_room: analysisResult.warRoom || {},
+      case_timeline: analysisResult.caseTimeline || [],
+      tribunal_dna: analysisResult.tribunalDna || {},
+      auditor_findings: analysisResult.auditorFindings || {},
+      due_diligence: analysisResult.dueDiligence || {},
+      legal_command_center: analysisResult.legalCommandCenter || {},
+
+      one_click_actions: analysisResult.oneClickActions || [],
+      deal_economics: analysisResult.dealEconomics || {},
+      client_risk: analysisResult.clientRisk || {},
+      opponent_intelligence: analysisResult.opponentIntelligence || {},
+      board_report: analysisResult.boardReport || {},
+    }
   }
-}
- 
+
   function handleGeneratePdf() {
     const pdfData = buildPdfAnalysis()
 
@@ -118,6 +124,9 @@ export default function HomeDashboard() {
           analysisResult.settlementRecommendation,
           analysisResult.jurisprudencePrediction?.thesisStrength,
           analysisResult.financialExposure?.financialRecommendation,
+          analysisResult.dealEconomics?.reason,
+          analysisResult.clientRisk?.recommendation,
+          analysisResult.opponentIntelligence?.profile,
           ...(analysisResult.dealBreakers || []),
           ...(analysisResult.redTeam || []),
           ...(analysisResult.strategyEngine || []),
@@ -175,6 +184,12 @@ export default function HomeDashboard() {
         auditorFindings: result.auditorFindings || {},
         dueDiligence: result.dueDiligence || {},
         legalCommandCenter: result.legalCommandCenter || {},
+
+        oneClickActions: result.oneClickActions || [],
+        dealEconomics: result.dealEconomics || {},
+        clientRisk: result.clientRisk || {},
+        opponentIntelligence: result.opponentIntelligence || {},
+        boardReport: result.boardReport || {},
       })
 
       setAnalysisResult(result)
@@ -223,9 +238,9 @@ export default function HomeDashboard() {
                 <Badge text="Jurisprudência Preditiva™" />
                 <Badge text="Financial Exposure™" />
                 <Badge text="AI Partner Council™" />
-                <Badge text="Litigation War Room™" />
-                <Badge text="Due Diligence IA™" />
-                <Badge text="Legal Command Center™" />
+                <Badge text="Deal Economics™" />
+                <Badge text="Opponent Intelligence™" />
+                <Badge text="Board Report™" />
               </div>
             </div>
 
@@ -350,6 +365,116 @@ export default function HomeDashboard() {
 
         {analysisResult && (
           <>
+            <section className="grid lg:grid-cols-2 gap-6">
+              <CardTitle icon={<Wand2 className="text-primary" />} title="One Click Actions™" highlight>
+                <div className="grid gap-3">
+                  {(analysisResult.oneClickActions || []).map((action: any, index: number) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        if (action.action === "draft") {
+                          localStorage.setItem(
+                            "nexjud_draft_context",
+                            JSON.stringify({
+                              caseText,
+                              focus: action.context || "",
+                            })
+                          )
+                          navigate("/dashboard/draft-generator")
+                        }
+
+                        if (action.action === "judge") {
+                          navigate("/dashboard/judge-simulator")
+                        }
+
+                        if (action.action === "settlement") {
+                          alert(action.context || "Simulação de acordo será adicionada no próximo módulo.")
+                        }
+                      }}
+                      className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-left hover:bg-primary/10 transition"
+                    >
+                      <div className="font-bold">{action.label}</div>
+                      <div className="text-sm text-gray-400 mt-1">{action.context}</div>
+                    </button>
+                  ))}
+                </div>
+              </CardTitle>
+
+              <CardTitle icon={<Scale className="text-green-400" />} title="Deal Economics™" success>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <MiniBox label="Honorários" value={analysisResult.dealEconomics?.estimatedFees || "-"} />
+                  <MiniBox label="Valor Esperado" value={analysisResult.dealEconomics?.expectedValue || "-"} />
+                  <MiniBox label="Horas" value={analysisResult.dealEconomics?.estimatedHours || "-"} />
+                  <MiniBox label="Retorno/Hora" value={analysisResult.dealEconomics?.hourlyReturn || "-"} />
+                </div>
+
+                <div className="mt-4 rounded-xl bg-black/20 border border-white/5 p-4">
+                  <p className="text-sm text-gray-400">Recomendação econômica</p>
+                  <p className="text-2xl font-bold text-green-400 mt-1">
+                    {analysisResult.dealEconomics?.recommendation || "-"}
+                  </p>
+                  <p className="text-gray-300 mt-3">
+                    {analysisResult.dealEconomics?.reason || "-"}
+                  </p>
+                </div>
+              </CardTitle>
+            </section>
+
+            <section className="grid lg:grid-cols-3 gap-6">
+              <CardTitle icon={<AlertTriangle className="text-yellow-400" />} title="Cliente Risk Score™" warning>
+                <MiniBox
+                  label="Score do cliente"
+                  value={`${analysisResult.clientRisk?.score || 0}/100`}
+                  color="text-yellow-400"
+                />
+                <MiniBox
+                  label="Nível"
+                  value={analysisResult.clientRisk?.level || "-"}
+                  color="text-yellow-400"
+                />
+                <List title="Achados" items={analysisResult.clientRisk?.findings} prefix="⚠️" />
+                <p className="text-gray-300 mt-4">
+                  {analysisResult.clientRisk?.recommendation || "-"}
+                </p>
+              </CardTitle>
+
+              <CardTitle icon={<ShieldAlert className="text-red-400" />} title="Opponent Intelligence™" danger>
+                <p className="font-bold text-xl mb-2">
+                  {analysisResult.opponentIntelligence?.profile || "-"}
+                </p>
+                <p className="text-gray-400 mb-4">
+                  Chance de acordo: {analysisResult.opponentIntelligence?.settlementChance || "-"}
+                </p>
+                <List title="Táticas comuns" items={analysisResult.opponentIntelligence?.commonTactics} prefix="⚔️" />
+                <List title="Defesa esperada" items={analysisResult.opponentIntelligence?.expectedDefense} prefix="🛡️" />
+                <List title="Pontos de pressão" items={analysisResult.opponentIntelligence?.pressurePoints} prefix="🎯" />
+              </CardTitle>
+
+              <CardTitle icon={<FileText className="text-primary" />} title="Board Report™" highlight>
+                <MiniBox
+                  label="Decisão"
+                  value={analysisResult.boardReport?.decision || "-"}
+                  color="text-primary"
+                />
+                <MiniBox
+                  label="Risco"
+                  value={analysisResult.boardReport?.risk || "-"}
+                  color="text-yellow-400"
+                />
+                <p className="text-gray-300 mt-4">
+                  {analysisResult.boardReport?.executiveSummary || "-"}
+                </p>
+                <p className="text-gray-300 mt-4">
+                  <strong>Impacto financeiro:</strong>{" "}
+                  {analysisResult.boardReport?.financialImpact || "-"}
+                </p>
+                <p className="text-gray-300 mt-4">
+                  <strong>Recomendação:</strong>{" "}
+                  {analysisResult.boardReport?.recommendation || "-"}
+                </p>
+              </CardTitle>
+            </section>
+
             <section className="grid lg:grid-cols-2 gap-6">
               <CardTitle icon={<TrendingUp className="text-primary" />} title="Jurisprudência Preditiva™" highlight>
                 <div className="space-y-4">

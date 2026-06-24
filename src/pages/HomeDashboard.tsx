@@ -76,7 +76,7 @@ export default function HomeDashboard() {
 
     try {
       const alias = tribunalAlias || detectTribunalAliasFromCnj(cnjNumber)
-      const result = await searchProcessDatajud(cnjNumber, alias)
+      const result = await searchProcessDatajud(cnjNumber, alias, user?.id)
 
       if (!result.found || !result.process) {
         alert("Processo não encontrado no DataJud para este tribunal.")

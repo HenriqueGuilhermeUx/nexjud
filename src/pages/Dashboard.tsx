@@ -28,6 +28,7 @@ import DraftHistory from "./DraftHistory"
 import JudgeSimulator from "./JudgeSimulator"
 import JudgeHistory from "./JudgeHistory"
 import ProcessPortfolio from "./ProcessPortfolio"
+import EnterpriseCommandCenter from "./EnterpriseCommandCenter"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -51,6 +52,8 @@ export default function Dashboard() {
   const isJudgeHistoryActive = location.pathname.includes("judge-history")
   const isProcessPortfolioActive =
   location.pathname.includes("process-portfolio")
+  const isEnterpriseCommandCenterActive =
+  location.pathname.includes("enterprise-command-center")
   const isReportsActive = location.pathname.includes("reports")
   const isHistoryActive =
     location.pathname.includes("history") &&
@@ -192,6 +195,13 @@ export default function Dashboard() {
   active={isProcessPortfolioActive}
 />
 
+<NavItem
+  to="/dashboard/enterprise-command-center"
+  icon={Brain}
+  label="Command Center"
+  active={isEnterpriseCommandCenterActive}
+/>
+          
           <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
           <NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
         </nav>
@@ -260,6 +270,8 @@ export default function Dashboard() {
   <JudgeHistory />
 ) : isProcessPortfolioActive ? (
   <ProcessPortfolio />
+) : isEnterpriseCommandCenterActive ? (
+  <EnterpriseCommandCenter />
 ) : isDraftGeneratorActive ? (
             <DraftGenerator />
           ) : isDraftHistoryActive ? (

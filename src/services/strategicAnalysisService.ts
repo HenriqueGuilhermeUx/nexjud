@@ -19,18 +19,20 @@ export interface StrategicAnalysis {
 
   partnerDecision?: string
 
+  jurisprudencePrediction?: any
+  financialExposure?: any
+  partnerCouncil?: any[]
+  warRoom?: any
+  caseTimeline?: any[]
+  tribunalDna?: any
+  auditorFindings?: any
+  dueDiligence?: any
+  legalCommandCenter?: any
+
   createdAt?: string
 }
 
-/*
-|--------------------------------------------------------------------------
-| SALVAR ANÁLISE
-|--------------------------------------------------------------------------
-*/
-
-export async function saveAnalysis(
-  analysis: StrategicAnalysis
-) {
+export async function saveAnalysis(analysis: StrategicAnalysis) {
   const { data, error } = await supabase
     .from("strategic_analyses")
     .insert({
@@ -50,6 +52,16 @@ export async function saveAnalysis(
 
       partner_decision: analysis.partnerDecision || "",
 
+      jurisprudence_prediction: analysis.jurisprudencePrediction || {},
+      financial_exposure: analysis.financialExposure || {},
+      partner_council: analysis.partnerCouncil || [],
+      war_room: analysis.warRoom || {},
+      case_timeline: analysis.caseTimeline || [],
+      tribunal_dna: analysis.tribunalDna || {},
+      auditor_findings: analysis.auditorFindings || {},
+      due_diligence: analysis.dueDiligence || {},
+      legal_command_center: analysis.legalCommandCenter || {},
+
       created_at: new Date().toISOString(),
     })
     .select()
@@ -63,15 +75,7 @@ export async function saveAnalysis(
   return data
 }
 
-/*
-|--------------------------------------------------------------------------
-| LISTAR ANÁLISES DO USUÁRIO
-|--------------------------------------------------------------------------
-*/
-
-export async function getUserAnalyses(
-  userId: string
-) {
+export async function getUserAnalyses(userId: string) {
   const { data, error } = await supabase
     .from("strategic_analyses")
     .select("*")
@@ -88,15 +92,7 @@ export async function getUserAnalyses(
   return data || []
 }
 
-/*
-|--------------------------------------------------------------------------
-| BUSCAR ANÁLISE ESPECÍFICA
-|--------------------------------------------------------------------------
-*/
-
-export async function getAnalysisById(
-  analysisId: string
-) {
+export async function getAnalysisById(analysisId: string) {
   const { data, error } = await supabase
     .from("strategic_analyses")
     .select("*")
@@ -111,15 +107,7 @@ export async function getAnalysisById(
   return data
 }
 
-/*
-|--------------------------------------------------------------------------
-| EXCLUIR ANÁLISE
-|--------------------------------------------------------------------------
-*/
-
-export async function deleteAnalysis(
-  analysisId: string
-) {
+export async function deleteAnalysis(analysisId: string) {
   const { error } = await supabase
     .from("strategic_analyses")
     .delete()
@@ -133,15 +121,7 @@ export async function deleteAnalysis(
   return true
 }
 
-/*
-|--------------------------------------------------------------------------
-| ESTATÍSTICAS DO USUÁRIO
-|--------------------------------------------------------------------------
-*/
-
-export async function getAnalysisStats(
-  userId: string
-) {
+export async function getAnalysisStats(userId: string) {
   const analyses = await getUserAnalyses(userId)
 
   const total = analyses.length
@@ -150,18 +130,14 @@ export async function getAnalysisStats(
     total > 0
       ? Math.round(
           analyses.reduce(
-            (acc, item) =>
-              acc + (item.success_probability || 0),
+            (acc, item) => acc + (item.success_probability || 0),
             0
           ) / total
         )
       : 0
 
-  const acceptedCases = analyses.filter(
-    (item) =>
-      item.partner_decision
-        ?.toUpperCase()
-        .includes("ACEIT")
+  const acceptedCases = analyses.filter((item) =>
+    item.partner_decision?.toUpperCase().includes("ACEIT")
   ).length
 
   return {

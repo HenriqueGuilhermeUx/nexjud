@@ -18,6 +18,11 @@ import JudgeSimulator from "@/pages/JudgeSimulator"
 import ProcessPortfolio from "@/pages/ProcessPortfolio"
 import JudgeHistory from "@/pages/JudgeHistory"
 import EnterpriseCommandCenter from "@/pages/EnterpriseCommandCenter"
+import WarRoomCenter from "@/pages/WarRoomCenter"
+import PartnerCouncilCenter from "@/pages/PartnerCouncilCenter"
+import OneClickActionsCenter from "@/pages/OneClickActionsCenter"
+import OpponentDatabaseCenter from "@/pages/OpponentDatabaseCenter"
+import TribunalHeatmapCenter from "@/pages/TribunalHeatmapCenter"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -67,10 +72,12 @@ export default function App() {
             <Route path="judge-simulator" element={<JudgeSimulator />} />
             <Route path="judge-history" element={<JudgeHistory />} />
             <Route path="process-portfolio" element={<ProcessPortfolio />} />
-            <Route
-              path="enterprise-command-center"
-              element={<EnterpriseCommandCenter />}
-            />
+            <Route path="enterprise-command-center" element={<EnterpriseCommandCenter />} />
+            <Route path="war-room" element={<WarRoomCenter />} />
+            <Route path="partner-council" element={<PartnerCouncilCenter />} />
+            <Route path="one-click-actions" element={<OneClickActionsCenter />} />
+            <Route path="opponent-database" element={<OpponentDatabaseCenter />} />
+            <Route path="tribunal-heatmap" element={<TribunalHeatmapCenter />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

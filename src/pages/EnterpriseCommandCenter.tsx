@@ -18,6 +18,7 @@ import {
   saveBoardReport,
   getBoardReports,
 } from "@/services/enterpriseIntelligenceService"
+import { generateBoardReportPdf } from "@/services/boardReportPdf"
 
 export default function EnterpriseCommandCenter() {
   const { user } = useAuth()
@@ -311,6 +312,14 @@ export default function EnterpriseCommandCenter() {
                     <MiniBox label="Risco" value={item.risk_level || "-"} />
                     <MiniBox label="Criado em" value={item.created_at ? new Date(item.created_at).toLocaleDateString("pt-BR") : "-"} />
                   </div>
+                  <div className="mt-4">
+  <button
+    onClick={() => generateBoardReportPdf(item)}
+    className="px-4 py-2 rounded-xl bg-primary text-white font-semibold"
+  >
+    Exportar PDF Executivo
+  </button>
+</div>
                 </div>
               ))}
             </div>

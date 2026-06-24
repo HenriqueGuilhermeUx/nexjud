@@ -12,6 +12,7 @@ import {
   Wand2,
   Gavel,
   Archive,
+  Database,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
@@ -26,6 +27,7 @@ import DraftGenerator from "./DraftGenerator"
 import DraftHistory from "./DraftHistory"
 import JudgeSimulator from "./JudgeSimulator"
 import JudgeHistory from "./JudgeHistory"
+import ProcessPortfolio from "./ProcessPortfolio"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -47,6 +49,8 @@ export default function Dashboard() {
   const isDraftHistoryActive = location.pathname.includes("draft-history")
   const isJudgeSimulatorActive = location.pathname.includes("judge-simulator")
   const isJudgeHistoryActive = location.pathname.includes("judge-history")
+  const isProcessPortfolioActive =
+  location.pathname.includes("process-portfolio")
   const isReportsActive = location.pathname.includes("reports")
   const isHistoryActive =
     location.pathname.includes("history") &&
@@ -181,6 +185,13 @@ export default function Dashboard() {
             active={isDraftHistoryActive}
           />
 
+          <NavItem
+  to="/dashboard/process-portfolio"
+  icon={Database}
+  label="Carteira Processual"
+  active={isProcessPortfolioActive}
+/>
+
           <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
           <NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
         </nav>
@@ -246,8 +257,10 @@ export default function Dashboard() {
           ) : isJudgeSimulatorActive ? (
             <JudgeSimulator />
           ) : isJudgeHistoryActive ? (
-            <JudgeHistory />
-          ) : isDraftGeneratorActive ? (
+  <JudgeHistory />
+) : isProcessPortfolioActive ? (
+  <ProcessPortfolio />
+) : isDraftGeneratorActive ? (
             <DraftGenerator />
           ) : isDraftHistoryActive ? (
             <DraftHistory />

@@ -6,12 +6,15 @@ import {
   FileText,
   Loader2,
   Sparkles,
+  Gavel,
+  Scale,
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import {
   saveWarRoomSession,
   getWarRoomSessions,
 } from "@/services/enterpriseModulesService"
+import { runWarRoomAi } from "@/services/warRoomAiService"
 
 export default function WarRoomCenter() {
   const { user } = useAuth()
@@ -56,58 +59,33 @@ export default function WarRoomCenter() {
     setLoading(true)
 
     try {
-      const generated = {
-        title: `War Room - ${new Date().toLocaleDateString("pt-BR")}`,
-        risks: [
-          "A parte contrária pode sustentar ausência de subordinação formal.",
-          "Mensagens de WhatsApp podem ser atacadas como comunicação informal.",
-          "Testemunhas podem ser contraditadas por vínculo pessoal com o reclamante.",
-          "Pedido de dano moral pode ser considerado genérico se não houver prova específica.",
-        ],
-        opportunities: [
-          "Pagamentos recorrentes reforçam habitualidade.",
-          "Ordens diárias por mensagem fortalecem tese de subordinação.",
-          "Registros de entrada podem demonstrar rotina de trabalho.",
-          "Prova testemunhal bem preparada pode fechar lacunas documentais.",
-        ],
-        missingEvidence: [
-          "Comprovantes completos de pagamento.",
-          "Prints organizados cronologicamente.",
-          "Lista de testemunhas com resumo do que cada uma comprova.",
-          "Documentos ou registros de controle de entrada e saída.",
-        ],
-        opponentArguments: [
-          "O reclamante prestava serviços de forma autônoma.",
-          "Não havia exclusividade.",
-          "Os pagamentos eram por demanda/evento.",
-          "As mensagens não configuram poder diretivo suficiente.",
-        ],
-        nextMoves: [
-          "Organizar linha do tempo dos fatos.",
-          "Separar provas por requisito do vínculo: pessoalidade, habitualidade, onerosidade e subordinação.",
-          "Preparar contradita preventiva das testemunhas.",
-          "Reforçar ou retirar pedido de dano moral conforme prova disponível.",
-          "Calcular cenário de acordo antes da audiência.",
-        ],
-      }
+      const generated = await runWarRoomAi(caseText)
 
       const saved = await saveWarRoomSession({
         user_id: user.id,
-        title: generated.title,
+        title: generated.title || `War Room - ${new Date().toLocaleDateString("pt-BR")}`,
         case_text: caseText,
-        risks: generated.risks,
-        opportunities: generated.opportunities,
-        missing_evidence: generated.missingEvidence,
-        opponent_arguments: generated.opponentArguments,
-        next_moves: generated.nextMoves,
+        risks: generated.risks || [],
+        opportunities: generated.opportunities || [],
+        missing_evidence: generated.missingEvidence || [],
+        opponent_arguments: generated.opponentArguments || [],
+        next_moves: generated.nextMoves || [],
+        data: {
+          hearingStrategy: generated.hearingStrategy || [],
+          settlementStrategy: generated.settlementStrategy || "",
+          priority: generated.priority || "MÉDIA",
+          executiveSummary: generated.executiveSummary || "",
+          generatedAt: new Date().toISOString(),
+          source: "war-room-ai",
+        },
       })
 
       setResult(saved)
       await load()
-      alert("War Room salvo.")
+      alert("War Room IA salvo.")
     } catch (error) {
       console.error(error)
-      alert("Erro ao gerar War Room.")
+      alert("Erro ao gerar War Room com IA.")
     } finally {
       setLoading(false)
     }
@@ -120,9 +98,9 @@ export default function WarRoomCenter() {
           <div className="flex items-center gap-3 mb-4">
             <ShieldAlert className="text-red-400" size={40} />
             <div>
-              <h1 className="text-4xl font-bold">Litigation War Room™</h1>
+              <h1 className="text-4xl font-bold">Litigation War Room™ IA</h1>
               <p className="text-muted-foreground mt-1">
-                Central tática para riscos, oportunidades, provas faltantes, argumentos adversários e próximos movimentos.
+                Central tática com IA real para riscos, oportunidades, provas faltantes, argumentos adversários e próximos movimentos.
               </p>
             </div>
           </div>
@@ -146,12 +124,12 @@ export default function WarRoomCenter() {
                 {loading ? (
                   <>
                     <Loader2 className="animate-spin" size={18} />
-                    GERANDO...
+                    GERANDO COM IA...
                   </>
                 ) : (
                   <>
                     <ShieldAlert size={18} />
-                    GERAR WAR ROOM
+                    GERAR WAR ROOM IA
                   </>
                 )}
               </button>
@@ -170,6 +148,17 @@ export default function WarRoomCenter() {
               <div className="space-y-4">
                 <MiniBox label="Título" value={result.title || "-"} />
                 <MiniBox
+                  label="Prioridade"
+                  value={result.data?.priority || "-"}
+                  color={
+                    result.data?.priority === "CRÍTICA"
+                      ? "text-red-400"
+                      : result.data?.priority === "ALTA"
+                      ? "text-yellow-400"
+                      : "text-green-400"
+                  }
+                />
+                <MiniBox
                   label="Riscos"
                   value={String(result.risks?.length || 0)}
                   color="text-red-400"
@@ -179,10 +168,19 @@ export default function WarRoomCenter() {
                   value={String(result.next_moves?.length || 0)}
                   color="text-green-400"
                 />
+
+                {result.data?.executiveSummary && (
+                  <div className="rounded-xl bg-black/20 border border-white/5 p-4">
+                    <p className="text-xs text-gray-400 mb-2">Resumo executivo</p>
+                    <p className="text-gray-300 whitespace-pre-line">
+                      {result.data.executiveSummary}
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-gray-500">
-                Gere um War Room para visualizar o diagnóstico tático.
+                Gere um War Room com IA para visualizar o diagnóstico tático.
               </p>
             )}
           </Card>
@@ -213,6 +211,18 @@ export default function WarRoomCenter() {
                 <List items={result.next_moves} prefix="➜" />
               </Card>
             </section>
+
+            <section className="grid lg:grid-cols-2 gap-6">
+              <Card title="Estratégia de Audiência" icon={<Gavel className="text-primary" />} highlight>
+                <List items={result.data?.hearingStrategy} prefix="🎙️" />
+              </Card>
+
+              <Card title="Estratégia de Acordo" icon={<Scale className="text-green-400" />} success>
+                <p className="text-gray-300 whitespace-pre-line">
+                  {result.data?.settlementStrategy || "Sem estratégia de acordo informada."}
+                </p>
+              </Card>
+            </section>
           </>
         )}
 
@@ -233,7 +243,8 @@ export default function WarRoomCenter() {
                       : "-"}
                   </p>
 
-                  <div className="grid md:grid-cols-3 gap-3 mt-3">
+                  <div className="grid md:grid-cols-4 gap-3 mt-3">
+                    <MiniBox label="Prioridade" value={item.data?.priority || "-"} />
                     <MiniBox label="Riscos" value={String(item.risks?.length || 0)} />
                     <MiniBox label="Oportunidades" value={String(item.opportunities?.length || 0)} />
                     <MiniBox label="Próximos passos" value={String(item.next_moves?.length || 0)} />

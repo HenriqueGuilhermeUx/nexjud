@@ -13,6 +13,8 @@ import {
   Gavel,
   Archive,
   Database,
+ChevronDown,
+ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
@@ -37,6 +39,7 @@ import TribunalHeatmapCenter from "./TribunalHeatmapCenter"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [enterpriseOpen, setEnterpriseOpen] = useState(true)
   const { user, signOut } = useAuth()
   const location = useLocation()
 
@@ -136,6 +139,32 @@ const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
     </Link>
   )
 
+const NavGroup = ({ label, open, onClick, children }: any) => (
+  <div>
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+    >
+      <span className="font-semibold text-xs uppercase tracking-wider">
+        {label}
+      </span>
+
+      {open ? (
+        <ChevronDown className="w-4 h-4" />
+      ) : (
+        <ChevronRight className="w-4 h-4" />
+      )}
+    </button>
+
+    {open && (
+      <div className="mt-1 space-y-1 pl-2 border-l border-border/60 ml-4">
+        {children}
+      </div>
+    )}
+  </div>
+)
+  
   return (
     <div className="min-h-screen bg-background flex">
       {sidebarOpen && (
@@ -205,48 +234,53 @@ const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
   active={isProcessPortfolioActive}
 />
 
-<NavItem
-  to="/dashboard/enterprise-command-center"
-  icon={Brain}
-  label="Command Center"
-  active={isEnterpriseCommandCenterActive}
-/>
+<NavGroup
+  label="Enterprise Suite"
+  open={enterpriseOpen}
+  onClick={() => setEnterpriseOpen((prev) => !prev)}
+>
+  <NavItem
+    to="/dashboard/enterprise-command-center"
+    icon={Brain}
+    label="Command Center"
+    active={isEnterpriseCommandCenterActive}
+  />
 
-          <NavItem
-  to="/dashboard/war-room"
-  icon={ShieldAlert}
-  label="War Room"
-  active={isWarRoomCenterActive}
-/>
+  <NavItem
+    to="/dashboard/war-room"
+    icon={ShieldAlert}
+    label="War Room"
+    active={isWarRoomCenterActive}
+  />
 
-<NavItem
-  to="/dashboard/partner-council"
-  icon={Brain}
-  label="Partner Council"
-  active={isPartnerCouncilActive}
-/>
+  <NavItem
+    to="/dashboard/partner-council"
+    icon={Brain}
+    label="Partner Council"
+    active={isPartnerCouncilActive}
+  />
 
-<NavItem
-  to="/dashboard/one-click-actions"
-  icon={Wand2}
-  label="One-Click Actions"
-  active={isOneClickActionsActive}
-/>
+  <NavItem
+    to="/dashboard/one-click-actions"
+    icon={Wand2}
+    label="One-Click Actions"
+    active={isOneClickActionsActive}
+  />
 
-<NavItem
-  to="/dashboard/opponent-database"
-  icon={ShieldAlert}
-  label="Opponent Database"
-  active={isOpponentDatabaseActive}
-/>
+  <NavItem
+    to="/dashboard/opponent-database"
+    icon={ShieldAlert}
+    label="Opponent DB"
+    active={isOpponentDatabaseActive}
+  />
 
-<NavItem
-  to="/dashboard/tribunal-heatmap"
-  icon={Database}
-  label="Tribunal Heatmap"
-  active={isTribunalHeatmapActive}
-/>
-          
+  <NavItem
+    to="/dashboard/tribunal-heatmap"
+    icon={Database}
+    label="Tribunal Heatmap"
+    active={isTribunalHeatmapActive}
+  />
+</NavGroup>          
           <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
           <NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
         </nav>

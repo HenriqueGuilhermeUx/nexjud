@@ -284,6 +284,7 @@ Assunto: ${datajudProcess.subject}`
         clientRisk: result.clientRisk || {},
         opponentIntelligence: result.opponentIntelligence || {},
         boardReport: result.boardReport || {},
+        realJurisprudence: realJurisprudence || {},
       })
 
       setAnalysisResult(result)

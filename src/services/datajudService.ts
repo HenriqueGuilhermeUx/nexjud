@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase"
+import { saveProcessIntelligence } from "@/services/processIntelligenceService"
 
 export interface DatajudMovement {
   date: string | null
@@ -29,7 +30,8 @@ export interface DatajudSearchResult {
 
 export async function searchProcessDatajud(
   cnj: string,
-  tribunalAlias?: string
+  tribunalAlias?: string,
+  userId?: string
 ): Promise<DatajudSearchResult> {
   const cleanCnj = String(cnj || "").trim()
 
@@ -54,7 +56,30 @@ export async function searchProcessDatajud(
     throw new Error(data.error)
   }
 
-  return data as DatajudSearchResult
+  const result = data as DatajudSearchResult
+
+  if (userId && result.found && result.process) {
+    const lastMovement = result.process.movements?.[0]
+
+    await saveProcessIntelligence({
+      user_id: userId,
+      process_number: result.process.number,
+      tribunal: result.process.court,
+      classe: result.process.className,
+      assunto: result.process.subject,
+      orgao_julgador: result.process.courtUnit,
+      ultima_movimentacao: lastMovement
+        ? `${lastMovement.date || "-"} - ${lastMovement.name}`
+        : null,
+      dados: {
+        alias: result.alias,
+        total: result.total,
+        process: result.process,
+      },
+    })
+  }
+
+  return result
 }
 
 export function formatCnj(value: string) {

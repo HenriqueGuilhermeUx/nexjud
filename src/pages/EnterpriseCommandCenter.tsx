@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
 import {
-  Building2,
   Scale,
   ShieldAlert,
   AlertTriangle,
@@ -19,6 +18,7 @@ import {
   getBoardReports,
 } from "@/services/enterpriseIntelligenceService"
 import { generateBoardReportPdf } from "@/services/boardReportPdf"
+import { runBoardReportAi } from "@/services/boardReportAiService"
 
 export default function EnterpriseCommandCenter() {
   const { user } = useAuth()
@@ -41,38 +41,35 @@ export default function EnterpriseCommandCenter() {
   }, [user])
 
   async function load() {
-  if (!user?.id) return
+    if (!user?.id) return
 
-  setLoading(true)
+    setLoading(true)
 
-  try {
-    const processData = await getUserProcesses(user.id).catch((error) => {
-      console.error("Erro ao carregar processos:", error)
-      return []
-    })
+    try {
+      const processData = await getUserProcesses(user.id).catch((error) => {
+        console.error("Erro ao carregar processos:", error)
+        return []
+      })
 
-    const reportData = await getBoardReports(user.id).catch((error) => {
-      console.error("Erro ao carregar board reports:", error)
-      return []
-    })
+      const reportData = await getBoardReports(user.id).catch((error) => {
+        console.error("Erro ao carregar board reports:", error)
+        return []
+      })
 
-    setProcesses(processData || [])
-    setReports(reportData || [])
+      setProcesses(processData || [])
+      setReports(reportData || [])
 
-    if (processData?.[0]?.tribunal) {
-      setTribunal(processData[0].tribunal)
+      if (processData?.[0]?.tribunal) {
+        setTribunal(processData[0].tribunal)
+      }
+    } finally {
+      setLoading(false)
     }
-  } finally {
-    setLoading(false)
   }
-}
 
   async function runTribunalDna() {
     if (!user?.id) return
-    if (!tribunal.trim()) {
-      alert("Informe um tribunal.")
-      return
-    }
+    if (!tribunal.trim()) return alert("Informe um tribunal.")
 
     setCalculating(true)
 
@@ -90,10 +87,7 @@ export default function EnterpriseCommandCenter() {
 
   async function runOpponent() {
     if (!user?.id) return
-    if (!opponentName.trim()) {
-      alert("Informe o nome do adversário.")
-      return
-    }
+    if (!opponentName.trim()) return alert("Informe o nome do adversário.")
 
     setCalculating(true)
 
@@ -111,10 +105,7 @@ export default function EnterpriseCommandCenter() {
 
   async function runClientRisk() {
     if (!user?.id) return
-    if (!clientName.trim()) {
-      alert("Informe o nome do cliente.")
-      return
-    }
+    if (!clientName.trim()) return alert("Informe o nome do cliente.")
 
     setCalculating(true)
 
@@ -140,38 +131,60 @@ export default function EnterpriseCommandCenter() {
         JSON.stringify(p.dados || {}).toLowerCase().includes("execução")
       ).length
 
+      const portfolioContext = processes
+        .slice(0, 12)
+        .map(
+          (p) => `
+Processo: ${p.process_number || "-"}
+Tribunal: ${p.tribunal || "-"}
+Classe: ${p.classe || "-"}
+Assunto: ${p.assunto || "-"}
+Órgão: ${p.orgao_julgador || "-"}
+Última movimentação: ${p.ultima_movimentacao || "-"}
+`
+        )
+        .join("\n")
+
+      const ai = await runBoardReportAi({
+        portfolioContext: `
+Total de processos monitorados: ${processes.length}
+Tribunais distintos: ${new Set(processes.map((p) => p.tribunal).filter(Boolean)).size}
+Classes distintas: ${new Set(processes.map((p) => p.classe).filter(Boolean)).size}
+Processos com sinal crítico: ${criticalProcesses}
+
+Amostra da carteira:
+${portfolioContext}
+`,
+        tribunalContext: tribunalResult ? JSON.stringify(tribunalResult) : "",
+        opponentContext: opponentResult ? JSON.stringify(opponentResult) : "",
+        clientRiskContext: clientRiskResult ? JSON.stringify(clientRiskResult) : "",
+      })
+
       const report = await saveBoardReport({
         user_id: user.id,
-        title: `Board Report NexJud - ${new Date().toLocaleDateString("pt-BR")}`,
-        report_type: "executive",
-        summary: `Carteira com ${processes.length} processos monitorados, ${criticalProcesses} com sinais críticos e ${new Set(
-          processes.map((p) => p.tribunal).filter(Boolean)
-        ).size} tribunais distintos.`,
-        decision:
-          criticalProcesses > 5
-            ? "AÇÃO IMEDIATA"
-            : processes.length > 0
-            ? "MONITORAR"
-            : "SEM DADOS",
-        risk_level:
-          criticalProcesses > 5 ? "Alto" : criticalProcesses > 0 ? "Médio" : "Baixo",
-        financial_impact:
-          "Impacto financeiro depende das análises individuais e deve ser consolidado por caso.",
+        title: ai.title || `Board Report NexJud - ${new Date().toLocaleDateString("pt-BR")}`,
+        report_type: "executive_ai",
+        summary: ai.executiveSummary || "",
+        decision: ai.decision || "MONITORAR",
+        risk_level: ai.riskLevel || "MÉDIO",
+        financial_impact: ai.financialImpact || "",
         data: {
           totalProcesses: processes.length,
           criticalProcesses,
           tribunalResult,
           opponentResult,
           clientRiskResult,
+          ai,
           generatedAt: new Date().toISOString(),
+          source: "board-report-ai",
         },
       })
 
       setReports((prev) => [report, ...prev])
-      alert("Board Report salvo.")
+      alert("Board Report IA salvo.")
     } catch (error) {
       console.error(error)
-      alert("Erro ao salvar Board Report.")
+      alert("Erro ao salvar Board Report IA.")
     } finally {
       setCalculating(false)
     }
@@ -182,9 +195,7 @@ export default function EnterpriseCommandCenter() {
   const classes = new Set(processes.map((p) => p.classe).filter(Boolean)).size
   const orgaos = new Set(processes.map((p) => p.orgao_julgador).filter(Boolean)).size
 
-  if (loading) {
-    return <div className="p-6">Carregando Enterprise Command Center...</div>
-  }
+  if (loading) return <div className="p-6">Carregando Enterprise Command Center...</div>
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -195,7 +206,7 @@ export default function EnterpriseCommandCenter() {
             <div>
               <h1 className="text-4xl font-bold">NexJud Enterprise Command Center™</h1>
               <p className="text-muted-foreground mt-1">
-                Tribunal DNA, Opponent Intelligence, Client Risk, Board Report e visão executiva da carteira.
+                Tribunal DNA, Opponent Intelligence, Client Risk, Board Report IA e visão executiva da carteira.
               </p>
             </div>
           </div>
@@ -217,11 +228,7 @@ export default function EnterpriseCommandCenter() {
               className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary mb-3"
             />
 
-            <button
-              onClick={runTribunalDna}
-              disabled={calculating}
-              className="w-full py-3 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-            >
+            <button onClick={runTribunalDna} disabled={calculating} className="w-full py-3 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50">
               {calculating ? <Loader2 className="animate-spin" /> : <Scale size={18} />}
               Calcular Tribunal DNA
             </button>
@@ -243,11 +250,7 @@ export default function EnterpriseCommandCenter() {
               className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary mb-3"
             />
 
-            <button
-              onClick={runOpponent}
-              disabled={calculating}
-              className="w-full py-3 rounded-xl bg-red-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-            >
+            <button onClick={runOpponent} disabled={calculating} className="w-full py-3 rounded-xl bg-red-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50">
               {calculating ? <Loader2 className="animate-spin" /> : <ShieldAlert size={18} />}
               Calcular Adversário
             </button>
@@ -270,11 +273,7 @@ export default function EnterpriseCommandCenter() {
               className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary mb-3"
             />
 
-            <button
-              onClick={runClientRisk}
-              disabled={calculating}
-              className="w-full py-3 rounded-xl bg-yellow-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-            >
+            <button onClick={runClientRisk} disabled={calculating} className="w-full py-3 rounded-xl bg-yellow-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50">
               {calculating ? <Loader2 className="animate-spin" /> : <AlertTriangle size={18} />}
               Calcular Client Risk
             </button>
@@ -290,56 +289,53 @@ export default function EnterpriseCommandCenter() {
         </section>
 
         <section className="grid lg:grid-cols-2 gap-6">
-          <Card title="Board Report Executivo™" icon={<FileText className="text-primary" />} highlight>
+          <Card title="Board Report Executivo™ IA" icon={<FileText className="text-primary" />} highlight>
             <p className="text-gray-300 mb-4">
-              Gere um resumo executivo da carteira para sócios, diretoria ou cliente corporativo.
+              Gere um relatório executivo com IA para sócios, diretoria ou cliente corporativo.
             </p>
 
-            <button
-              onClick={createBoardReport}
-              disabled={calculating}
-              className="w-full py-4 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-            >
+            <button onClick={createBoardReport} disabled={calculating} className="w-full py-4 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50">
               {calculating ? <Loader2 className="animate-spin" /> : <FileText size={18} />}
-              Gerar Board Report
+              Gerar Board Report IA
             </button>
 
             <div className="mt-5 space-y-3">
-              {reports.slice(0, 3).map((item) => (
-                <div key={item.id} className="rounded-xl bg-black/20 border border-white/5 p-4">
-                  <p className="font-bold">{item.title}</p>
-                  <p className="text-sm text-gray-400 mt-1">{item.summary}</p>
-                  <div className="grid md:grid-cols-3 gap-3 mt-3">
-                    <MiniBox label="Decisão" value={item.decision || "-"} />
-                    <MiniBox label="Risco" value={item.risk_level || "-"} />
-                    <MiniBox label="Criado em" value={item.created_at ? new Date(item.created_at).toLocaleDateString("pt-BR") : "-"} />
+              {reports.slice(0, 3).map((item) => {
+                const ai = item.data?.ai || {}
+
+                return (
+                  <div key={item.id} className="rounded-xl bg-black/20 border border-white/5 p-4">
+                    <p className="font-bold">{item.title}</p>
+                    <p className="text-sm text-gray-400 mt-1">{item.summary}</p>
+
+                    <div className="grid md:grid-cols-3 gap-3 mt-3">
+                      <MiniBox label="Decisão" value={item.decision || "-"} />
+                      <MiniBox label="Risco" value={item.risk_level || "-"} />
+                      <MiniBox label="Confiança" value={ai.confidenceLevel || "-"} />
+                    </div>
+
+                    {ai.partnerBriefing && (
+                      <div className="rounded-xl bg-black/20 border border-white/5 p-4 mt-4">
+                        <p className="text-xs text-gray-400 mb-2">Briefing para sócios</p>
+                        <p className="text-gray-300">{ai.partnerBriefing}</p>
+                      </div>
+                    )}
+
+                    <div className="mt-4">
+                      <button onClick={() => generateBoardReportPdf(item)} className="px-4 py-2 rounded-xl bg-primary text-white font-semibold">
+                        Exportar PDF Executivo
+                      </button>
+                    </div>
                   </div>
-                  <div className="mt-4">
-  <button
-    onClick={() => generateBoardReportPdf(item)}
-    className="px-4 py-2 rounded-xl bg-primary text-white font-semibold"
-  >
-    Exportar PDF Executivo
-  </button>
-</div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </Card>
 
           <Card title="Executive Command Summary™" icon={<Target className="text-green-400" />} success>
             <div className="space-y-4">
-              <MiniBox
-                label="Estado da carteira"
-                value={total > 0 ? "Ativa" : "Sem processos"}
-                color={total > 0 ? "text-green-400" : "text-yellow-400"}
-              />
-
-              <MiniBox
-                label="Maturidade de dados"
-                value={total >= 20 ? "Alta" : total >= 5 ? "Média" : "Inicial"}
-              />
-
+              <MiniBox label="Estado da carteira" value={total > 0 ? "Ativa" : "Sem processos"} color={total > 0 ? "text-green-400" : "text-yellow-400"} />
+              <MiniBox label="Maturidade de dados" value={total >= 20 ? "Alta" : total >= 5 ? "Média" : "Inicial"} />
               <p className="text-gray-300">
                 {total >= 20
                   ? "A carteira já tem volume suficiente para gerar padrões iniciais de Tribunal DNA e Opponent Intelligence."
@@ -355,15 +351,7 @@ export default function EnterpriseCommandCenter() {
   )
 }
 
-function Metric({
-  title,
-  value,
-  color = "",
-}: {
-  title: string
-  value: string
-  color?: string
-}) {
+function Metric({ title, value, color = "" }: { title: string; value: string; color?: string }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <p className="text-sm text-muted-foreground">{title}</p>
@@ -372,15 +360,7 @@ function Metric({
   )
 }
 
-function MiniBox({
-  label,
-  value,
-  color = "",
-}: {
-  label: string
-  value: string
-  color?: string
-}) {
+function MiniBox({ label, value, color = "" }: { label: string; value: string; color?: string }) {
   return (
     <div className="rounded-xl bg-black/20 border border-white/5 p-4">
       <p className="text-xs text-gray-400">{label}</p>
@@ -404,21 +384,10 @@ function Card({ title, icon, children, danger, highlight, warning, success }: an
           : "bg-[#111118] border-border"
       }`}
     >
-      <div
-        className={`flex items-center gap-2 mb-4 ${
-          danger
-            ? "text-red-400"
-            : warning
-            ? "text-yellow-400"
-            : success
-            ? "text-green-400"
-            : ""
-        }`}
-      >
+      <div className={`flex items-center gap-2 mb-4 ${danger ? "text-red-400" : warning ? "text-yellow-400" : success ? "text-green-400" : ""}`}>
         {icon}
         <h2 className="font-bold text-xl">{title}</h2>
       </div>
-
       {children}
     </div>
   )
@@ -426,10 +395,7 @@ function Card({ title, icon, children, danger, highlight, warning, success }: an
 
 function List({ items, prefix }: { items?: any[]; prefix: string }) {
   const list = Array.isArray(items) ? items : []
-
-  if (!list.length) {
-    return <p className="text-gray-500">Sem achados.</p>
-  }
+  if (!list.length) return <p className="text-gray-500">Sem achados.</p>
 
   return (
     <ul className="space-y-2 text-gray-300">

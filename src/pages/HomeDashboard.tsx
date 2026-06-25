@@ -20,7 +20,8 @@ import { saveAnalysis } from "@/services/strategicAnalysisService"
 import { getDashboardStats } from "@/services/dashboardService"
 import { runStrategicAnalysis } from "@/services/strategicAiService"
 import { generateStrategicPdf } from "@/services/pdfReport"
-import TrialBanner from "@/components/TrialBanner"
+import DashboardTrialHeader from "@/components/dashboard/DashboardTrialHeader"
+import DashboardMetrics from "@/components/dashboard/DashboardMetrics"
 import {
   searchProcessDatajud,
   buildCaseTextFromDatajud,
@@ -311,7 +312,7 @@ Assunto: ${datajudProcess.subject}`
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-8">
         
-        <TrialBanner/>
+        <DashboardTrialHeader />
         
         <section className="rounded-3xl border border-[#2a2a35] bg-gradient-to-br from-[#111118] via-[#0d0d15] to-[#05050a] p-8 lg:p-10 shadow-2xl">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
@@ -513,23 +514,7 @@ Assunto: ${datajudProcess.subject}`
           </div>
         </section>
 
-        <section className="grid md:grid-cols-4 gap-4">
-          <Metric title="Análises salvas" value={String(stats.total)} />
-          <Metric title="Minutas salvas" value={String(stats.draftsTotal)} color="text-primary" />
-          <Metric title="Treinos Judge" value={String(stats.judgeTotal)} color="text-yellow-400" />
-          <Metric title="Score médio Judge" value={`${stats.avgJudgeScore}/100`} color="text-green-400" />
-        </section>
-
-        <section className="grid md:grid-cols-4 gap-4">
-          <Metric title="Chance média" value={`${stats.avgSuccess}%`} color="text-green-400" />
-          <Metric title="Casos aceitos" value={String(stats.accepted)} color="text-primary" />
-          <Metric title="Casos recusados" value={String(stats.rejected)} color="text-red-400" />
-          <Metric
-            title="Patrimônio NexJud"
-            value={String(stats.total + stats.draftsTotal + stats.judgeTotal)}
-            color="text-indigo-400"
-          />
-        </section>
+        <DashboardMetrics stats={stats} />
 
         <CardTitle icon={<Sparkles className="text-primary" />} title="Últimas Atividades NexJud™" highlight>
           {stats.latestActivities.length > 0 ? (

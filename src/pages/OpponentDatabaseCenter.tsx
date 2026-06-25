@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react"
-import { ShieldAlert, Search, Building2, TrendingUp } from "lucide-react"
+import { ShieldAlert, Search, Building2 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import {
   saveOpponentDatabase,
   getOpponentDatabase,
 } from "@/services/enterpriseModulesService"
 import { getUserProcesses } from "@/services/enterpriseIntelligenceService"
+import { runOpponentIntelligenceAi } from "@/services/opponentIntelligenceAiService"
 
 export default function OpponentDatabaseCenter() {
   const { user } = useAuth()
@@ -38,53 +39,66 @@ export default function OpponentDatabaseCenter() {
         JSON.stringify(p.dados || {}).toLowerCase().includes(name)
       )
 
+      const processContext = filtered
+        .slice(0, 5)
+        .map((p) => {
+          return `
+Processo: ${p.process_number || "-"}
+Tribunal: ${p.tribunal || "-"}
+Classe: ${p.classe || "-"}
+Assunto: ${p.assunto || "-"}
+Última movimentação: ${p.ultima_movimentacao || "-"}
+`
+        })
+        .join("\n")
+
+      const ai = await runOpponentIntelligenceAi({
+        opponentName,
+        processContext,
+      })
+
       const total = filtered.length
 
-      const appealCount = filtered.filter((p) =>
-        JSON.stringify(p.dados || {}).toLowerCase().includes("recurso")
-      ).length
-
-      const settlementCount = filtered.filter((p) =>
-        JSON.stringify(p.dados || {}).toLowerCase().includes("acordo")
-      ).length
-
       const appealSignal =
-        total > 0 ? Math.round((appealCount / total) * 100) : 0
+        ai.appealTrend === "ALTA"
+          ? 80
+          : ai.appealTrend === "MÉDIA"
+          ? 50
+          : ai.appealTrend === "BAIXA"
+          ? 20
+          : 0
 
       const settlementSignal =
-        total > 0 ? Math.round((settlementCount / total) * 100) : 0
+        ai.settlementTrend === "ALTA"
+          ? 80
+          : ai.settlementTrend === "MÉDIA"
+          ? 50
+          : ai.settlementTrend === "BAIXA"
+          ? 20
+          : 0
 
-      const riskLevel =
-        appealSignal >= 70 ? "ALTO" : appealSignal >= 35 ? "MÉDIO" : "BAIXO"
-
-      const profile =
-        appealSignal >= 70
-          ? "Litigante agressivo"
-          : settlementSignal >= 40
-          ? "Adversário aberto a acordo"
-          : "Perfil neutro ou inconclusivo"
-
-      await saveOpponentDatabase({
+      const saved = await saveOpponentDatabase({
         user_id: user.id,
-        opponent_name: opponentName,
-        profile,
+        opponent_name: ai.opponentName || opponentName,
+        profile: ai.profile || "Perfil inconclusivo.",
         total_processes: total,
         settlement_signal: settlementSignal,
         appeal_signal: appealSignal,
-        risk_level: riskLevel,
-        notes:
-          "Perfil calculado com base nos processos já consultados e salvos na carteira processual.",
+        risk_level: ai.aggressivenessLevel || "MÉDIO",
+        notes: ai.executiveSummary || "Análise gerada por IA com base nos dados disponíveis.",
         data: {
+          ai,
           processes: filtered,
           generatedAt: new Date().toISOString(),
+          source: "opponent-intelligence-ai",
         },
       })
 
-      await load()
-      alert("Opponent Database atualizado.")
+      setRecords((prev) => [saved, ...prev])
+      alert("Opponent Intelligence IA salvo.")
     } catch (error) {
       console.error(error)
-      alert("Erro ao analisar adversário.")
+      alert("Erro ao analisar adversário com IA.")
     } finally {
       setLoading(false)
     }
@@ -97,9 +111,9 @@ export default function OpponentDatabaseCenter() {
           <div className="flex items-center gap-3 mb-4">
             <ShieldAlert className="text-red-400" size={40} />
             <div>
-              <h1 className="text-4xl font-bold">Opponent Database™</h1>
+              <h1 className="text-4xl font-bold">Opponent Intelligence™ IA</h1>
               <p className="text-muted-foreground mt-1">
-                Banco estratégico de adversários, litigância, acordos e recursos.
+                Banco estratégico de adversários, padrão de defesa, negociação e litígio.
               </p>
             </div>
           </div>
@@ -122,7 +136,7 @@ export default function OpponentDatabaseCenter() {
               className="rounded-xl bg-red-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Search size={18} />
-              {loading ? "Analisando..." : "Analisar"}
+              {loading ? "Analisando..." : "Analisar IA"}
             </button>
           </div>
         </section>
@@ -131,12 +145,12 @@ export default function OpponentDatabaseCenter() {
           <Metric title="Adversários mapeados" value={String(records.length)} color="text-red-400" />
           <Metric
             title="Agressivos"
-            value={String(records.filter((r) => r.risk_level === "ALTO").length)}
+            value={String(records.filter((r) => r.risk_level === "ALTO" || r.risk_level === "CRÍTICO").length)}
             color="text-yellow-400"
           />
           <Metric
             title="Abertos a acordo"
-            value={String(records.filter((r) => Number(r.settlement_signal || 0) >= 40).length)}
+            value={String(records.filter((r) => Number(r.settlement_signal || 0) >= 50).length)}
             color="text-green-400"
           />
           <Metric
@@ -152,23 +166,55 @@ export default function OpponentDatabaseCenter() {
               Nenhum adversário mapeado ainda.
             </div>
           ) : (
-            records.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-border bg-card p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Building2 className="text-red-400" />
-                  <h2 className="font-bold text-xl">{item.opponent_name}</h2>
-                </div>
+            records.map((item) => {
+              const ai = item.data?.ai || {}
 
-                <div className="grid md:grid-cols-4 gap-3">
-                  <MiniBox label="Perfil" value={item.profile || "-"} />
-                  <MiniBox label="Processos" value={String(item.total_processes || 0)} />
-                  <MiniBox label="Sinal de recurso" value={`${item.appeal_signal || 0}%`} color="text-red-400" />
-                  <MiniBox label="Sinal de acordo" value={`${item.settlement_signal || 0}%`} color="text-green-400" />
-                </div>
+              return (
+                <div key={item.id} className="rounded-2xl border border-border bg-card p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Building2 className="text-red-400" />
+                    <h2 className="font-bold text-xl">{item.opponent_name}</h2>
+                  </div>
 
-                <p className="text-gray-400 mt-4">{item.notes || "-"}</p>
-              </div>
-            ))
+                  <div className="grid md:grid-cols-4 gap-3">
+                    <MiniBox label="Perfil" value={item.profile || "-"} />
+                    <MiniBox label="Processos na carteira" value={String(item.total_processes || 0)} />
+                    <MiniBox label="Agressividade" value={item.risk_level || "-"} color="text-red-400" />
+                    <MiniBox label="Confiança" value={ai.confidenceLevel || "-"} color="text-primary" />
+                  </div>
+
+                  <p className="text-gray-300 mt-5 whitespace-pre-line">{item.notes || "-"}</p>
+
+                  <div className="grid lg:grid-cols-2 gap-5 mt-5">
+                    <Card title="Padrão de Defesa">
+                      <List items={ai.defensePattern} prefix="🛡️" />
+                    </Card>
+
+                    <Card title="Pontos de Pressão">
+                      <List items={ai.pressurePoints} prefix="🎯" />
+                    </Card>
+
+                    <Card title="Fraquezas Potenciais">
+                      <List items={ai.weaknesses} prefix="⚠️" />
+                    </Card>
+
+                    <Card title="Estratégia de Negociação">
+                      <List items={ai.negotiationStrategy} prefix="🤝" />
+                    </Card>
+
+                    <Card title="Estratégia de Litígio">
+                      <List items={ai.litigationStrategy} prefix="⚔️" />
+                    </Card>
+
+                    <Card title="Abordagem Recomendada">
+                      <p className="text-gray-300 whitespace-pre-line">
+                        {ai.recommendedApproach || "-"}
+                      </p>
+                    </Card>
+                  </div>
+                </div>
+              )
+            })
           )}
         </section>
       </div>
@@ -191,5 +237,32 @@ function MiniBox({ label, value, color = "" }: { label: string; value: string; c
       <p className="text-xs text-gray-400">{label}</p>
       <p className={`text-lg font-bold ${color}`}>{value}</p>
     </div>
+  )
+}
+
+function Card({ title, children }: any) {
+  return (
+    <div className="rounded-xl bg-black/20 border border-white/5 p-4">
+      <h3 className="font-bold mb-3">{title}</h3>
+      {children}
+    </div>
+  )
+}
+
+function List({ items, prefix }: { items?: any[]; prefix: string }) {
+  const list = Array.isArray(items) ? items : []
+
+  if (!list.length) {
+    return <p className="text-gray-500">Sem itens.</p>
+  }
+
+  return (
+    <ul className="space-y-2 text-gray-300">
+      {list.map((item, index) => (
+        <li key={index}>
+          {prefix} {String(item)}
+        </li>
+      ))}
+    </ul>
   )
 }

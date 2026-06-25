@@ -82,6 +82,7 @@ const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
   location.pathname.includes("legal-intelligence-history")
   const isLitigationStrategyActive =
   location.pathname.includes("litigation-strategy")
+  const isPricingActive = location.pathname.includes("pricing")
 
   useEffect(() => {
     async function checkUserSubscription() {
@@ -312,9 +313,17 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
     label="Tribunal Heatmap"
     active={isTribunalHeatmapActive}
   />
-</NavGroup>          
-          <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
-          <NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
+</NavGroup>
+
+<NavItem
+  to="/pricing"
+  icon={CreditCard}
+  label="Planos"
+  active={isPricingActive}
+/>
+
+<NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
+<NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
         </nav>
 
         <div className="mx-4 p-3 bg-muted rounded-lg border border-border">

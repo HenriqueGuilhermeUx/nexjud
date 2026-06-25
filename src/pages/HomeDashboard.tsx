@@ -20,6 +20,7 @@ import { saveAnalysis } from "@/services/strategicAnalysisService"
 import { getDashboardStats } from "@/services/dashboardService"
 import { runStrategicAnalysis } from "@/services/strategicAiService"
 import { generateStrategicPdf } from "@/services/pdfReport"
+import TrialBanner from "@/components/TrialBanner"
 import {
   searchProcessDatajud,
   buildCaseTextFromDatajud,
@@ -309,6 +310,9 @@ Assunto: ${datajudProcess.subject}`
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-8">
+        
+        <TrialBanner/>
+        
         <section className="rounded-3xl border border-[#2a2a35] bg-gradient-to-br from-[#111118] via-[#0d0d15] to-[#05050a] p-8 lg:p-10 shadow-2xl">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
             <div className="max-w-3xl">

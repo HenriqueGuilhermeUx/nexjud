@@ -13,6 +13,7 @@ import {
   Gavel,
   Archive,
   Database,
+  Target,
 ChevronDown,
 ChevronRight,
 } from "lucide-react"
@@ -38,6 +39,7 @@ import OpponentDatabaseCenter from "./OpponentDatabaseCenter"
 import TribunalHeatmapCenter from "./TribunalHeatmapCenter"
 import LegalIntelligenceEngine from "./LegalIntelligenceEngine"
 import LegalIntelligenceHistory from "./LegalIntelligenceHistory"
+import LitigationStrategyCenter from "./LitigationStrategyCenter"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -78,6 +80,8 @@ const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
     !isJudgeHistoryActive
   const isLegalIntelligenceHistoryActive =
   location.pathname.includes("legal-intelligence-history")
+  const isLitigationStrategyActive =
+  location.pathname.includes("litigation-strategy")
 
   useEffect(() => {
     async function checkUserSubscription() {
@@ -260,6 +264,13 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   active={isLegalIntelligenceHistoryActive}
 />
 
+  <NavItem
+  to="/dashboard/litigation-strategy"
+  icon={Target}
+  label="Litigation Strategy"
+  active={isLitigationStrategyActive}
+/>
+
 <NavItem
   to="/dashboard/enterprise-command-center"
   icon={Brain}
@@ -374,6 +385,8 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   <LegalIntelligenceEngine />
       ) : isLegalIntelligenceHistoryActive ? (
   <LegalIntelligenceHistory />
+      ) : isLitigationStrategyActive ? (
+  <LitigationStrategyCenter />
 ) : isEnterpriseCommandCenterActive ? (
   <EnterpriseCommandCenter />
       ) : isWarRoomCenterActive ? (

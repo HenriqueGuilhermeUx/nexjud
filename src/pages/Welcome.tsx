@@ -5,9 +5,8 @@ export default function Welcome() {
   const navigate = useNavigate()
 
   function start() {
-    localStorage.setItem("nexjud_onboarding", "done")
-    navigate("/dashboard")
-  }
+  navigate("/tutorial")
+}
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">

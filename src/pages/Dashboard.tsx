@@ -37,6 +37,7 @@ import OneClickActionsCenter from "./OneClickActionsCenter"
 import OpponentDatabaseCenter from "./OpponentDatabaseCenter"
 import TribunalHeatmapCenter from "./TribunalHeatmapCenter"
 import LegalIntelligenceEngine from "./LegalIntelligenceEngine"
+import LegalIntelligenceHistory from "./LegalIntelligenceHistory"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -75,6 +76,8 @@ const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
     location.pathname.includes("history") &&
     !isDraftHistoryActive &&
     !isJudgeHistoryActive
+  const isLegalIntelligenceHistoryActive =
+  location.pathname.includes("legal-intelligence-history")
 
   useEffect(() => {
     async function checkUserSubscription() {
@@ -249,13 +252,20 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   label="Legal Intelligence"
   active={isLegalIntelligenceEngineActive}
 />
-  
-  <NavItem
-    to="/dashboard/enterprise-command-center"
-    icon={Brain}
-    label="Command Center"
-    active={isEnterpriseCommandCenterActive}
-  />
+
+<NavItem
+  to="/dashboard/legal-intelligence-history"
+  icon={FileText}
+  label="Histórico Intelligence"
+  active={isLegalIntelligenceHistoryActive}
+/>
+
+<NavItem
+  to="/dashboard/enterprise-command-center"
+  icon={Brain}
+  label="Command Center"
+  active={isEnterpriseCommandCenterActive}
+/>
 
   <NavItem
     to="/dashboard/war-room"
@@ -362,6 +372,8 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   <ProcessPortfolio />
 ) : isLegalIntelligenceEngineActive ? (
   <LegalIntelligenceEngine />
+      ) : isLegalIntelligenceHistoryActive ? (
+  <LegalIntelligenceHistory />
 ) : isEnterpriseCommandCenterActive ? (
   <EnterpriseCommandCenter />
       ) : isWarRoomCenterActive ? (

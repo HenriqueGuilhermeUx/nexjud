@@ -61,13 +61,11 @@ export default function Tutorial() {
         </section>
 
         <div className="grid md:grid-cols-2 gap-4">
-          <button
-  onClick={() => {
-
-    localStorage.setItem(
-      "nexjud_onboarding",
-      "done"
-    )
+         
+         onClick={() => {
+  localStorage.setItem("nexjud_onboarding", "done")
+  navigate("/dashboard")
+}}
 
     navigate("/dashboard")
 

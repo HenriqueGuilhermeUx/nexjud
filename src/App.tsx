@@ -27,6 +27,7 @@ import LegalIntelligenceEngine from "@/pages/LegalIntelligenceEngine"
 import LegalIntelligenceHistory from "@/pages/LegalIntelligenceHistory"
 import LitigationStrategyCenter from "@/pages/LitigationStrategyCenter"
 import PricingPage from "@/pages/PricingPage"
+import UpgradePage from "@/pages/UpgradePage"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/upgrade" element={<UpgradePage />} />
 
           <Route
             path="/dashboard"

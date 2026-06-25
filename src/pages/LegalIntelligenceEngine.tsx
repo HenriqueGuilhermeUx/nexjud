@@ -9,16 +9,25 @@ import {
   Building2,
   TrendingUp,
   Copy,
+  Save,
+  Download,
 } from "lucide-react"
+import { useAuth } from "@/context/AuthContext"
 import { runLegalIntelligenceEngine } from "@/services/legalIntelligenceEngine"
+import { saveLegalIntelligenceReport } from "@/services/legalIntelligenceReportService"
+import { generateLegalIntelligencePdf } from "@/services/legalIntelligencePdf"
 
 export default function LegalIntelligenceEngine() {
+  const { user } = useAuth()
+
   const [caseText, setCaseText] = useState("")
   const [opponentName, setOpponentName] = useState("")
   const [clientName, setClientName] = useState("")
   const [tribunal, setTribunal] = useState("")
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [result, setResult] = useState<any>(null)
+  const [savedReport, setSavedReport] = useState<any>(null)
 
   async function analyze() {
     if (!caseText.trim()) {
@@ -37,6 +46,7 @@ export default function LegalIntelligenceEngine() {
       })
 
       setResult(data)
+      setSavedReport(null)
       alert("Legal Intelligence Engine concluído.")
     } catch (error) {
       console.error(error)
@@ -44,6 +54,58 @@ export default function LegalIntelligenceEngine() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function saveReport() {
+    if (!user?.id) {
+      alert("Faça login novamente.")
+      return
+    }
+
+    if (!result) {
+      alert("Gere uma análise primeiro.")
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      const saved = await saveLegalIntelligenceReport({
+        user_id: user.id,
+        title:
+          result.strategic?.title ||
+          result.boardReport?.title ||
+          `Legal Intelligence Report - ${new Date().toLocaleDateString("pt-BR")}`,
+        case_text: caseText,
+        opponent_name: opponentName || "",
+        client_name: clientName || "",
+        tribunal: tribunal || "",
+        result,
+      })
+
+      setSavedReport(saved)
+      alert("Relatório salvo.")
+    } catch (error) {
+      console.error(error)
+      alert("Erro ao salvar relatório.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function exportPdf() {
+    if (!result) return
+
+    generateLegalIntelligencePdf(
+      savedReport || {
+        result,
+        case_text: caseText,
+        opponent_name: opponentName,
+        client_name: clientName,
+        tribunal,
+        created_at: new Date().toISOString(),
+      }
+    )
   }
 
   function copyExecutiveReport() {
@@ -122,25 +184,10 @@ export default function LegalIntelligenceEngine() {
         {result && (
           <>
             <section className="grid md:grid-cols-4 gap-4">
-              <Metric
-                title="Chance"
-                value={`${result.strategic?.successProbability || 0}%`}
-                color="text-primary"
-              />
-              <Metric
-                title="Risco"
-                value={result.strategic?.riskLevel || result.boardReport?.riskLevel || "-"}
-                color="text-yellow-400"
-              />
-              <Metric
-                title="Decisão"
-                value={result.strategic?.partnerDecision || result.boardReport?.decision || "-"}
-                color="text-green-400"
-              />
-              <Metric
-                title="Board"
-                value={result.boardReport?.confidenceLevel || "-"}
-              />
+              <Metric title="Chance" value={`${result.strategic?.successProbability || 0}%`} color="text-primary" />
+              <Metric title="Risco" value={result.strategic?.riskLevel || result.boardReport?.riskLevel || "-"} color="text-yellow-400" />
+              <Metric title="Decisão" value={result.strategic?.partnerDecision || result.boardReport?.decision || "-"} color="text-green-400" />
+              <Metric title="Board" value={result.boardReport?.confidenceLevel || "-"} />
             </section>
 
             <section className="rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 to-indigo-500/10 p-6">
@@ -152,21 +199,38 @@ export default function LegalIntelligenceEngine() {
                   </p>
                 </div>
 
-                <button
-                  onClick={copyExecutiveReport}
-                  className="px-5 py-3 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2"
-                >
-                  <Copy size={18} />
-                  Copiar Relatório
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={copyExecutiveReport}
+                    className="px-5 py-3 rounded-xl bg-[#171721] border border-[#2a2a35] font-bold flex items-center justify-center gap-2"
+                  >
+                    <Copy size={18} />
+                    Copiar
+                  </button>
+
+                  <button
+                    onClick={saveReport}
+                    disabled={saving}
+                    className="px-5 py-3 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                    {savedReport ? "Salvo" : "Salvar"}
+                  </button>
+
+                  <button
+                    onClick={exportPdf}
+                    className="px-5 py-3 rounded-xl bg-green-600 text-white font-bold flex items-center justify-center gap-2"
+                  >
+                    <Download size={18} />
+                    PDF
+                  </button>
+                </div>
               </div>
 
               <div className="grid lg:grid-cols-2 gap-5">
                 <Card title="Resumo Estratégico" icon={<FileText className="text-primary" />}>
                   <p className="text-gray-300 whitespace-pre-line">
-                    {result.strategic?.executiveSummary ||
-                      result.boardReport?.executiveSummary ||
-                      "-"}
+                    {result.strategic?.executiveSummary || result.boardReport?.executiveSummary || "-"}
                   </p>
                 </Card>
 
@@ -195,9 +259,7 @@ export default function LegalIntelligenceEngine() {
               <Card title="Partner Council" icon={<Users className="text-primary" />}>
                 <MiniBox label="Voto final" value={result.partnerCouncil?.finalVote || "-"} />
                 <MiniBox label="Risco" value={result.partnerCouncil?.riskLevel || "-"} />
-                <p className="text-gray-300 mt-4">
-                  {result.partnerCouncil?.recommendedPosition || "-"}
-                </p>
+                <p className="text-gray-300 mt-4">{result.partnerCouncil?.recommendedPosition || "-"}</p>
               </Card>
 
               <Card title="Opponent Intelligence" icon={<Building2 className="text-red-400" />}>
@@ -259,15 +321,7 @@ ${(result.boardReport?.recommendedActions || []).map((x: string) => `- ${x}`).jo
 `.trim()
 }
 
-function Metric({
-  title,
-  value,
-  color = "",
-}: {
-  title: string
-  value: string
-  color?: string
-}) {
+function Metric({ title, value, color = "" }: { title: string; value: string; color?: string }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <p className="text-sm text-muted-foreground">{title}</p>
@@ -278,13 +332,7 @@ function Metric({
 
 function Card({ title, icon, children, highlight }: any) {
   return (
-    <div
-      className={`rounded-2xl border p-6 ${
-        highlight
-          ? "bg-gradient-to-r from-primary/10 to-indigo-500/10 border-primary/30"
-          : "bg-[#111118] border-[#2a2a35]"
-      }`}
-    >
+    <div className={`rounded-2xl border p-6 ${highlight ? "bg-gradient-to-r from-primary/10 to-indigo-500/10 border-primary/30" : "bg-[#111118] border-[#2a2a35]"}`}>
       <div className="flex items-center gap-2 mb-4">
         {icon}
         <h2 className="font-bold text-xl">{title}</h2>
@@ -303,15 +351,7 @@ function MiniBox({ label, value }: { label: string; value: string }) {
   )
 }
 
-function List({
-  title,
-  items,
-  prefix,
-}: {
-  title: string
-  items?: any[]
-  prefix: string
-}) {
+function List({ title, items, prefix }: { title: string; items?: any[]; prefix: string }) {
   const list = Array.isArray(items) ? items : []
 
   return (

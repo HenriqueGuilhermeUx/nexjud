@@ -14,6 +14,7 @@ import {
   Archive,
   Database,
   Target,
+  Sparkles,
 ChevronDown,
 ChevronRight,
 } from "lucide-react"
@@ -83,6 +84,8 @@ const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
   const isLitigationStrategyActive =
   location.pathname.includes("litigation-strategy")
   const isPricingActive = location.pathname.includes("pricing")
+  const isTutorialActive =
+  location.pathname.includes("tutorial")
 
   useEffect(() => {
     async function checkUserSubscription() {
@@ -321,6 +324,13 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   label="Planos"
   active={isPricingActive}
 />
+
+<NavItem
+  to="/tutorial"
+  icon={Sparkles}
+  label="Tutorial"
+  active={isTutorialActive}
+/>          
 
 <NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
 <NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />

@@ -28,6 +28,7 @@ import LegalIntelligenceHistory from "@/pages/LegalIntelligenceHistory"
 import LitigationStrategyCenter from "@/pages/LitigationStrategyCenter"
 import PricingPage from "@/pages/PricingPage"
 import UpgradePage from "@/pages/UpgradePage"
+import PlanGate from "@/components/PlanGate"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -80,9 +81,32 @@ export default function App() {
             <Route path="judge-history" element={<JudgeHistory />} />
             <Route path="process-portfolio" element={<ProcessPortfolio />} />
             <Route path="enterprise-command-center" element={<EnterpriseCommandCenter />} />
-            <Route path="legal-intelligence-engine" element={<LegalIntelligenceEngine />} />
-            <Route path="legal-intelligence-history" element={<LegalIntelligenceHistory />} />
-            <Route path="litigation-strategy" element={<LitigationStrategyCenter />} />
+            <Route
+  path="legal-intelligence-engine"
+  element={
+    <PlanGate requiredPlan="intelligence">
+      <LegalIntelligenceEngine />
+    </PlanGate>
+  }
+/>
+
+<Route
+  path="legal-intelligence-history"
+  element={
+    <PlanGate requiredPlan="intelligence">
+      <LegalIntelligenceHistory />
+    </PlanGate>
+  }
+/>
+
+<Route
+  path="litigation-strategy"
+  element={
+    <PlanGate requiredPlan="enterprise">
+      <LitigationStrategyCenter />
+    </PlanGate>
+  }
+/>
             <Route path="war-room" element={<WarRoomCenter />} />
             <Route path="partner-council" element={<PartnerCouncilCenter />} />
             <Route path="one-click-actions" element={<OneClickActionsCenter />} />

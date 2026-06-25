@@ -25,6 +25,7 @@ import OpponentDatabaseCenter from "@/pages/OpponentDatabaseCenter"
 import TribunalHeatmapCenter from "@/pages/TribunalHeatmapCenter"
 import LegalIntelligenceEngine from "@/pages/LegalIntelligenceEngine"
 import LegalIntelligenceHistory from "@/pages/LegalIntelligenceHistory"
+import LitigationStrategyCenter from "@/pages/LitigationStrategyCenter"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -77,6 +78,7 @@ export default function App() {
             <Route path="enterprise-command-center" element={<EnterpriseCommandCenter />} />
             <Route path="legal-intelligence-engine" element={<LegalIntelligenceEngine />} />
             <Route path="legal-intelligence-history" element={<LegalIntelligenceHistory />} />
+            <Route path="litigation-strategy" element={<LitigationStrategyCenter />} />
             <Route path="war-room" element={<WarRoomCenter />} />
             <Route path="partner-council" element={<PartnerCouncilCenter />} />
             <Route path="one-click-actions" element={<OneClickActionsCenter />} />

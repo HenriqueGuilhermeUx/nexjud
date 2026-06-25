@@ -62,7 +62,16 @@ export default function Tutorial() {
 
         <div className="grid md:grid-cols-2 gap-4">
           <button
-            onClick={() => navigate("/dashboard")}
+  onClick={() => {
+
+    localStorage.setItem(
+      "nexjud_onboarding",
+      "done"
+    )
+
+    navigate("/dashboard")
+
+  }}
             className="py-4 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2"
           >
             Começar análise

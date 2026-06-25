@@ -25,24 +25,26 @@ export default function Login() {
 
     try {
       if (isSignUp) {
-        // Correção Crucial: Passa o objeto contendo os metadados do Nome para o Auth do Supabase
         await signUpWithEmail(email, password, {
-          data: { name: name }
+          data: { name },
         })
+
         setSuccessMessage("Cadastro realizado com sucesso! Agora você já pode fazer login.")
         setIsSignUp(false)
-       
         setName("")
         setEmail("")
         setPassword("")
       } else {
-       const tutorialDone = localStorage.getItem("nexjud_onboarding")
+        await signInWithEmail(email, password)
 
-if (!tutorialDone) {
-  navigate("/welcome")
-} else {
-  navigate("/dashboard")
-}
+        const tutorialDone = localStorage.getItem("nexjud_onboarding")
+
+        if (!tutorialDone) {
+          navigate("/welcome")
+        } else {
+          navigate("/dashboard")
+        }
+      }
     } catch (err: any) {
       setError(err.message || "Erro ao processar requisição.")
     } finally {
@@ -60,6 +62,7 @@ if (!tutorialDone) {
           <CardTitle className="text-2xl text-foreground">NexJud</CardTitle>
           <CardDescription className="text-muted-foreground">Justiça Inteligente onDemand</CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (

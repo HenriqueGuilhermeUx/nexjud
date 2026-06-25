@@ -1,4 +1,4 @@
-import { runStrategicAnalysis } from "@/services/strategicAnalysisApi"
+import { runStrategicAnalysis } from "@/services/strategicAiService"
 import { runWarRoomAi } from "@/services/warRoomAiService"
 import { runPartnerCouncilAi } from "@/services/partnerCouncilAiService"
 import { runOpponentIntelligenceAi } from "@/services/opponentIntelligenceAiService"
@@ -18,18 +18,17 @@ export async function runLegalIntelligenceEngine(input: LegalIntelligenceInput) 
     throw new Error("Texto do caso obrigatório.")
   }
 
-  const strategic = await runStrategicAnalysis(caseText)
-
-  const warRoom = await runWarRoomAi(caseText)
-
-  const partnerCouncil = await runPartnerCouncilAi(caseText)
-
-  const opponent = input.opponentName
-    ? await runOpponentIntelligenceAi({
-        opponentName: input.opponentName,
-        processContext: caseText,
-      })
-    : null
+  const [strategic, warRoom, partnerCouncil, opponent] = await Promise.all([
+    runStrategicAnalysis(caseText),
+    runWarRoomAi(caseText),
+    runPartnerCouncilAi(caseText),
+    input.opponentName
+      ? runOpponentIntelligenceAi({
+          opponentName: input.opponentName,
+          processContext: caseText,
+        })
+      : Promise.resolve(null),
+  ])
 
   const boardReport = await runBoardReportAi({
     portfolioContext: caseText,

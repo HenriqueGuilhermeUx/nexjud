@@ -36,6 +36,7 @@ import PartnerCouncilCenter from "./PartnerCouncilCenter"
 import OneClickActionsCenter from "./OneClickActionsCenter"
 import OpponentDatabaseCenter from "./OpponentDatabaseCenter"
 import TribunalHeatmapCenter from "./TribunalHeatmapCenter"
+import LegalIntelligenceEngine from "./LegalIntelligenceEngine"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -62,6 +63,8 @@ export default function Dashboard() {
   location.pathname.includes("process-portfolio")
   const isEnterpriseCommandCenterActive =
   location.pathname.includes("enterprise-command-center")
+  const isLegalIntelligenceEngineActive =
+  location.pathname.includes("legal-intelligence-engine")
   const isWarRoomCenterActive = location.pathname.includes("war-room")
 const isPartnerCouncilActive = location.pathname.includes("partner-council")
 const isOneClickActionsActive = location.pathname.includes("one-click-actions")
@@ -239,6 +242,14 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   open={enterpriseOpen}
   onClick={() => setEnterpriseOpen((prev) => !prev)}
 >
+
+  <NavItem
+  to="/dashboard/legal-intelligence-engine"
+  icon={Brain}
+  label="Legal Intelligence"
+  active={isLegalIntelligenceEngineActive}
+/>
+  
   <NavItem
     to="/dashboard/enterprise-command-center"
     icon={Brain}
@@ -349,6 +360,8 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   <JudgeHistory />
 ) : isProcessPortfolioActive ? (
   <ProcessPortfolio />
+) : isLegalIntelligenceEngineActive ? (
+  <LegalIntelligenceEngine />
 ) : isEnterpriseCommandCenterActive ? (
   <EnterpriseCommandCenter />
       ) : isWarRoomCenterActive ? (

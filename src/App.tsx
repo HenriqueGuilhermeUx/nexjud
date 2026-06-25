@@ -29,6 +29,7 @@ import LitigationStrategyCenter from "@/pages/LitigationStrategyCenter"
 import PricingPage from "@/pages/PricingPage"
 import UpgradePage from "@/pages/UpgradePage"
 import PlanGate from "@/components/PlanGate"
+import Welcome from "@/pages/Welcome"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="judge-history" element={<JudgeHistory />} />
             <Route path="process-portfolio" element={<ProcessPortfolio />} />
             <Route path="enterprise-command-center" element={<EnterpriseCommandCenter />} />
+            <Route path="/welcome" element={<Welcome />} />
             <Route
   path="legal-intelligence-engine"
   element={

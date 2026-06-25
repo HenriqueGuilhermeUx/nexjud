@@ -36,9 +36,13 @@ export default function Login() {
         setEmail("")
         setPassword("")
       } else {
-        await signInWithEmail(email, password)
-        navigate("/dashboard")
-      }
+       const tutorialDone = localStorage.getItem("nexjud_onboarding")
+
+if (!tutorialDone) {
+  navigate("/welcome")
+} else {
+  navigate("/dashboard")
+}
     } catch (err: any) {
       setError(err.message || "Erro ao processar requisição.")
     } finally {

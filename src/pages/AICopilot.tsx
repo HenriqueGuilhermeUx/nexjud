@@ -14,9 +14,12 @@ import {
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { runAICopilot } from "@/services/copilotService"
+import { useAuth } from "@/context/AuthContext"
+import { saveCopilotSession } from "@/services/copilotSessionService"
 
 export default function AICopilot() {
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [prompt, setPrompt] = useState("")
   const [loading, setLoading] = useState(false)
@@ -33,6 +36,18 @@ export default function AICopilot() {
     try {
       const response = await runAICopilot(prompt)
       setResult(response)
+      if (user?.id) {
+  await saveCopilotSession({
+    user_id: user.id,
+    prompt,
+    result: response,
+    executive_summary: response.executive?.summary || "",
+    success_probability: response.executive?.successProbability || 0,
+    risk_level: response.executive?.riskLevel || "",
+    decision: response.executive?.decision || "",
+    next_move: response.executive?.nextMove || "",
+  })
+}
       alert("AI Copilot concluiu a análise completa.")
     } catch (e: any) {
       console.error(e)

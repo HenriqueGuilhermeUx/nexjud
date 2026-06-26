@@ -45,6 +45,9 @@ import AICopilot from "./AICopilot"
 import LegalChat from "./LegalChat"
 import ChiefLegalOfficer from "./ChiefLegalOfficer"
 import AICopilotHistory from "./AICopilotHistory"
+import KnowledgeBase from "./KnowledgeBase"
+import LegalMemory from "./LegalMemory"
+import LegalCases from "./LegalCases"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -104,6 +107,9 @@ const isHistoryActive =
   location.pathname.includes("tutorial")
   const isChiefLegalOfficerActive =
   location.pathname.includes("chief-legal-officer")
+  const isKnowledgeBaseActive = location.pathname.includes("knowledge-base")
+const isLegalMemoryActive = location.pathname.includes("legal-memory")
+const isLegalCasesActive = location.pathname.includes("legal-cases")
 
   useEffect(() => {
     async function checkUserSubscription() {
@@ -236,6 +242,12 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   label="Chat Jurídico"
   active={isLegalChatActive}
 />
+
+          <NavItem to="/dashboard/knowledge-base" icon={FileText} label="Knowledge Base" active={isKnowledgeBaseActive} />
+
+<NavItem to="/dashboard/legal-memory" icon={Brain} label="Memória Jurídica" active={isLegalMemoryActive} />
+
+<NavItem to="/dashboard/legal-cases" icon={Database} label="Casos" active={isLegalCasesActive} />
           
           <NavItem
   to="/dashboard/ai-copilot-history"
@@ -441,6 +453,12 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
     <AICopilot />
 ) : isLegalChatActive ? (
     <LegalChat />
+      ) : isKnowledgeBaseActive ? (
+  <KnowledgeBase />
+) : isLegalMemoryActive ? (
+  <LegalMemory />
+) : isLegalCasesActive ? (
+  <LegalCases />
       ) : isAICopilotHistoryActive ? (
   <AICopilotHistory />
   ) : isHomeActive ? (

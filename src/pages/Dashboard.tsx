@@ -86,6 +86,8 @@ const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
   const isPricingActive = location.pathname.includes("pricing")
   const isTutorialActive =
   location.pathname.includes("tutorial")
+  const isChiefLegalOfficerActive =
+  location.pathname.includes("chief-legal-officer")
 
   useEffect(() => {
     async function checkUserSubscription() {
@@ -254,6 +256,13 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   onClick={() => setEnterpriseOpen((prev) => !prev)}
 >
 
+<NavItem
+  to="/dashboard/chief-legal-officer"
+  icon={Brain}
+  label="AI Chief Legal Officer"
+  active={isChiefLegalOfficerActive}
+/>
+  
   <NavItem
   to="/dashboard/legal-intelligence-engine"
   icon={Brain}
@@ -406,6 +415,8 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   <LegalIntelligenceHistory />
       ) : isLitigationStrategyActive ? (
   <LitigationStrategyCenter />
+      ) : isChiefLegalOfficerActive ? (
+  <ChiefLegalOfficer />
 ) : isEnterpriseCommandCenterActive ? (
   <EnterpriseCommandCenter />
       ) : isWarRoomCenterActive ? (

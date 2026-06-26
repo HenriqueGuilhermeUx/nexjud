@@ -32,6 +32,7 @@ import PlanGate from "@/components/PlanGate"
 import Welcome from "@/pages/Welcome"
 import Tutorial from "@/pages/Tutorial"
 import ChiefLegalOfficer from "@/pages/ChiefLegalOfficer"
+import AICopilot from "@/pages/AICopilot"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -56,6 +57,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="ai-copilot" element={<AICopilot />} />
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/pricing" element={<PricingPage />} />

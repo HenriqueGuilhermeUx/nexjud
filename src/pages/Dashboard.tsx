@@ -61,7 +61,12 @@ export default function Dashboard() {
   const WOOVI_PLAN_ID = "SEU_ID_DE_PLANO_WOOVI_AQUI"
 
   const isHomeActive = location.pathname === "/dashboard"
-  const isAICopilotActive = location.pathname.includes("ai-copilot")
+
+const isAICopilotHistoryActive =
+  location.pathname.includes("ai-copilot-history")
+
+const isAICopilotActive =
+  location.pathname.includes("ai-copilot") && !isAICopilotHistoryActive
   const isRedTeamSimulatorActive = location.pathname.includes("red-team-simulator")
   const isDraftGeneratorActive = location.pathname.includes("draft-generator")
   const isDraftHistoryActive = location.pathname.includes("draft-history")
@@ -69,8 +74,6 @@ export default function Dashboard() {
   const isJudgeHistoryActive = location.pathname.includes("judge-history")
   const isProcessPortfolioActive =
   location.pathname.includes("process-portfolio")
-  const isAICopilotHistoryActive =
-  location.pathname.includes("ai-copilot-history")
   const isEnterpriseCommandCenterActive =
   location.pathname.includes("enterprise-command-center")
   const isLegalIntelligenceEngineActive =
@@ -82,9 +85,11 @@ const isOpponentDatabaseActive = location.pathname.includes("opponent-database")
 const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
   const isReportsActive = location.pathname.includes("reports")
   const isHistoryActive =
-    location.pathname.includes("history") &&
-    !isDraftHistoryActive &&
-    !isJudgeHistoryActive
+  location.pathname.includes("history") &&
+  !isDraftHistoryActive &&
+  !isJudgeHistoryActive &&
+  !isAICopilotHistoryActive &&
+  !isLegalIntelligenceHistoryActive
   const isLegalIntelligenceHistoryActive =
   location.pathname.includes("legal-intelligence-history")
   const isLitigationStrategyActive =

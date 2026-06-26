@@ -41,6 +41,7 @@ import TribunalHeatmapCenter from "./TribunalHeatmapCenter"
 import LegalIntelligenceEngine from "./LegalIntelligenceEngine"
 import LegalIntelligenceHistory from "./LegalIntelligenceHistory"
 import LitigationStrategyCenter from "./LitigationStrategyCenter"
+import AICopilot from "./AICopilot"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -58,6 +59,7 @@ export default function Dashboard() {
   const WOOVI_PLAN_ID = "SEU_ID_DE_PLANO_WOOVI_AQUI"
 
   const isHomeActive = location.pathname === "/dashboard"
+  const isAICopilotActive = location.pathname.includes("ai-copilot")
   const isRedTeamSimulatorActive = location.pathname.includes("red-team-simulator")
   const isDraftGeneratorActive = location.pathname.includes("draft-generator")
   const isDraftHistoryActive = location.pathname.includes("draft-history")
@@ -206,6 +208,14 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-2 pb-6">
+
+<NavItem
+  to="/dashboard/ai-copilot"
+  icon={Brain}
+  label="AI Copilot"
+  active={isAICopilotActive}
+/>
+          
           <NavItem to="/dashboard" icon={Brain} label="Strategic Analysis" active={isHomeActive} />
 
           <NavItem
@@ -399,6 +409,8 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
         </header>
 
         <main>
+          {isAICopilotActive ? (
+  <AICopilot />
           {isHomeActive ? (
             <HomeDashboard />
           ) : isRedTeamSimulatorActive ? (

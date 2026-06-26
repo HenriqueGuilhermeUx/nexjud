@@ -36,6 +36,9 @@ import ChiefLegalOfficer from "@/pages/ChiefLegalOfficer"
 import AICopilot from "@/pages/AICopilot"
 import AICopilotHistory from "@/pages/AICopilotHistory"
 import LegalChat from "@/pages/LegalChat"
+import KnowledgeBase from "@/pages/KnowledgeBase"
+import LegalMemory from "@/pages/LegalMemory"
+import LegalCases from "@/pages/LegalCases"
 
 import PlanGate from "@/components/PlanGate"
 
@@ -86,6 +89,10 @@ export default function App() {
   element={<LegalChat />}
 />
 
+<Route path="knowledge-base" element={<KnowledgeBase />} />
+<Route path="legal-memory" element={<LegalMemory />} />
+<Route path="legal-cases" element={<LegalCases />} />
+            
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="process-check" element={<ProcessCheck />} />
             <Route path="predictive" element={<PredictiveAI />} />

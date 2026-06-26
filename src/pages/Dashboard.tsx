@@ -42,6 +42,7 @@ import LegalIntelligenceEngine from "./LegalIntelligenceEngine"
 import LegalIntelligenceHistory from "./LegalIntelligenceHistory"
 import LitigationStrategyCenter from "./LitigationStrategyCenter"
 import AICopilot from "./AICopilot"
+import LegalChat from "./LegalChat"
 import ChiefLegalOfficer from "./ChiefLegalOfficer"
 import AICopilotHistory from "./AICopilotHistory"
 
@@ -67,6 +68,8 @@ const isAICopilotHistoryActive =
 
 const isAICopilotActive =
   location.pathname.includes("ai-copilot") && !isAICopilotHistoryActive
+  const isLegalChatActive =
+  pathname.includes("/dashboard/legal-chat")
   const isRedTeamSimulatorActive = location.pathname.includes("red-team-simulator")
   const isDraftGeneratorActive = location.pathname.includes("draft-generator")
   const isDraftHistoryActive = location.pathname.includes("draft-history")
@@ -227,6 +230,13 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   active={isAICopilotActive}
 />
 
+<NavItem
+  to="/dashboard/legal-chat"
+  icon={Brain}
+  label="Chat Jurídico"
+  active={isLegalChatActive}
+/>
+          
           <NavItem
   to="/dashboard/ai-copilot-history"
   icon={FileText}
@@ -429,6 +439,8 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
         <main>
   {isAICopilotActive ? (
     <AICopilot />
+) : isLegalChatActive ? (
+    <LegalChat />
       ) : isAICopilotHistoryActive ? (
   <AICopilotHistory />
   ) : isHomeActive ? (

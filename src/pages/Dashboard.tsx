@@ -43,6 +43,7 @@ import LegalIntelligenceHistory from "./LegalIntelligenceHistory"
 import LitigationStrategyCenter from "./LitigationStrategyCenter"
 import AICopilot from "./AICopilot"
 import ChiefLegalOfficer from "./ChiefLegalOfficer"
+import AICopilotHistory from "./AICopilotHistory"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -68,6 +69,8 @@ export default function Dashboard() {
   const isJudgeHistoryActive = location.pathname.includes("judge-history")
   const isProcessPortfolioActive =
   location.pathname.includes("process-portfolio")
+  const isAICopilotHistoryActive =
+  location.pathname.includes("ai-copilot-history")
   const isEnterpriseCommandCenterActive =
   location.pathname.includes("enterprise-command-center")
   const isLegalIntelligenceEngineActive =
@@ -215,6 +218,13 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   icon={Brain}
   label="AI Copilot"
   active={isAICopilotActive}
+/>
+
+          <NavItem
+  to="/dashboard/ai-copilot-history"
+  icon={FileText}
+  label="Histórico Copilot"
+  active={isAICopilotHistoryActive}
 />
           
           <NavItem to="/dashboard" icon={Brain} label="Strategic Analysis" active={isHomeActive} />
@@ -412,6 +422,8 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
         <main>
   {isAICopilotActive ? (
     <AICopilot />
+      ) : isAICopilotHistoryActive ? (
+  <AICopilotHistory />
   ) : isHomeActive ? (
     <HomeDashboard />
   ) : isRedTeamSimulatorActive ? (

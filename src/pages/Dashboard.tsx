@@ -42,6 +42,7 @@ import LegalIntelligenceEngine from "./LegalIntelligenceEngine"
 import LegalIntelligenceHistory from "./LegalIntelligenceHistory"
 import LitigationStrategyCenter from "./LitigationStrategyCenter"
 import AICopilot from "./AICopilot"
+import ChiefLegalOfficer from "./ChiefLegalOfficer"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)

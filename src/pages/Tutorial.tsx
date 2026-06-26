@@ -32,6 +32,11 @@ const steps = [
 export default function Tutorial() {
   const navigate = useNavigate()
 
+  function finishTutorial() {
+    localStorage.setItem("nexjud_onboarding", "done")
+    navigate("/dashboard")
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-6xl mx-auto p-6 lg:p-10 space-y-8">
@@ -61,15 +66,8 @@ export default function Tutorial() {
         </section>
 
         <div className="grid md:grid-cols-2 gap-4">
-         
-         onClick={() => {
-  localStorage.setItem("nexjud_onboarding", "done")
-  navigate("/dashboard")
-}}
-
-    navigate("/dashboard")
-
-  }}
+          <button
+            onClick={finishTutorial}
             className="py-4 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2"
           >
             Começar análise

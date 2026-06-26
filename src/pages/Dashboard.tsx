@@ -409,50 +409,50 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
         </header>
 
         <main>
-          {isAICopilotActive ? (
-  <AICopilot />
-          {isHomeActive ? (
-            <HomeDashboard />
-          ) : isRedTeamSimulatorActive ? (
-            <RedTeamSimulator />
-          ) : isJudgeSimulatorActive ? (
-            <JudgeSimulator />
-          ) : isJudgeHistoryActive ? (
-  <JudgeHistory />
-) : isProcessPortfolioActive ? (
-  <ProcessPortfolio />
-) : isLegalIntelligenceEngineActive ? (
-  <LegalIntelligenceEngine />
-      ) : isLegalIntelligenceHistoryActive ? (
-  <LegalIntelligenceHistory />
-      ) : isLitigationStrategyActive ? (
-  <LitigationStrategyCenter />
-      ) : isChiefLegalOfficerActive ? (
-  <ChiefLegalOfficer />
-) : isEnterpriseCommandCenterActive ? (
-  <EnterpriseCommandCenter />
-      ) : isWarRoomCenterActive ? (
-  <WarRoomCenter />
-) : isPartnerCouncilActive ? (
-  <PartnerCouncilCenter />
-) : isOneClickActionsActive ? (
-  <OneClickActionsCenter />
-) : isOpponentDatabaseActive ? (
-  <OpponentDatabaseCenter />
-) : isTribunalHeatmapActive ? (
-  <TribunalHeatmapCenter />
-) : isDraftGeneratorActive ? (
-            <DraftGenerator />
-          ) : isDraftHistoryActive ? (
-            <DraftHistory />
-          ) : isReportsActive ? (
-            <StrategicReport />
-          ) : isHistoryActive ? (
-            <History />
-          ) : (
-            <HomeDashboard />
-          )}
-        </main>
+  {isAICopilotActive ? (
+    <AICopilot />
+  ) : isHomeActive ? (
+    <HomeDashboard />
+  ) : isRedTeamSimulatorActive ? (
+    <RedTeamSimulator />
+  ) : isJudgeSimulatorActive ? (
+    <JudgeSimulator />
+  ) : isJudgeHistoryActive ? (
+    <JudgeHistory />
+  ) : isProcessPortfolioActive ? (
+    <ProcessPortfolio />
+  ) : isLegalIntelligenceEngineActive ? (
+    <LegalIntelligenceEngine />
+  ) : isLegalIntelligenceHistoryActive ? (
+    <LegalIntelligenceHistory />
+  ) : isLitigationStrategyActive ? (
+    <LitigationStrategyCenter />
+  ) : isChiefLegalOfficerActive ? (
+    <ChiefLegalOfficer />
+  ) : isEnterpriseCommandCenterActive ? (
+    <EnterpriseCommandCenter />
+  ) : isWarRoomCenterActive ? (
+    <WarRoomCenter />
+  ) : isPartnerCouncilActive ? (
+    <PartnerCouncilCenter />
+  ) : isOneClickActionsActive ? (
+    <OneClickActionsCenter />
+  ) : isOpponentDatabaseActive ? (
+    <OpponentDatabaseCenter />
+  ) : isTribunalHeatmapActive ? (
+    <TribunalHeatmapCenter />
+  ) : isDraftGeneratorActive ? (
+    <DraftGenerator />
+  ) : isDraftHistoryActive ? (
+    <DraftHistory />
+  ) : isReportsActive ? (
+    <StrategicReport />
+  ) : isHistoryActive ? (
+    <History />
+  ) : (
+    <HomeDashboard />
+  )}
+</main>
       </div>
 
       {isPaywallOpen && (

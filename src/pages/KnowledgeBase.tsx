@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext"
 import {
   createKnowledgeDocument,
   getKnowledgeDocuments,
+  uploadKnowledgeFile,
 } from "@/services/aiWorkspaceService"
 import { supabase } from "@/lib/supabase"
 
@@ -14,6 +15,8 @@ export default function KnowledgeBase() {
   const [filtered, setFiltered] = useState<any[]>([])
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const [title, setTitle] = useState("")
   const [documentType, setDocumentType] = useState("peticao")
@@ -58,6 +61,64 @@ export default function KnowledgeBase() {
     }
   }
 
+async function uploadFileDocument() {
+  if (!user?.id) {
+    alert("Faça login novamente.")
+    return
+  }
+
+  if (!selectedFile) {
+    alert("Selecione um arquivo.")
+    return
+  }
+
+  setUploading(true)
+
+  try {
+    const uploaded = await uploadKnowledgeFile({
+      userId: user.id,
+      file: selectedFile,
+    })
+
+    await createKnowledgeDocument({
+      user_id: user.id,
+      title: title || uploaded.fileName,
+      document_type: documentType,
+      client_name: clientName || null,
+      process_number: processNumber || null,
+      file_name: uploaded.fileName,
+      file_url: uploaded.url,
+      content: content || `Arquivo enviado: ${uploaded.fileName}`,
+      summary: content
+        ? content.slice(0, 500)
+        : `Arquivo ${uploaded.fileName} enviado para a Knowledge Base.`,
+      tags: tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+      status: "uploaded",
+      metadata: {
+        path: uploaded.path,
+        mimeType: uploaded.mimeType,
+        size: uploaded.size,
+      },
+    })
+
+    setSelectedFile(null)
+    setTitle("")
+    setContent("")
+    setTags("")
+    await load()
+
+    alert("Arquivo enviado e salvo na Knowledge Base.")
+  } catch (error: any) {
+    console.error(error)
+    alert(error.message || "Erro ao enviar arquivo.")
+  } finally {
+    setUploading(false)
+  }
+}
+  
   async function saveDocument() {
     if (!user?.id) {
       alert("Faça login novamente.")
@@ -208,6 +269,34 @@ export default function KnowledgeBase() {
                 placeholder="Tags separadas por vírgula"
                 className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary"
               />
+
+              <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4">
+  <label className="text-sm font-bold text-primary">
+    Upload de documento
+  </label>
+
+  <input
+    type="file"
+    accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+    className="mt-3 w-full text-sm"
+  />
+
+  {selectedFile && (
+    <p className="text-xs text-muted-foreground mt-2">
+      Arquivo selecionado: {selectedFile.name}
+    </p>
+  )}
+
+  <button
+    type="button"
+    onClick={uploadFileDocument}
+    disabled={uploading || !selectedFile}
+    className="mt-4 w-full py-3 rounded-xl bg-primary text-white font-bold disabled:opacity-50"
+  >
+    {uploading ? "Enviando..." : "Enviar arquivo"}
+  </button>
+</div>
 
               <textarea
                 value={content}

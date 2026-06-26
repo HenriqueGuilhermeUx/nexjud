@@ -31,6 +31,7 @@ import UpgradePage from "@/pages/UpgradePage"
 import PlanGate from "@/components/PlanGate"
 import Welcome from "@/pages/Welcome"
 import Tutorial from "@/pages/Tutorial"
+import ChiefLegalOfficer from "@/pages/ChiefLegalOfficer"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -83,6 +84,10 @@ export default function App() {
             <Route path="judge-history" element={<JudgeHistory />} />
             <Route path="process-portfolio" element={<ProcessPortfolio />} />
             <Route path="enterprise-command-center" element={<EnterpriseCommandCenter />} />
+            <Route
+  path="chief-legal-officer"
+  element={<ChiefLegalOfficer />}
+/>
             <Route path="/welcome" element={<Welcome />} />
             <Route path="/tutorial" element={<Tutorial />} />
             <Route

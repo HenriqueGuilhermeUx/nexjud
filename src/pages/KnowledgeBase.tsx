@@ -120,58 +120,85 @@ async function uploadFileDocument() {
 }
   
   async function saveDocument() {
-    if (!user?.id) {
-      alert("Faça login novamente.")
-      return
-    }
-
-    if (!title.trim()) {
-      alert("Informe o título.")
-      return
-    }
-
-    if (!content.trim()) {
-      alert("Cole o conteúdo do documento.")
-      return
-    }
-
-    try {
-      const summary =
-        content.length > 500
-          ? content.slice(0, 500) + "..."
-          : content
-
-      await createKnowledgeDocument({
-        user_id: user.id,
-        title,
-        document_type: documentType,
-        client_name: clientName || null,
-        process_number: processNumber || null,
-        content,
-        summary,
-        tags: tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        status: "processed",
-      })
-
-      setTitle("")
-      setDocumentType("peticao")
-      setClientName("")
-      setProcessNumber("")
-      setContent("")
-      setTags("")
-
-      await load()
-
-      alert("Documento salvo na Knowledge Base.")
-    } catch (error) {
-      console.error(error)
-      alert("Erro ao salvar documento.")
-    }
+  if (!user?.id) {
+    alert("Faça login novamente.")
+    return
   }
 
+  if (!title.trim() && !selectedFile) {
+    alert("Informe o título ou selecione um arquivo.")
+    return
+  }
+
+  if (!content.trim() && !selectedFile) {
+    alert("Cole o conteúdo ou selecione um arquivo.")
+    return
+  }
+
+  setUploading(true)
+
+  try {
+    let uploaded: any = null
+
+    if (selectedFile) {
+      uploaded = await uploadKnowledgeFile({
+        userId: user.id,
+        file: selectedFile,
+      })
+    }
+
+    const finalTitle = title || uploaded?.fileName || "Documento sem título"
+    const finalContent =
+      content ||
+      (uploaded ? `Arquivo enviado: ${uploaded.fileName}` : "")
+
+    const summary =
+      finalContent.length > 500
+        ? finalContent.slice(0, 500) + "..."
+        : finalContent
+
+    await createKnowledgeDocument({
+      user_id: user.id,
+      title: finalTitle,
+      document_type: documentType,
+      client_name: clientName || null,
+      process_number: processNumber || null,
+      file_name: uploaded?.fileName || null,
+      file_url: uploaded?.url || null,
+      content: finalContent,
+      summary,
+      tags: tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+      status: uploaded ? "uploaded" : "processed",
+      metadata: uploaded
+        ? {
+            path: uploaded.path,
+            mimeType: uploaded.mimeType,
+            size: uploaded.size,
+          }
+        : {},
+    })
+
+    setSelectedFile(null)
+    setTitle("")
+    setDocumentType("peticao")
+    setClientName("")
+    setProcessNumber("")
+    setContent("")
+    setTags("")
+
+    await load()
+
+    alert("Documento salvo na Knowledge Base.")
+  } catch (error: any) {
+    console.error(error)
+    alert(error.message || "Erro ao salvar documento.")
+  } finally {
+    setUploading(false)
+  }
+}
   async function deleteDocument(id: string) {
     if (!confirm("Excluir este documento da Knowledge Base?")) return
 
@@ -288,15 +315,7 @@ async function uploadFileDocument() {
     </p>
   )}
 
-  <button
-    type="button"
-    onClick={uploadFileDocument}
-    disabled={uploading || !selectedFile}
-    className="mt-4 w-full py-3 rounded-xl bg-primary text-white font-bold disabled:opacity-50"
-  >
-    {uploading ? "Enviando..." : "Enviar arquivo"}
-  </button>
-</div>
+  </div>
 
               <textarea
                 value={content}
@@ -307,11 +326,12 @@ async function uploadFileDocument() {
 
               <div className="flex gap-3">
                 <button
-                  onClick={saveDocument}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white font-bold"
-                >
-                  Salvar
-                </button>
+  onClick={saveDocument}
+  disabled={uploading}
+  className="flex-1 py-3 rounded-xl bg-primary text-white font-bold disabled:opacity-50"
+>
+  {uploading ? "Salvando..." : "Salvar documento"}
+</button>
 
                 <button
                   onClick={loadExample}

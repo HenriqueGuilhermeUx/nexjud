@@ -187,4 +187,40 @@ export async function uploadKnowledgeFile({
     mimeType: file.type,
     size: file.size,
   }
-}
+
+export async function createKnowledgeChunks({
+  userId,
+  documentId,
+  caseId,
+  content,
+}: {
+  userId: string
+  documentId: string
+  caseId?: string | null
+  content: string
+}) {
+  const chunkSize = 1800
+  const chunks = []
+
+  for (let i = 0; i < content.length; i += chunkSize) {
+    chunks.push({
+      user_id: userId,
+      document_id: documentId,
+      case_id: caseId || null,
+      chunk_number: chunks.length + 1,
+      content: content.slice(i, i + chunkSize),
+      tokens: Math.ceil(content.slice(i, i + chunkSize).length / 4),
+    })
+  }
+
+  if (chunks.length === 0) return []
+
+  const { data, error } = await supabase
+    .from("knowledge_chunks")
+    .insert(chunks)
+    .select()
+
+  if (error) throw error
+  return data || []
+ }
+}  

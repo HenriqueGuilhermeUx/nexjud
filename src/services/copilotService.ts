@@ -20,9 +20,15 @@ export async function runAICopilot(prompt: string) {
 
   const boardReport = await runBoardReportAi({
     portfolioContext: caseText,
-    tribunalContext: "",
-    opponentContext: "",
-    clientRiskContext: "",
+    tribunalContext: strategic?.tribunalDna
+      ? JSON.stringify(strategic.tribunalDna)
+      : "",
+    opponentContext: strategic?.opponentIntelligence
+      ? JSON.stringify(strategic.opponentIntelligence)
+      : "",
+    clientRiskContext: strategic?.clientRisk
+      ? JSON.stringify(strategic.clientRisk)
+      : "",
   })
 
   return {
@@ -33,5 +39,35 @@ export async function runAICopilot(prompt: string) {
     partnerCouncil,
     warRoom,
     boardReport,
+    executive: {
+      title:
+        strategic?.title ||
+        litigation?.title ||
+        "AI Legal Copilot Report",
+      successProbability:
+        strategic?.successProbability ||
+        litigation?.successProbability ||
+        0,
+      riskLevel:
+        strategic?.riskLevel ||
+        litigation?.riskLevel ||
+        boardReport?.riskLevel ||
+        "-",
+      decision:
+        strategic?.partnerDecision ||
+        boardReport?.decision ||
+        partnerCouncil?.finalVote ||
+        "-",
+      summary:
+        strategic?.executiveSummary ||
+        litigation?.executiveSummary ||
+        boardReport?.executiveSummary ||
+        "-",
+      nextMove:
+        litigation?.nextMove ||
+        strategic?.nextMoves?.[0] ||
+        boardReport?.recommendedActions?.[0] ||
+        "-",
+    },
   }
 }

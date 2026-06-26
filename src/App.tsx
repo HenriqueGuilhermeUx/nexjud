@@ -1,7 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider, useAuth } from "@/context/AuthContext"
+
 import Landing from "@/pages/Landing"
 import Login from "@/pages/Login"
+import Welcome from "@/pages/Welcome"
+import Tutorial from "@/pages/Tutorial"
+import PricingPage from "@/pages/PricingPage"
+import UpgradePage from "@/pages/UpgradePage"
+
 import Dashboard from "@/pages/Dashboard"
 import Onboarding from "@/pages/Onboarding"
 import ProcessCheck from "@/pages/ProcessCheck"
@@ -26,14 +32,11 @@ import TribunalHeatmapCenter from "@/pages/TribunalHeatmapCenter"
 import LegalIntelligenceEngine from "@/pages/LegalIntelligenceEngine"
 import LegalIntelligenceHistory from "@/pages/LegalIntelligenceHistory"
 import LitigationStrategyCenter from "@/pages/LitigationStrategyCenter"
-import PricingPage from "@/pages/PricingPage"
-import UpgradePage from "@/pages/UpgradePage"
-import PlanGate from "@/components/PlanGate"
-import Welcome from "@/pages/Welcome"
-import Tutorial from "@/pages/Tutorial"
 import ChiefLegalOfficer from "@/pages/ChiefLegalOfficer"
 import AICopilot from "@/pages/AICopilot"
 import AICopilotHistory from "@/pages/AICopilotHistory"
+
+import PlanGate from "@/components/PlanGate"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -41,7 +44,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366f1]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366f1]" />
       </div>
     )
   }
@@ -58,9 +61,10 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="ai-copilot" element={<AICopilot />} />
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/welcome" element={<Welcome />} />
+          <Route path="/tutorial" element={<Tutorial />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/upgrade" element={<UpgradePage />} />
 
@@ -73,6 +77,10 @@ export default function App() {
             }
           >
             <Route index element={<HomeDashboard />} />
+
+            <Route path="ai-copilot" element={<AICopilot />} />
+            <Route path="ai-copilot-history" element={<AICopilotHistory />} />
+
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="process-check" element={<ProcessCheck />} />
             <Route path="predictive" element={<PredictiveAI />} />
@@ -80,46 +88,44 @@ export default function App() {
             <Route path="red-team" element={<RedTeam />} />
             <Route path="reports" element={<StrategicReport />} />
             <Route path="history" element={<History />} />
+
             <Route path="red-team-simulator" element={<RedTeamSimulator />} />
             <Route path="draft-generator" element={<DraftGenerator />} />
             <Route path="draft-history" element={<DraftHistory />} />
             <Route path="judge-simulator" element={<JudgeSimulator />} />
             <Route path="judge-history" element={<JudgeHistory />} />
             <Route path="process-portfolio" element={<ProcessPortfolio />} />
+
             <Route path="enterprise-command-center" element={<EnterpriseCommandCenter />} />
-            <Route path="ai-copilot-history" element={<AICopilotHistory />} />
-            <Route
-  path="chief-legal-officer"
-  element={<ChiefLegalOfficer />}
-/>
-            <Route path="/welcome" element={<Welcome />} />
-            <Route path="/tutorial" element={<Tutorial />} />
-            <Route
-  path="legal-intelligence-engine"
-  element={
-    <PlanGate requiredPlan="intelligence">
-      <LegalIntelligenceEngine />
-    </PlanGate>
-  }
-/>
+            <Route path="chief-legal-officer" element={<ChiefLegalOfficer />} />
 
-<Route
-  path="legal-intelligence-history"
-  element={
-    <PlanGate requiredPlan="intelligence">
-      <LegalIntelligenceHistory />
-    </PlanGate>
-  }
-/>
+            <Route
+              path="legal-intelligence-engine"
+              element={
+                <PlanGate requiredPlan="intelligence">
+                  <LegalIntelligenceEngine />
+                </PlanGate>
+              }
+            />
 
-<Route
-  path="litigation-strategy"
-  element={
-    <PlanGate requiredPlan="enterprise">
-      <LitigationStrategyCenter />
-    </PlanGate>
-  }
-/>
+            <Route
+              path="legal-intelligence-history"
+              element={
+                <PlanGate requiredPlan="intelligence">
+                  <LegalIntelligenceHistory />
+                </PlanGate>
+              }
+            />
+
+            <Route
+              path="litigation-strategy"
+              element={
+                <PlanGate requiredPlan="enterprise">
+                  <LitigationStrategyCenter />
+                </PlanGate>
+              }
+            />
+
             <Route path="war-room" element={<WarRoomCenter />} />
             <Route path="partner-council" element={<PartnerCouncilCenter />} />
             <Route path="one-click-actions" element={<OneClickActionsCenter />} />

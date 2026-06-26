@@ -84,14 +84,16 @@ const isOneClickActionsActive = location.pathname.includes("one-click-actions")
 const isOpponentDatabaseActive = location.pathname.includes("opponent-database")
 const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
   const isReportsActive = location.pathname.includes("reports")
-  const isHistoryActive =
+
+const isLegalIntelligenceHistoryActive =
+  location.pathname.includes("legal-intelligence-history")
+
+const isHistoryActive =
   location.pathname.includes("history") &&
   !isDraftHistoryActive &&
   !isJudgeHistoryActive &&
   !isAICopilotHistoryActive &&
   !isLegalIntelligenceHistoryActive
-  const isLegalIntelligenceHistoryActive =
-  location.pathname.includes("legal-intelligence-history")
   const isLitigationStrategyActive =
   location.pathname.includes("litigation-strategy")
   const isPricingActive = location.pathname.includes("pricing")

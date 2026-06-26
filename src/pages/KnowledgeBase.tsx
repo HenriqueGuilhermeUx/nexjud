@@ -5,6 +5,7 @@ import {
   createKnowledgeDocument,
   getKnowledgeDocuments,
   uploadKnowledgeFile,
+  createKnowledgeChunks,
 } from "@/services/aiWorkspaceService"
 import { supabase } from "@/lib/supabase"
 
@@ -80,7 +81,7 @@ async function uploadFileDocument() {
       file: selectedFile,
     })
 
-    await createKnowledgeDocument({
+    const savedDocument = await createKnowledgeDocument({
       user_id: user.id,
       title: title || uploaded.fileName,
       document_type: documentType,
@@ -117,6 +118,12 @@ async function uploadFileDocument() {
   } finally {
     setUploading(false)
   }
+if (finalContent.length > 100) {
+  await createKnowledgeChunks({
+    userId: user.id,
+    documentId: savedDocument.id,
+    content: finalContent,
+  })
 }
 
   async function extractTextFromFile(file: File) {

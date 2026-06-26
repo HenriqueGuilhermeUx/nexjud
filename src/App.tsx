@@ -35,6 +35,7 @@ import LitigationStrategyCenter from "@/pages/LitigationStrategyCenter"
 import ChiefLegalOfficer from "@/pages/ChiefLegalOfficer"
 import AICopilot from "@/pages/AICopilot"
 import AICopilotHistory from "@/pages/AICopilotHistory"
+import LegalChat from "@/pages/LegalChat"
 
 import PlanGate from "@/components/PlanGate"
 
@@ -80,6 +81,10 @@ export default function App() {
 
             <Route path="ai-copilot" element={<AICopilot />} />
             <Route path="ai-copilot-history" element={<AICopilotHistory />} />
+            <Route
+  path="legal-chat"
+  element={<LegalChat />}
+/>
 
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="process-check" element={<ProcessCheck />} />

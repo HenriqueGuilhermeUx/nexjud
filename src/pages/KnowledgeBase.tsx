@@ -118,6 +118,16 @@ async function uploadFileDocument() {
     setUploading(false)
   }
 }
+
+  async function extractTextFromFile(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase()
+
+  if (extension === "txt") {
+    return await file.text()
+  }
+
+  return ""
+}
   
   async function saveDocument() {
   if (!user?.id) {
@@ -140,17 +150,24 @@ async function uploadFileDocument() {
   try {
     let uploaded: any = null
 
-    if (selectedFile) {
-      uploaded = await uploadKnowledgeFile({
-        userId: user.id,
-        file: selectedFile,
-      })
-    }
+    let extractedText = ""
+
+if (selectedFile) {
+  uploaded = await uploadKnowledgeFile({
+    userId: user.id,
+    file: selectedFile,
+  })
+
+  extractedText = await extractTextFromFile(selectedFile)
+}
 
     const finalTitle = title || uploaded?.fileName || "Documento sem título"
     const finalContent =
-      content ||
-      (uploaded ? `Arquivo enviado: ${uploaded.fileName}` : "")
+  content ||
+  extractedText ||
+  (uploaded
+    ? `Arquivo enviado: ${uploaded.fileName}. Extração automática de PDF/DOCX será processada na próxima etapa.`
+    : "")
 
     const summary =
       finalContent.length > 500

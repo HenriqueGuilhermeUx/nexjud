@@ -24,8 +24,20 @@ export async function createPixCheckout({
     },
   })
 
-  if (error) throw error
-  if (data?.error) throw new Error(data.error)
+  if (error) {
+  console.error("Erro Edge Function:", error)
+  throw new Error(error.message || JSON.stringify(error))
+}
+
+if (data?.error) {
+  console.error("Erro Woovi:", data)
+  throw new Error(
+    data.raw?.error ||
+    data.raw?.message ||
+    data.error ||
+    JSON.stringify(data)
+  )
+}
 
   return data
 }

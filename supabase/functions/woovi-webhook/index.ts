@@ -1,76 +1,76 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { createClient } from "jsr:@supabase/supabase-js@2"
 
-serve(async (req) => {
-  // Apenas aceita requisições do tipo POST vindas da Woovi
-  if (req.method !== 'POST') {
-    return new Response('Método não permitido', { status: 405 });
-  }
-
+Deno.serve(async (req) => {
   try {
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
-    // Converte o payload enviado pela Woovi
-    const body = await req.json();
-    console.log("Notificação de Webhook recebida da Woovi:", JSON.stringify(body));
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 
-    const event = body.event; 
-    const wooviSubscriptionId = body.subscription?.id;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    const body = await req.json().catch(() => ({}))
 
-    if (!wooviSubscriptionId) {
-      return new Response(JSON.stringify({ error: 'ID de assinatura não identificado' }), { status: 400 });
+    const charge = body.charge || body
+    const correlationID =
+      charge.correlationID ||
+      charge.correlationId ||
+      body.correlationID ||
+      ""
+
+    const status =
+      charge.status ||
+      body.status ||
+      ""
+
+    if (!correlationID) {
+      return Response.json({ ok: false, error: "correlationID ausente" }, { status: 400 })
     }
 
-    // Tratamento dos eventos de recorrência
-    switch (event) {
-      case 'subscription.paid':
-        // Ativa o plano do cliente na NexJud e atualiza o vencimento
-        const expiresAt = body.subscription.expiresAt ? new Date(body.subscription.expiresAt).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        
-        await supabaseClient
-          .from('subscriptions')
-          .update({ 
-            status: 'active', 
-            current_period_end: expiresAt,
-            updated_at: new Date().toISOString()
-          })
-          .eq('woovi_subscription_id', wooviSubscriptionId);
-          
-        console.log(`Assinatura ${wooviSubscriptionId} ativada/renovada com sucesso.`);
-        break;
+    const paid =
+      String(status).toLowerCase().includes("paid") ||
+      String(status).toLowerCase().includes("completed") ||
+      String(status).toLowerCase().includes("confirmed")
 
-      case 'subscription.canceled':
-      case 'subscription.expired':
-        // Bloqueia ou suspende o acesso mudando o status para expirado
-        await supabaseClient
-          .from('subscriptions')
-          .update({ 
-            status: 'expired',
-            updated_at: new Date().toISOString()
-          })
-          .eq('woovi_subscription_id', wooviSubscriptionId);
-          
-        console.log(`Assinatura ${wooviSubscriptionId} foi bloqueada ou cancelada.`);
-        break;
-
-      default:
-        console.log(`Evento recebido ignorado: ${event}`);
+    if (!paid) {
+      return Response.json({ ok: true, ignored: true, status })
     }
 
-    // Retorna HTTP 200 de sucesso obrigatório para a Woovi interromper as tentativas de reenvio
-    return new Response(JSON.stringify({ received: true }), { 
-      status: 200, 
-      headers: { 'Content-Type': 'application/json' } 
-    });
+    const { data: order, error: orderError } = await supabase
+      .from("payment_orders")
+      .select("*")
+      .eq("correlation_id", correlationID)
+      .maybeSingle()
 
-  } catch (err) {
-    console.error('Erro crítico no processamento do Webhook:', err.message);
-    return new Response(JSON.stringify({ error: err.message }), { 
-      status: 500, 
-      headers: { 'Content-Type': 'application/json' } 
-    });
+    if (orderError) throw orderError
+    if (!order) {
+      return Response.json({ ok: false, error: "Pedido não encontrado" }, { status: 404 })
+    }
+
+    await supabase
+      .from("payment_orders")
+      .update({
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        raw: body,
+      })
+      .eq("id", order.id)
+
+    await supabase
+      .from("subscriptions")
+      .upsert({
+        user_id: order.user_id,
+        plan: order.plan,
+        status: "active",
+        active: true,
+        payment_provider: "woovi",
+        provider_subscription_id: correlationID,
+        updated_at: new Date().toISOString(),
+      })
+
+    return Response.json({ ok: true })
+  } catch (error) {
+    return Response.json(
+      { ok: false, error: error instanceof Error ? error.message : "Erro webhook" },
+      { status: 500 }
+    )
   }
 })

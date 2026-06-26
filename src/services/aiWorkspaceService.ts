@@ -44,44 +44,6 @@ export async function getKnowledgeDocuments(userId: string) {
   return data || []
 }
 
-export async function createKnowledgeChunks({
-  userId,
-  documentId,
-  caseId,
-  content,
-}: {
-  userId: string
-  documentId: string
-  caseId?: string | null
-  content: string
-}) {
-  const chunkSize = 1800
-  const chunks = []
-
-  for (let i = 0; i < content.length; i += chunkSize) {
-    const chunkContent = content.slice(i, i + chunkSize)
-
-    chunks.push({
-      user_id: userId,
-      document_id: documentId,
-      case_id: caseId || null,
-      chunk_number: chunks.length + 1,
-      content: chunkContent,
-      tokens: Math.ceil(chunkContent.length / 4),
-    })
-  }
-
-  if (chunks.length === 0) return []
-
-  const { data, error } = await supabase
-    .from("knowledge_chunks")
-    .insert(chunks)
-    .select()
-
-  if (error) throw error
-  return data || []
-}
-
 export async function createLegalMemory(payload: any) {
   const { data, error } = await supabase
     .from("legal_memory")
@@ -225,4 +187,73 @@ export async function uploadKnowledgeFile({
     mimeType: file.type,
     size: file.size,
   }
+}
+
+async function generateEmbedding(text: string) {
+  const { data, error } = await supabase.functions.invoke("generate-embedding", {
+    body: {
+      text,
+    },
+  })
+
+  if (error) throw error
+  if (data?.error) throw new Error(data.error)
+
+  return data.embedding || []
+}
+
+export async function createKnowledgeChunks({
+  userId,
+  documentId,
+  caseId,
+  content,
+}: {
+  userId: string
+  documentId: string
+  caseId?: string | null
+  content: string
+}) {
+  const chunkSize = 1800
+  const chunks: any[] = []
+
+  for (let i = 0; i < content.length; i += chunkSize) {
+    const chunkContent = content.slice(i, i + chunkSize)
+
+    chunks.push({
+      user_id: userId,
+      document_id: documentId,
+      case_id: caseId || null,
+      chunk_number: chunks.length + 1,
+      content: chunkContent,
+      tokens: Math.ceil(chunkContent.length / 4),
+    })
+  }
+
+  if (chunks.length === 0) return []
+
+  const { data, error } = await supabase
+    .from("knowledge_chunks")
+    .insert(chunks)
+    .select()
+
+  if (error) throw error
+
+  const savedChunks = data || []
+
+  for (const chunk of savedChunks) {
+    try {
+      const embedding = await generateEmbedding(chunk.content)
+
+      if (embedding.length > 0) {
+        await supabase
+          .from("knowledge_chunks")
+          .update({ embedding })
+          .eq("id", chunk.id)
+      }
+    } catch (err) {
+      console.warn("Falha ao gerar embedding do chunk:", chunk.id, err)
+    }
+  }
+
+  return savedChunks
 }

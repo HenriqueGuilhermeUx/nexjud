@@ -152,3 +152,39 @@ export async function runLegalChatAi({
 
   return data
 }
+
+export async function uploadKnowledgeFile({
+  userId,
+  file,
+}: {
+  userId: string
+  file: File
+}) {
+  const safeName = file.name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+
+  const path = `${userId}/${Date.now()}-${safeName}`
+
+  const { data, error } = await supabase.storage
+    .from("knowledge-files")
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+    })
+
+  if (error) throw error
+
+  const { data: publicUrl } = supabase.storage
+    .from("knowledge-files")
+    .getPublicUrl(data.path)
+
+  return {
+    path: data.path,
+    url: publicUrl.publicUrl,
+    fileName: file.name,
+    mimeType: file.type,
+    size: file.size,
+  }
+}

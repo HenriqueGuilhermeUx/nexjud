@@ -14,6 +14,10 @@ const prices: Record<string, number> = {
   enterprise_plus: 149700,
 }
 
+function extractChargePayload(json: any) {
+  return json?.charge || json?.pixQrCode || json || {}
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
@@ -34,6 +38,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     const body = await req.json().catch(() => ({}))
+
     const userId = String(body.userId || "").trim()
     const plan = String(body.plan || "").trim()
     const customerEmail = String(body.customerEmail || "").trim()
@@ -47,51 +52,78 @@ Deno.serve(async (req) => {
     const correlationID = crypto.randomUUID()
     const amount = prices[plan]
 
+    const wooviBody: any = {
+      correlationID,
+      value: amount,
+      comment: `Assinatura NexJud - ${plan}`,
+      customer: {
+        name: customerName,
+        email: customerEmail,
+      },
+      additionalInfo: [
+        {
+          key: "user_id",
+          value: userId,
+        },
+        {
+          key: "plan",
+          value: plan,
+        },
+      ],
+    }
+
+    if (taxId) {
+      wooviBody.customer.taxID = {
+        taxID: taxId,
+        type: taxId.length > 11 ? "BR:CNPJ" : "BR:CPF",
+      }
+    }
+
     const response = await fetch("https://api.woovi.com/api/v1/charge", {
       method: "POST",
       headers: {
-        Authorization: WOOVI_API_TOKEN,
+        Authorization: `Bearer ${WOOVI_API_TOKEN}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        correlationID,
-        value: amount,
-        comment: `Assinatura NexJud - ${plan}`,
-        customer: {
-          name: customerName,
-          email: customerEmail,
-          taxID: taxId || undefined,
-        },
-      }),
+      body: JSON.stringify(wooviBody),
     })
 
-    const json = await response.json()
+    const json = await response.json().catch(() => ({}))
 
     if (!response.ok) {
       return Response.json(
-        { error: "Erro ao criar cobrança Woovi.", raw: json },
+        {
+          error: "Erro ao criar cobrança Woovi.",
+          status: response.status,
+          raw: json,
+        },
         { status: 500, headers: corsHeaders }
       )
     }
 
-    const charge = json.charge || json
+    const charge = extractChargePayload(json)
 
     const brCode =
       charge.brCode ||
-      charge.pixKey ||
+      charge.brCodeBase64 ||
+      charge.pixCode ||
       charge.paymentMethods?.pix?.brCode ||
+      json.brCode ||
       ""
 
     const qrCodeImage =
       charge.qrCodeImage ||
       charge.qrCodeImageUrl ||
+      charge.qrCode ||
       charge.paymentMethods?.pix?.qrCodeImage ||
+      json.qrCodeImage ||
       ""
 
     const paymentLink =
       charge.paymentLinkUrl ||
       charge.paymentLink ||
       charge.url ||
+      json.paymentLinkUrl ||
       ""
 
     const { data: order, error } = await supabase

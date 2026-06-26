@@ -72,7 +72,7 @@ const isAICopilotHistoryActive =
 const isAICopilotActive =
   location.pathname.includes("ai-copilot") && !isAICopilotHistoryActive
   const isLegalChatActive =
-  pathname.includes("/dashboard/legal-chat")
+  location.pathname.includes("/dashboard/legal-chat")
   const isRedTeamSimulatorActive = location.pathname.includes("red-team-simulator")
   const isDraftGeneratorActive = location.pathname.includes("draft-generator")
   const isDraftHistoryActive = location.pathname.includes("draft-history")

@@ -115,28 +115,54 @@ const isLegalMemoryActive = location.pathname.includes("legal-memory")
 const isLegalCasesActive = location.pathname.includes("legal-cases")
 
   useEffect(() => {
-    async function checkUserSubscription() {
-      if (!user) return
+  async function checkUserSubscription() {
+    if (!user) return
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("free_uses_count, is_premium")
-        .eq("id", user.id)
-        .maybeSingle()
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("subscription_plan, subscription_status, trial_ends_at, premium_until")
+      .eq("id", user.id)
+      .maybeSingle()
 
-      if (data && !error) {
-        setFreeUses(data.free_uses_count || 0)
-        setIsPremium(data.is_premium || false)
+    if (data && !error) {
+      const now = new Date()
 
-        if (!data.is_premium && (data.free_uses_count || 0) >= 3) {
-          setIsPaywallOpen(true)
-        }
+      const trialEnds = data.trial_ends_at
+        ? new Date(data.trial_ends_at)
+        : null
+
+      const premiumUntil = data.premium_until
+        ? new Date(data.premium_until)
+        : null
+
+      const daysLeft = trialEnds
+        ? Math.max(
+            0,
+            Math.ceil(
+              (trialEnds.getTime() - now.getTime()) /
+                (1000 * 60 * 60 * 24)
+            )
+          )
+        : 0
+
+      const hasActivePremium =
+        data.subscription_status === "active" ||
+        data.subscription_plan === "enterprise" ||
+        Boolean(premiumUntil && premiumUntil > now)
+
+      const hasActiveTrial = daysLeft > 0
+
+      setTrialDaysLeft(daysLeft)
+      setIsPremium(hasActivePremium || hasActiveTrial)
+
+      if (!hasActivePremium && !hasActiveTrial) {
+        setIsPaywallOpen(true)
       }
     }
+  }
 
-    checkUserSubscription()
-  }, [user, location.pathname])
-
+  checkUserSubscription()
+}, [user, location.pathname])
   const handleGerarPixAssinatura = async () => {
     if (!cpf || cpf.replace(/\D/g, "").length < 11) {
       alert("Por favor, informe um CPF ou CNPJ válido.")
@@ -549,30 +575,33 @@ description="Consulte análises anteriores da IA."
         </nav>
 
         <div className="mx-4 p-3 bg-muted rounded-lg border border-border">
-          {isPremium ? (
-            <div className="flex items-center gap-2 text-green-600 text-xs font-bold">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-              </span>
-              PLANO PREMIUM ATIVO
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground font-medium">Uso gratuito restante:</p>
-              <div className="w-full bg-background rounded-full h-2 overflow-hidden border">
-                <div
-                  className="bg-primary h-2 transition-all"
-                  style={{ width: `${Math.max(0, ((3 - freeUses) / 3) * 100)}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-right font-bold text-primary">
-                {Math.max(0, 3 - freeUses)} / 3 restantes
-              </p>
-            </div>
-          )}
-        </div>
+  {isPremium ? (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2 text-green-600 text-xs font-bold">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+        </span>
+        TRIAL PREMIUM ATIVO
+      </div>
 
+      <p className="text-[11px] text-muted-foreground">
+        {trialDaysLeft !== null
+          ? `Restam ${trialDaysLeft} dia(s) de acesso completo.`
+          : "Acesso completo liberado."}
+      </p>
+    </div>
+  ) : (
+    <div className="space-y-2">
+      <p className="text-xs font-bold text-destructive">
+        Trial expirado
+      </p>
+      <p className="text-[11px] text-muted-foreground">
+        Assine o Premium para continuar usando todos os recursos.
+      </p>
+    </div>
+  )}
+</div>
         <div className="shrink-0 p-4 border-t border-border bg-card">
           <div className="flex items-center gap-3 mb-4 px-4">
             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">

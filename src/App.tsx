@@ -39,6 +39,8 @@ import LegalChat from "@/pages/LegalChat"
 import KnowledgeBase from "@/pages/KnowledgeBase"
 import LegalMemory from "@/pages/LegalMemory"
 import LegalCases from "@/pages/LegalCases"
+import Onboarding from "@/pages/Onboarding"
+import SetupOAB from "@/pages/SetupOAB"
 
 import PlanGate from "@/components/PlanGate"
 
@@ -71,6 +73,8 @@ export default function App() {
           <Route path="/tutorial" element={<Tutorial />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/upgrade" element={<UpgradePage />} />
+          <Route path="onboarding" element={<Onboarding />} />
+<Route path="setup-oab" element={<SetupOAB />} />
 
           <Route
             path="/dashboard"

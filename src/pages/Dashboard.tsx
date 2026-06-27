@@ -124,51 +124,54 @@ const isLegalCasesActive = location.pathname.includes("legal-cases")
       .select("subscription_plan, subscription_status, trial_ends_at, premium_until, onboarding_completed")
       .eq("id", user.id)
       .maybeSingle()
-if (data && !error) {
-  if (
-    data.onboarding_completed === false &&
-    !location.pathname.includes("onboarding")
-  ) {
-    navigate("/dashboard/onboarding")
-    return
+
+    if (data && !error) {
+      if (
+        data.onboarding_completed === false &&
+        !location.pathname.includes("onboarding")
+      ) {
+        navigate("/dashboard/onboarding")
+        return
+      }
+
+      const now = new Date()
+
+      const trialEnds = data.trial_ends_at
+        ? new Date(data.trial_ends_at)
+        : null
+
+      const premiumUntil = data.premium_until
+        ? new Date(data.premium_until)
+        : null
+
+      const daysLeft = trialEnds
+        ? Math.max(
+            0,
+            Math.ceil(
+              (trialEnds.getTime() - now.getTime()) /
+                (1000 * 60 * 60 * 24)
+            )
+          )
+        : 0
+
+      const hasActivePremium =
+        data.subscription_status === "active" ||
+        data.subscription_plan === "enterprise" ||
+        Boolean(premiumUntil && premiumUntil > now)
+
+      const hasActiveTrial = daysLeft > 0
+
+      setTrialDaysLeft(daysLeft)
+      setIsPremium(hasActivePremium || hasActiveTrial)
+
+      if (!hasActivePremium && !hasActiveTrial) {
+        setIsPaywallOpen(true)
+      }
+    }
   }
 
-  const now = new Date()
-
-  const trialEnds = data.trial_ends_at
-    ? new Date(data.trial_ends_at)
-    : null
-
-  const premiumUntil = data.premium_until
-    ? new Date(data.premium_until)
-    : null
-
-  const daysLeft = trialEnds
-    ? Math.max(
-        0,
-        Math.ceil(
-          (trialEnds.getTime() - now.getTime()) /
-            (1000 * 60 * 60 * 24)
-        )
-      )
-    : 0
-
-  const hasActivePremium =
-    data.subscription_status === "active" ||
-    data.subscription_plan === "enterprise" ||
-    Boolean(premiumUntil && premiumUntil > now)
-
-  const hasActiveTrial = daysLeft > 0
-
-  setTrialDaysLeft(daysLeft)
-  setIsPremium(hasActivePremium || hasActiveTrial)
-
-  if (!hasActivePremium && !hasActiveTrial) {
-    setIsPaywallOpen(true)
-  }
-}
   checkUserSubscription()
-}, [user, location.pathname])
+}, [user, location.pathname, navigate])
   const handleGerarPixAssinatura = async () => {
     if (!cpf || cpf.replace(/\D/g, "").length < 11) {
       alert("Por favor, informe um CPF ou CNPJ válido.")

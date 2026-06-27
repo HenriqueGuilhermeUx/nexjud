@@ -226,60 +226,60 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
 
       <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
         <QuickAction
-          to="/dashboard/knowledge-base"
-          icon={FileText}
-          title="Analisar documento"
-          description="Envie PDF, DOCX, estatuto, contrato ou ata."
-        />
+  to="/dashboard/knowledge-base"
+  icon={FileText}
+  title="Quero analisar um documento"
+  description="Envie estatuto, contrato, ata, PDF, DOCX ou imagem."
+/>
 
-        <QuickAction
-          to="/dashboard/legal-chat"
-          icon={Brain}
-          title="Conversar com a IA"
-          description="Pergunte usando documentos, memória e casos."
-        />
+<QuickAction
+  to="/dashboard/ai-copilot"
+  icon={Sparkles}
+  title="Quero analisar um processo"
+  description="Receba riscos, chances de êxito e estratégia."
+/>
 
-        <QuickAction
-          to="/dashboard/ai-copilot"
-          icon={Sparkles}
-          title="Analisar um caso"
-          description="Receba uma análise estratégica completa."
-        />
+<QuickAction
+  to="/dashboard/legal-chat"
+  icon={Brain}
+  title="Quero tirar uma dúvida jurídica"
+  description="Converse com a IA usando seus documentos e casos."
+/>
 
-        <QuickAction
-          to="/dashboard/draft-generator"
-          icon={Wand2}
-          title="Criar uma peça"
-          description="Gere minutas, petições e documentos."
-        />
+<QuickAction
+  to="/dashboard/draft-generator"
+  icon={Wand2}
+  title="Quero criar uma petição"
+  description="Gere peças, contratos, notificações e minutas."
+/>
 
-        <QuickAction
-          to="/dashboard/legal-cases"
-          icon={Database}
-          title="Organizar casos"
-          description="Cadastre processos, clientes e estratégias."
-        />
+<QuickAction
+  to="/dashboard/legal-cases"
+  icon={Database}
+  title="Quero organizar meus processos"
+  description="Cadastre clientes, processos, riscos e histórico."
+/>
 
-        <QuickAction
-          to="/dashboard/litigation-strategy"
-          icon={Target}
-          title="Montar estratégia"
-          description="Use Deal Breaker, Victory Plan e Litigation Chess."
-        />
+<QuickAction
+  to="/dashboard/litigation-strategy"
+  icon={Target}
+  title="Quero montar uma estratégia"
+  description="Use Deal Breaker, Victory Plan e Litigation Chess."
+/>
 
-        <QuickAction
-          to="/dashboard/judge-simulator"
-          icon={Gavel}
-          title="Simular o juiz"
-          description="Veja riscos e possíveis decisões."
-        />
+<QuickAction
+  to="/dashboard/judge-simulator"
+  icon={Gavel}
+  title="Quero simular uma decisão"
+  description="Veja como um juiz poderia analisar o caso."
+/>
 
-        <QuickAction
-          to="/dashboard/process-portfolio"
-          icon={Archive}
-          title="Ver carteira"
-          description="Acompanhe processos e histórico."
-        />
+<QuickAction
+  to="/dashboard/reports"
+  icon={FileText}
+  title="Quero preparar uma reunião"
+  description="Gere relatório claro para cliente, sócio ou diretoria."
+/>
       </div>
     </div>
   </section>
@@ -340,7 +340,7 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
     to="/dashboard/legal-chat"
     icon={Brain}
     label="Conversar com a IA"
-    description="Pergunte sobre documentos, casos e teses."
+description="Tire dúvidas jurídicas usando seus documentos e casos."
     active={isLegalChatActive}
   />
 
@@ -348,23 +348,23 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
     to="/dashboard/knowledge-base"
     icon={FileText}
     label="Analisar documentos"
-    description="Upload de PDF, DOCX, imagens e contratos."
+description="Envie contratos, estatutos, atas, PDFs, DOCX e imagens."
     active={isKnowledgeBaseActive}
   />
 
   <NavItem
     to="/dashboard/ai-copilot"
     icon={Sparkles}
-    label="Analisar um caso"
-    description="Análise estratégica completa do processo."
+    label="Analisar um processo"
+description="Receba riscos, chances, estratégia e próximos passos."
     active={isAICopilotActive}
   />
 
   <NavItem
     to="/dashboard/legal-memory"
     icon={Archive}
-    label="Memória Jurídica"
-    description="Teses, regras, aprendizados e padrões."
+    label="Biblioteca Inteligente"
+description="Salve teses, aprendizados e conhecimento do escritório."
     active={isLegalMemoryActive}
   />
 </NavGroup>
@@ -377,16 +377,16 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
   <NavItem
     to="/dashboard/draft-generator"
     icon={Wand2}
-    label="Criar peça ou minuta"
-    description="Gere documentos jurídicos com IA."
+    label="Criar petição ou contrato"
+description="Gere peças, contratos, notificações e minutas com IA."
     active={isDraftGeneratorActive}
   />
 
   <NavItem
     to="/dashboard/draft-history"
     icon={Archive}
-    label="Minutas salvas"
-    description="Acesse documentos já gerados."
+    label="Documentos criados"
+description="Revise e reutilize peças anteriores."
     active={isDraftHistoryActive}
   />
 
@@ -394,7 +394,7 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
     to="/dashboard/reports"
     icon={FileText}
     label="Relatórios"
-    description="Relatórios estratégicos e executivos."
+description="Prepare relatórios para clientes, sócios e reuniões."
     active={isReportsActive}
   />
 </NavGroup>
@@ -407,16 +407,16 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
   <NavItem
     to="/dashboard/legal-cases"
     icon={Database}
-    label="Casos"
-    description="Organize clientes, processos e riscos."
+    label="Meus processos"
+description="Organize clientes, processos, riscos e estratégia."
     active={isLegalCasesActive}
   />
 
   <NavItem
     to="/dashboard/process-portfolio"
     icon={Database}
-    label="Carteira Processual"
-    description="Acompanhe seus processos."
+    label="Carteira de processos"
+description="Visualize todos os casos em andamento."
     active={isProcessPortfolioActive}
   />
 
@@ -424,15 +424,15 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
     to="/dashboard/history"
     icon={HistoryIcon}
     label="Histórico"
-    description="Veja análises e atividades anteriores."
+description="Veja tudo que já foi feito na plataforma."
     active={isHistoryActive}
   />
 
   <NavItem
     to="/dashboard/ai-copilot-history"
     icon={HistoryIcon}
-    label="Histórico IA"
-    description="Análises anteriores do Copilot."
+    label="Histórico das análises"
+description="Consulte análises anteriores da IA."
     active={isAICopilotHistoryActive}
   />
 </NavGroup>

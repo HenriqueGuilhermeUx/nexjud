@@ -39,7 +39,6 @@ import LegalChat from "@/pages/LegalChat"
 import KnowledgeBase from "@/pages/KnowledgeBase"
 import LegalMemory from "@/pages/LegalMemory"
 import LegalCases from "@/pages/LegalCases"
-import Onboarding from "@/pages/Onboarding"
 import SetupOAB from "@/pages/SetupOAB"
 
 import PlanGate from "@/components/PlanGate"

@@ -40,6 +40,7 @@ import KnowledgeBase from "@/pages/KnowledgeBase"
 import LegalMemory from "@/pages/LegalMemory"
 import LegalCases from "@/pages/LegalCases"
 import SetupOAB from "@/pages/SetupOAB"
+import JurisprudenceLibrary from "@/pages/JurisprudenceLibrary"
 
 import PlanGate from "@/components/PlanGate"
 
@@ -113,6 +114,7 @@ export default function App() {
 
             <Route path="enterprise-command-center" element={<EnterpriseCommandCenter />} />
             <Route path="chief-legal-officer" element={<ChiefLegalOfficer />} />
+            <Route path="jurisprudence-library" element={<JurisprudenceLibrary />} />
 
             <Route
               path="legal-intelligence-engine"

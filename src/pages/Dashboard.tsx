@@ -48,6 +48,7 @@ import AICopilotHistory from "./AICopilotHistory"
 import KnowledgeBase from "./KnowledgeBase"
 import LegalMemory from "./LegalMemory"
 import LegalCases from "./LegalCases"
+import JurisprudenceLibrary from "./JurisprudenceLibrary"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -114,6 +115,8 @@ const isHistoryActive =
   const isKnowledgeBaseActive = location.pathname.includes("knowledge-base")
 const isLegalMemoryActive = location.pathname.includes("legal-memory")
 const isLegalCasesActive = location.pathname.includes("legal-cases")
+  const isJurisprudenceLibraryActive =
+  location.pathname.includes("jurisprudence-library")
 
   useEffect(() => {
   async function checkUserSubscription() {
@@ -486,6 +489,14 @@ description="Consulte análises anteriores da IA."
   />
 
   <NavItem
+  to="/dashboard/jurisprudence-library"
+  icon={Gavel}
+  label="Jurisprudência Salva"
+  description="Guarde teses, decisões e fundamentos."
+  active={isJurisprudenceLibraryActive}
+/>
+
+  <NavItem
     to="/dashboard/judge-simulator"
     icon={Gavel}
     label="Simular juiz"
@@ -671,6 +682,8 @@ description="Consulte análises anteriores da IA."
     <LegalIntelligenceHistory />
   ) : isLitigationStrategyActive ? (
     <LitigationStrategyCenter />
+      ) : isJurisprudenceLibraryActive ? (
+  <JurisprudenceLibrary />
   ) : isChiefLegalOfficerActive ? (
     <ChiefLegalOfficer />
   ) : isEnterpriseCommandCenterActive ? (

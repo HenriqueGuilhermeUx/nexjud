@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react"
 import { BookOpen, FileText, Plus, Search, Trash2, Sparkles } from "lucide-react"
+import * as pdfjsLib from "pdfjs-dist"
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url"
+import mammoth from "mammoth"
+import Tesseract from "tesseract.js"
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
 import { useAuth } from "@/context/AuthContext"
 import {
   createKnowledgeDocument,
@@ -8,6 +14,7 @@ import {
   createKnowledgeChunks,
 } from "@/services/aiWorkspaceService"
 import { supabase } from "@/lib/supabase"
+
 
 export default function KnowledgeBase() {
   const { user } = useAuth()
@@ -63,15 +70,45 @@ export default function KnowledgeBase() {
   }
 
   async function extractTextFromFile(file: File) {
-    const extension = file.name.split(".").pop()?.toLowerCase()
+  const extension = file.name.split(".").pop()?.toLowerCase()
 
-    if (extension === "txt") {
-      return await file.text()
-    }
-
-    return ""
+  if (extension === "txt") {
+    return await file.text()
   }
 
+  if (extension === "pdf") {
+    const arrayBuffer = await file.arrayBuffer()
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+
+    let text = ""
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i)
+      const content = await page.getTextContent()
+
+      const pageText = content.items
+        .map((item: any) => item.str || "")
+        .join(" ")
+
+      text += `\n\n--- Página ${i} ---\n${pageText}`
+    }
+
+    return text.trim()
+  }
+
+  if (extension === "docx") {
+    const arrayBuffer = await file.arrayBuffer()
+    const result = await mammoth.extractRawText({ arrayBuffer })
+    return result.value || ""
+  }
+
+  if (["png", "jpg", "jpeg"].includes(extension || "")) {
+    const result = await Tesseract.recognize(file, "por+eng")
+    return result.data.text || ""
+  }
+
+  return ""
+}
   async function saveDocument() {
     if (!user?.id) {
       alert("Faça login novamente.")

@@ -52,6 +52,9 @@ import LegalCases from "./LegalCases"
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [enterpriseOpen, setEnterpriseOpen] = useState(true)
+  const [analysisOpen, setAnalysisOpen] = useState(true)
+const [productionOpen, setProductionOpen] = useState(false)
+const [managementOpen, setManagementOpen] = useState(false)
   const { user, signOut } = useAuth()
   const location = useLocation()
 
@@ -162,20 +165,27 @@ const isLegalCasesActive = location.pathname.includes("legal-cases")
     }
   }
 
-  const NavItem = ({ to, icon: Icon, label, active }: any) => (
-    <Link
-      to={to}
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-        active
-          ? "bg-primary/10 text-primary border-l-2 border-primary"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted"
-      }`}
-      onClick={() => setSidebarOpen(false)}
-    >
-      <Icon className="w-5 h-5" />
-      <span className="font-medium">{label}</span>
-    </Link>
-  )
+  const NavItem = ({ to, icon: Icon, label, description, active }: any) => (
+  <Link
+    to={to}
+    className={`flex items-start gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+      active
+        ? "bg-primary/10 text-primary border-l-2 border-primary"
+        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+    }`}
+    onClick={() => setSidebarOpen(false)}
+  >
+    <Icon className="w-5 h-5 mt-0.5 shrink-0" />
+    <div className="min-w-0">
+      <span className="font-medium block leading-tight">{label}</span>
+      {description && (
+        <span className="text-[11px] text-muted-foreground leading-snug block mt-1">
+          {description}
+        </span>
+      )}
+    </div>
+  </Link>
+)
 
 const NavGroup = ({ label, open, onClick, children }: any) => (
   <div>
@@ -202,6 +212,91 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
     )}
   </div>
 )
+
+  const TaskLauncher = () => (
+  <section className="p-6 lg:p-10 pb-0">
+    <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-indigo-500/10 to-[#05050a] p-6 lg:p-8 shadow-2xl">
+      <h1 className="text-3xl font-bold text-foreground">
+        O que você deseja fazer agora?
+      </h1>
+
+      <p className="text-muted-foreground mt-2">
+        Escolha uma tarefa e o NexJud leva você para a ferramenta certa.
+      </p>
+
+      <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
+        <QuickAction
+          to="/dashboard/knowledge-base"
+          icon={FileText}
+          title="Analisar documento"
+          description="Envie PDF, DOCX, estatuto, contrato ou ata."
+        />
+
+        <QuickAction
+          to="/dashboard/legal-chat"
+          icon={Brain}
+          title="Conversar com a IA"
+          description="Pergunte usando documentos, memória e casos."
+        />
+
+        <QuickAction
+          to="/dashboard/ai-copilot"
+          icon={Sparkles}
+          title="Analisar um caso"
+          description="Receba uma análise estratégica completa."
+        />
+
+        <QuickAction
+          to="/dashboard/draft-generator"
+          icon={Wand2}
+          title="Criar uma peça"
+          description="Gere minutas, petições e documentos."
+        />
+
+        <QuickAction
+          to="/dashboard/legal-cases"
+          icon={Database}
+          title="Organizar casos"
+          description="Cadastre processos, clientes e estratégias."
+        />
+
+        <QuickAction
+          to="/dashboard/litigation-strategy"
+          icon={Target}
+          title="Montar estratégia"
+          description="Use Deal Breaker, Victory Plan e Litigation Chess."
+        />
+
+        <QuickAction
+          to="/dashboard/judge-simulator"
+          icon={Gavel}
+          title="Simular o juiz"
+          description="Veja riscos e possíveis decisões."
+        />
+
+        <QuickAction
+          to="/dashboard/process-portfolio"
+          icon={Archive}
+          title="Ver carteira"
+          description="Acompanhe processos e histórico."
+        />
+      </div>
+    </div>
+  </section>
+)
+
+const QuickAction = ({ to, icon: Icon, title, description }: any) => (
+  <Link
+    to={to}
+    className="rounded-2xl border border-border bg-card/80 p-4 hover:border-primary/50 transition block"
+  >
+    <Icon className="w-6 h-6 text-primary mb-3" />
+    <p className="font-bold text-foreground">{title}</p>
+    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+      {description}
+    </p>
+  </Link>
+)
   
   return (
     <div className="min-h-screen bg-background flex">
@@ -225,126 +320,173 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
               <p className="text-xs text-muted-foreground">Strategic AI Platform</p>
             </div>
           </div>
-        </div>
+</div>
 
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2 pb-6">
-
-<NavItem
-  to="/dashboard/ai-copilot"
+<nav className="flex-1 overflow-y-auto p-4 space-y-2 pb-6">
+  <NavItem
+    to="/dashboard"
   icon={Brain}
-  label="AI Copilot"
-  active={isAICopilotActive}
-/>
-
-<NavItem
-  to="/dashboard/legal-chat"
-  icon={Brain}
-  label="Chat Jurídico"
-  active={isLegalChatActive}
-/>
-
-          <NavItem to="/dashboard/knowledge-base" icon={FileText} label="Knowledge Base" active={isKnowledgeBaseActive} />
-
-<NavItem to="/dashboard/legal-memory" icon={Brain} label="Memória Jurídica" active={isLegalMemoryActive} />
-
-<NavItem to="/dashboard/legal-cases" icon={Database} label="Casos" active={isLegalCasesActive} />
-          
-          <NavItem
-  to="/dashboard/ai-copilot-history"
-  icon={FileText}
-  label="Histórico Copilot"
-  active={isAICopilotHistoryActive}
-/>
-          
-          <NavItem to="/dashboard" icon={Brain} label="Strategic Analysis" active={isHomeActive} />
-
-          <NavItem
-            to="/dashboard/red-team-simulator"
-            icon={ShieldAlert}
-            label="Simulador Red Team"
-            active={isRedTeamSimulatorActive}
-          />
-
-          <NavItem
-            to="/dashboard/judge-simulator"
-            icon={Gavel}
-            label="Judge Simulator"
-            active={isJudgeSimulatorActive}
-          />
-
-          <NavItem
-            to="/dashboard/judge-history"
-            icon={HistoryIcon}
-            label="Histórico Judge"
-            active={isJudgeHistoryActive}
-          />
-
-          <NavItem
-            to="/dashboard/draft-generator"
-            icon={Wand2}
-            label="Gerador de Minutas"
-            active={isDraftGeneratorActive}
-          />
-
-          <NavItem
-            to="/dashboard/draft-history"
-            icon={Archive}
-            label="Minutas Salvas"
-            active={isDraftHistoryActive}
-          />
-
-          <NavItem
-  to="/dashboard/process-portfolio"
-  icon={Database}
-  label="Carteira Processual"
-  active={isProcessPortfolioActive}
+  label="Início"
+  description="Escolha o que deseja fazer."
+  active={isHomeActive}
 />
 
 <NavGroup
-  label="Enterprise Suite"
+  label="Analisar"
+  open={analysisOpen}
+  onClick={() => setAnalysisOpen((v) => !v)}
+>
+  <NavItem
+    to="/dashboard/legal-chat"
+    icon={Brain}
+    label="Conversar com a IA"
+    description="Pergunte sobre documentos, casos e teses."
+    active={isLegalChatActive}
+  />
+
+  <NavItem
+    to="/dashboard/knowledge-base"
+    icon={FileText}
+    label="Analisar documentos"
+    description="Upload de PDF, DOCX, imagens e contratos."
+    active={isKnowledgeBaseActive}
+  />
+
+  <NavItem
+    to="/dashboard/ai-copilot"
+    icon={Sparkles}
+    label="Analisar um caso"
+    description="Análise estratégica completa do processo."
+    active={isAICopilotActive}
+  />
+
+  <NavItem
+    to="/dashboard/legal-memory"
+    icon={Archive}
+    label="Memória Jurídica"
+    description="Teses, regras, aprendizados e padrões."
+    active={isLegalMemoryActive}
+  />
+</NavGroup>
+
+<NavGroup
+  label="Produzir"
+  open={productionOpen}
+  onClick={() => setProductionOpen((v) => !v)}
+>
+  <NavItem
+    to="/dashboard/draft-generator"
+    icon={Wand2}
+    label="Criar peça ou minuta"
+    description="Gere documentos jurídicos com IA."
+    active={isDraftGeneratorActive}
+  />
+
+  <NavItem
+    to="/dashboard/draft-history"
+    icon={Archive}
+    label="Minutas salvas"
+    description="Acesse documentos já gerados."
+    active={isDraftHistoryActive}
+  />
+
+  <NavItem
+    to="/dashboard/reports"
+    icon={FileText}
+    label="Relatórios"
+    description="Relatórios estratégicos e executivos."
+    active={isReportsActive}
+  />
+</NavGroup>
+
+<NavGroup
+  label="Gerenciar"
+  open={managementOpen}
+  onClick={() => setManagementOpen((v) => !v)}
+>
+  <NavItem
+    to="/dashboard/legal-cases"
+    icon={Database}
+    label="Casos"
+    description="Organize clientes, processos e riscos."
+    active={isLegalCasesActive}
+  />
+
+  <NavItem
+    to="/dashboard/process-portfolio"
+    icon={Database}
+    label="Carteira Processual"
+    description="Acompanhe seus processos."
+    active={isProcessPortfolioActive}
+  />
+
+  <NavItem
+    to="/dashboard/history"
+    icon={HistoryIcon}
+    label="Histórico"
+    description="Veja análises e atividades anteriores."
+    active={isHistoryActive}
+  />
+
+  <NavItem
+    to="/dashboard/ai-copilot-history"
+    icon={HistoryIcon}
+    label="Histórico IA"
+    description="Análises anteriores do Copilot."
+    active={isAICopilotHistoryActive}
+  />
+</NavGroup>
+
+<NavGroup
+  label="Estratégia Avançada"
   open={enterpriseOpen}
   onClick={() => setEnterpriseOpen((prev) => !prev)}
 >
-
-<NavItem
-  to="/dashboard/chief-legal-officer"
-  icon={Brain}
-  label="AI Chief Legal Officer"
-  active={isChiefLegalOfficerActive}
-/>
-  
   <NavItem
-  to="/dashboard/legal-intelligence-engine"
-  icon={Brain}
-  label="Legal Intelligence"
-  active={isLegalIntelligenceEngineActive}
-/>
-
-<NavItem
-  to="/dashboard/legal-intelligence-history"
-  icon={FileText}
-  label="Histórico Intelligence"
-  active={isLegalIntelligenceHistoryActive}
-/>
+    to="/dashboard/litigation-strategy"
+    icon={Target}
+    label="Strategy Engine"
+    description="Deal Breaker, Victory Plan e tática."
+    active={isLitigationStrategyActive}
+  />
 
   <NavItem
-  to="/dashboard/litigation-strategy"
-  icon={Target}
-  label="Litigation Strategy"
-  active={isLitigationStrategyActive}
-/>
+    to="/dashboard/judge-simulator"
+    icon={Gavel}
+    label="Simular juiz"
+    description="Antecipe riscos e decisões possíveis."
+    active={isJudgeSimulatorActive}
+  />
 
-<NavItem
-  to="/dashboard/enterprise-command-center"
-  icon={Brain}
-  label="Command Center"
-  active={isEnterpriseCommandCenterActive}
-/>
+  <NavItem
+    to="/dashboard/red-team-simulator"
+    icon={ShieldAlert}
+    label="Red Team"
+    description="Encontre fragilidades na sua tese."
+    active={isRedTeamSimulatorActive}
+  />
+
+  <NavItem
+    to="/dashboard/chief-legal-officer"
+    icon={Brain}
+    label="Chief Legal Officer"
+    description="Visão executiva para decisões complexas."
+    active={isChiefLegalOfficerActive}
+  />
+
+  <NavItem
+    to="/dashboard/legal-intelligence-engine"
+    icon={Brain}
+    label="Legal Intelligence"
+    description="Inteligência jurídica e padrões."
+    active={isLegalIntelligenceEngineActive}
+  />
 
   <NavItem
     to="/dashboard/war-room"
     icon={ShieldAlert}
     label="War Room"
+    description="Cenários, riscos e plano de ataque."
     active={isWarRoomCenterActive}
   />
 
@@ -352,28 +494,40 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
     to="/dashboard/partner-council"
     icon={Brain}
     label="Partner Council"
+    description="Simule uma reunião de sócios."
     active={isPartnerCouncilActive}
-  />
-
-  <NavItem
-    to="/dashboard/one-click-actions"
-    icon={Wand2}
-    label="One-Click Actions"
-    active={isOneClickActionsActive}
   />
 
   <NavItem
     to="/dashboard/opponent-database"
     icon={ShieldAlert}
-    label="Opponent DB"
+    label="Banco de Oponentes"
+    description="Mapeie adversários e padrões."
     active={isOpponentDatabaseActive}
   />
 
   <NavItem
     to="/dashboard/tribunal-heatmap"
     icon={Database}
-    label="Tribunal Heatmap"
+    label="Mapa dos Tribunais"
+    description="Tendências e comportamento decisório."
     active={isTribunalHeatmapActive}
+  />
+
+  <NavItem
+    to="/dashboard/enterprise-command-center"
+    icon={Brain}
+    label="Command Center"
+    description="Painel executivo avançado."
+    active={isEnterpriseCommandCenterActive}
+  />
+
+  <NavItem
+    to="/dashboard/one-click-actions"
+    icon={Wand2}
+    label="Ações rápidas"
+    description="Atalhos para tarefas frequentes."
+    active={isOneClickActionsActive}
   />
 </NavGroup>
 
@@ -381,6 +535,7 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   to="/pricing"
   icon={CreditCard}
   label="Planos"
+  description="Assinatura e upgrade."
   active={isPricingActive}
 />
 
@@ -388,11 +543,9 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
   to="/tutorial"
   icon={Sparkles}
   label="Tutorial"
+  description="Aprenda a usar o NexJud."
   active={isTutorialActive}
-/>          
-
-<NavItem to="/dashboard/reports" icon={FileText} label="Relatórios" active={isReportsActive} />
-<NavItem to="/dashboard/history" icon={HistoryIcon} label="Histórico" active={isHistoryActive} />
+/>
         </nav>
 
         <div className="mx-4 p-3 bg-muted rounded-lg border border-border">
@@ -462,7 +615,10 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
       ) : isAICopilotHistoryActive ? (
   <AICopilotHistory />
   ) : isHomeActive ? (
+  <>
+    <TaskLauncher />
     <HomeDashboard />
+  </>
   ) : isRedTeamSimulatorActive ? (
     <RedTeamSimulator />
   ) : isJudgeSimulatorActive ? (

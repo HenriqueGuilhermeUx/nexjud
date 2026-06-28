@@ -42,6 +42,7 @@ import LegalCases from "@/pages/LegalCases"
 import SetupOAB from "@/pages/SetupOAB"
 import JurisprudenceLibrary from "@/pages/JurisprudenceLibrary"
 import Precedents from "@/pages/Precedents"
+import CNJProcesses from "@/pages/CNJProcesses"
 
 import PlanGate from "@/components/PlanGate"
 
@@ -117,6 +118,7 @@ export default function App() {
             <Route path="chief-legal-officer" element={<ChiefLegalOfficer />} />
             <Route path="jurisprudence-library" element={<JurisprudenceLibrary />} />
             <Route path="precedents" element={<Precedents />} />
+            <Route path="cnj-processes" element={<CNJProcesses />} />
 
             <Route
               path="legal-intelligence-engine"

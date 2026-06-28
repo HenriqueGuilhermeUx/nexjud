@@ -50,6 +50,7 @@ import LegalMemory from "./LegalMemory"
 import LegalCases from "./LegalCases"
 import JurisprudenceLibrary from "./JurisprudenceLibrary"
 import Precedents from "./Precedents"
+import CNJProcesses from "./CNJProcesses"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -97,6 +98,8 @@ const isOpponentDatabaseActive = location.pathname.includes("opponent-database")
 const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
   const isReportsActive = location.pathname.includes("reports")
   const isPrecedentsActive = location.pathname.includes("precedents")
+  const isCnjProcessesActive =
+  location.pathname.includes("cnj-processes")
 
 const isLegalIntelligenceHistoryActive =
   location.pathname.includes("legal-intelligence-history")
@@ -491,6 +494,14 @@ description="Consulte análises anteriores da IA."
   />
 
 <NavItem
+  to="/dashboard/cnj-processes"
+  icon={Gavel}
+  label="Processos CNJ"
+  description="Movimentações, classe, partes e contexto processual."
+  active={isCnjProcessesActive}
+/>
+  
+  <NavItem
   to="/dashboard/precedents"
   icon={Gavel}
   label="Precedentes"
@@ -692,6 +703,8 @@ description="Consulte análises anteriores da IA."
     <LegalIntelligenceHistory />
       ) : isPrecedentsActive ? (
   <Precedents />
+  ) : isCnjProcessesActive ? (
+  <CNJProcesses />    
   ) : isLitigationStrategyActive ? (
     <LitigationStrategyCenter />
       ) : isJurisprudenceLibraryActive ? (

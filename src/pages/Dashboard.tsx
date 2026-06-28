@@ -49,6 +49,7 @@ import KnowledgeBase from "./KnowledgeBase"
 import LegalMemory from "./LegalMemory"
 import LegalCases from "./LegalCases"
 import JurisprudenceLibrary from "./JurisprudenceLibrary"
+import Precedents from "./Precedents"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -95,6 +96,7 @@ const isOneClickActionsActive = location.pathname.includes("one-click-actions")
 const isOpponentDatabaseActive = location.pathname.includes("opponent-database")
 const isTribunalHeatmapActive = location.pathname.includes("tribunal-heatmap")
   const isReportsActive = location.pathname.includes("reports")
+  const isPrecedentsActive = location.pathname.includes("precedents")
 
 const isLegalIntelligenceHistoryActive =
   location.pathname.includes("legal-intelligence-history")
@@ -488,6 +490,14 @@ description="Consulte análises anteriores da IA."
     active={isLitigationStrategyActive}
   />
 
+<NavItem
+  to="/dashboard/precedents"
+  icon={Gavel}
+  label="Precedentes"
+  description="Temas, repetitivos, IRDR e repercussão geral."
+  active={isPrecedentsActive}
+/>
+  
   <NavItem
   to="/dashboard/jurisprudence-library"
   icon={Gavel}
@@ -680,6 +690,8 @@ description="Consulte análises anteriores da IA."
     <LegalIntelligenceEngine />
   ) : isLegalIntelligenceHistoryActive ? (
     <LegalIntelligenceHistory />
+      ) : isPrecedentsActive ? (
+  <Precedents />
   ) : isLitigationStrategyActive ? (
     <LitigationStrategyCenter />
       ) : isJurisprudenceLibraryActive ? (

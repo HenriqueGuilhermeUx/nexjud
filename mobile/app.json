@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "NexJud Companion",
+    "slug": "nexjud-companion",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "nexjud",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.nexjud.companion",
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0a0f"
+      },
+      "permissions": ["CAMERA", "RECORD_AUDIO", "READ_MEDIA_IMAGES"]
+    },
+    "ios": {
+      "bundleIdentifier": "com.nexjud.companion",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "O NexJud usa a câmera para digitalizar documentos jurídicos.",
+        "NSMicrophoneUsageDescription": "O NexJud usa o microfone para registrar reuniões e perguntas por voz.",
+        "NSPhotoLibraryUsageDescription": "O NexJud acessa seus arquivos para importar documentos jurídicos."
+      }
+    },
+    "plugins": ["expo-secure-store", "expo-document-picker", "expo-image-picker"],
+    "extra": {
+      "eas": {
+        "projectId": "SUBSTITUA_PELO_PROJECT_ID_EAS"
+      }
+    }
+  }
+}

@@ -7,6 +7,7 @@ import Welcome from "@/pages/Welcome"
 import Tutorial from "@/pages/Tutorial"
 import PricingPage from "@/pages/PricingPage"
 import UpgradePage from "@/pages/UpgradePage"
+import Companion from "@/pages/Companion"
 
 import Dashboard from "@/pages/Dashboard"
 import Onboarding from "@/pages/Onboarding"
@@ -70,13 +71,14 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/companion" element={<Companion />} />
           <Route path="/login" element={<Login />} />
           <Route path="/welcome" element={<Welcome />} />
           <Route path="/tutorial" element={<Tutorial />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/upgrade" element={<UpgradePage />} />
           <Route path="onboarding" element={<Onboarding />} />
-<Route path="setup-oab" element={<SetupOAB />} />
+          <Route path="setup-oab" element={<SetupOAB />} />
 
           <Route
             path="/dashboard"
@@ -87,18 +89,12 @@ export default function App() {
             }
           >
             <Route index element={<HomeDashboard />} />
-
             <Route path="ai-copilot" element={<AICopilot />} />
             <Route path="ai-copilot-history" element={<AICopilotHistory />} />
-            <Route
-  path="legal-chat"
-  element={<LegalChat />}
-/>
-
-<Route path="knowledge-base" element={<KnowledgeBase />} />
-<Route path="legal-memory" element={<LegalMemory />} />
-<Route path="legal-cases" element={<LegalCases />} />
-            
+            <Route path="legal-chat" element={<LegalChat />} />
+            <Route path="knowledge-base" element={<KnowledgeBase />} />
+            <Route path="legal-memory" element={<LegalMemory />} />
+            <Route path="legal-cases" element={<LegalCases />} />
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="process-check" element={<ProcessCheck />} />
             <Route path="predictive" element={<PredictiveAI />} />
@@ -106,14 +102,12 @@ export default function App() {
             <Route path="red-team" element={<RedTeam />} />
             <Route path="reports" element={<StrategicReport />} />
             <Route path="history" element={<History />} />
-
             <Route path="red-team-simulator" element={<RedTeamSimulator />} />
             <Route path="draft-generator" element={<DraftGenerator />} />
             <Route path="draft-history" element={<DraftHistory />} />
             <Route path="judge-simulator" element={<JudgeSimulator />} />
             <Route path="judge-history" element={<JudgeHistory />} />
             <Route path="process-portfolio" element={<ProcessPortfolio />} />
-
             <Route path="enterprise-command-center" element={<EnterpriseCommandCenter />} />
             <Route path="chief-legal-officer" element={<ChiefLegalOfficer />} />
             <Route path="jurisprudence-library" element={<JurisprudenceLibrary />} />

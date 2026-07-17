@@ -1,0 +1,80 @@
+{
+  "name": "NEXJUD_01_NOTIFICATION_ROUTER",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nexjud-notifications",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Receber notificação",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "nexjud-notifications"
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $input.first().json;\nconst headers = req.headers || {};\nconst expected = $env.NEXJUD_AUTOMATION_SECRET;\nconst received = headers['x-nexjud-secret'] || headers['X-Nexjud-Secret'];\nif (!expected || received !== expected) throw new Error('Não autorizado');\nconst body = req.body || req;\nif (!body.title || !body.message) throw new Error('title e message são obrigatórios');\nreturn [{ json: {\n  user_id: body.user_id || null,\n  case_id: body.case_id || null,\n  type: body.type || 'general',\n  priority: body.priority || 'normal',\n  title: String(body.title),\n  message: String(body.message),\n  action_url: body.action_url || null,\n  metadata: body.metadata || {},\n  created_at: body.occurred_at || new Date().toISOString(),\n  status: 'pending'\n} }];"
+      },
+      "id": "validate",
+      "name": "Validar e normalizar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL + '/rest/v1/automation_notifications'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "={{'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"},
+            {"name": "Prefer", "value": "return=representation"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify($json)}}",
+        "options": {"timeout": 15000}
+      },
+      "id": "save",
+      "name": "Salvar no Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({ok: true, notification: $json})}}",
+        "options": {"responseCode": 202}
+      },
+      "id": "respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [940, 300]
+    }
+  ],
+  "connections": {
+    "Receber notificação": {"main": [[{"node": "Validar e normalizar", "type": "main", "index": 0}]]},
+    "Validar e normalizar": {"main": [[{"node": "Salvar no Supabase", "type": "main", "index": 0}]]},
+    "Salvar no Supabase": {"main": [[{"node": "Responder", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none"
+  },
+  "active": false,
+  "versionId": "nexjud-notification-router-v1",
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}

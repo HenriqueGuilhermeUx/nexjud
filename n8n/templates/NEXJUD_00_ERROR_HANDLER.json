@@ -1,0 +1,73 @@
+{
+  "name": "NEXJUD_00_ERROR_HANDLER",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst execution = input.execution || {};\nconst workflow = input.workflow || {};\nconst error = execution.error || input.error || {};\nreturn [{ json: {\n  type: 'workflow_error',\n  priority: 'critical',\n  title: `Falha no workflow: ${workflow.name || 'desconhecido'}`,\n  message: error.message || 'Erro sem mensagem',\n  workflow_id: workflow.id || null,\n  workflow_name: workflow.name || null,\n  execution_id: execution.id || null,\n  execution_url: execution.url || null,\n  occurred_at: new Date().toISOString(),\n  metadata: { stack: error.stack || null, last_node: execution.lastNodeExecuted || null }\n} }];"
+      },
+      "id": "normalize-error",
+      "name": "Normalizar erro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.NEXJUD_NOTIFICATION_ROUTER_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-nexjud-secret",
+              "value": "={{$env.NEXJUD_AUTOMATION_SECRET}}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify($json)}}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "notify-router",
+      "name": "Enviar ao Notification Router",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 300]
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [[{"node": "Normalizar erro", "type": "main", "index": 0}]]
+    },
+    "Normalizar erro": {
+      "main": [[{"node": "Enviar ao Notification Router", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none"
+  },
+  "active": false,
+  "versionId": "nexjud-error-handler-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

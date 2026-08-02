@@ -8,6 +8,9 @@ import Tutorial from "@/pages/Tutorial"
 import PricingPage from "@/pages/PricingPage"
 import UpgradePage from "@/pages/UpgradePage"
 import Companion from "@/pages/Companion"
+import PrivacyPolicy from "@/pages/PrivacyPolicy"
+import TermsOfUse from "@/pages/TermsOfUse"
+import AccountDeletion from "@/pages/AccountDeletion"
 
 import Dashboard from "@/pages/Dashboard"
 import Onboarding from "@/pages/Onboarding"
@@ -72,6 +75,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/companion" element={<Companion />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfUse />} />
+          <Route path="/account-deletion" element={<AccountDeletion />} />
           <Route path="/login" element={<Login />} />
           <Route path="/welcome" element={<Welcome />} />
           <Route path="/tutorial" element={<Tutorial />} />

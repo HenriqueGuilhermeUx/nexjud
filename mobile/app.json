@@ -38,14 +38,6 @@
             "minSdkVersion": 24
           }
         }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#09090f",
-          "imageWidth": 180,
-          "resizeMode": "contain"
-        }
       ]
     ],
     "extra": {

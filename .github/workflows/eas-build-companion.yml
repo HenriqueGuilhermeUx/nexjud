@@ -38,5 +38,49 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Android on EAS
-        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive --no-wait
+      - name: Build Android on EAS and wait
+        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive --wait --json > eas-build.json
+
+      - name: Download APK or AAB
+        shell: bash
+        run: |
+          BUILD_ID=$(jq -r 'if type == "array" then .[0].id else .id end' eas-build.json)
+          ARTIFACT_URL=$(jq -r 'if type == "array" then .[0].artifacts.applicationArchiveUrl else .artifacts.applicationArchiveUrl end' eas-build.json)
+
+          if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ]; then
+            echo "Não foi possível localizar o ID do build."
+            cat eas-build.json
+            exit 1
+          fi
+
+          if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
+            echo "Não foi possível localizar a URL do arquivo gerado."
+            cat eas-build.json
+            exit 1
+          fi
+
+          if [ "${{ inputs.profile }}" = "preview" ]; then
+            FILE_NAME="NexJud-Companion-preview.apk"
+          else
+            FILE_NAME="NexJud-Companion-production.aab"
+          fi
+
+          curl --fail --location "$ARTIFACT_URL" --output "$FILE_NAME"
+          echo "BUILD_ID=$BUILD_ID" >> "$GITHUB_ENV"
+          echo "ARTIFACT_FILE=$FILE_NAME" >> "$GITHUB_ENV"
+
+      - name: Upload Android artifact to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexjud-companion-${{ inputs.profile }}
+          path: mobile/${{ env.ARTIFACT_FILE }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Build summary
+        run: |
+          echo "## NexJud Companion" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Perfil: ${{ inputs.profile }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- EAS Build ID: $BUILD_ID" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Arquivo: $ARTIFACT_FILE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- O arquivo está disponível na seção Artifacts desta execução." >> "$GITHUB_STEP_SUMMARY"

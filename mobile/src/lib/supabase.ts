@@ -3,12 +3,8 @@ import "react-native-get-random-values"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Configure EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY no arquivo .env do app.")
-}
+const supabaseUrl = "https://zoruralbsxrbsaicihzu.supabase.co"
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvcnVyYWxic3hyYnNhaWNpaHp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1OTIwMTgsImV4cCI6MjA5NTE2ODAxOH0.nJvwaa_QIYWNKUkL18WHz3fBkS8O6TU3nELLjoauDMw"
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

@@ -16,6 +16,8 @@ jobs:
   build-android:
     name: Build Android (${{ inputs.profile }})
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: production
     defaults:
       run:
         working-directory: mobile

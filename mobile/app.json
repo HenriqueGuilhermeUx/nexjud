@@ -10,7 +10,6 @@
     "primaryColor": "#6366f1",
     "android": {
       "package": "com.nexjud.companion",
-      "versionCode": 1,
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
@@ -19,7 +18,6 @@
     },
     "ios": {
       "bundleIdentifier": "com.nexjud.companion",
-      "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "O NexJud usa a câmera para digitalizar documentos jurídicos.",
@@ -54,9 +52,6 @@
       "eas": {
         "projectId": "e9520c52-0fa7-4d00-ae07-aea3f17946c4"
       }
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
     }
   }
 }

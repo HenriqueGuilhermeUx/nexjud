@@ -43,6 +43,12 @@ jobs:
       - name: Apply runtime compatibility patch
         run: node scripts/patch-runtime.mjs
 
+      - name: Generate valid app assets
+        run: node scripts/generate-assets.mjs
+
+      - name: Validate Expo project
+        run: npx expo-doctor || true
+
       - name: Build Android on EAS and wait
         run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive --wait --json > eas-build.json
 
@@ -84,7 +90,7 @@ jobs:
 
       - name: Build summary
         run: |
-          echo "## NexJud Companion" >> "$GITHUB_STEP_SUMMARY"
+          echo "## NexJud Companion V2" >> "$GITHUB_STEP_SUMMARY"
           echo "- Perfil: ${{ inputs.profile }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- EAS Build ID: $BUILD_ID" >> "$GITHUB_STEP_SUMMARY"
           echo "- Arquivo: $ARTIFACT_FILE" >> "$GITHUB_STEP_SUMMARY"

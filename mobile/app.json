@@ -8,8 +8,13 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#09090f",
     "primaryColor": "#6366f1",
+    "icon": "./assets/icon.png",
     "android": {
       "package": "com.nexjud.companion",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#09090f"
+      },
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
@@ -18,12 +23,18 @@
     },
     "ios": {
       "bundleIdentifier": "com.nexjud.companion",
+      "icon": "./assets/icon.png",
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "O NexJud usa a câmera para digitalizar documentos jurídicos.",
         "NSMicrophoneUsageDescription": "O NexJud usa o microfone para registrar reuniões e perguntas por voz.",
         "NSPhotoLibraryUsageDescription": "O NexJud acessa seus arquivos para importar documentos jurídicos."
       }
+    },
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#09090f"
     },
     "plugins": [
       "expo-secure-store",

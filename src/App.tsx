@@ -11,6 +11,7 @@ import Companion from "@/pages/Companion"
 import PrivacyPolicy from "@/pages/PrivacyPolicy"
 import TermsOfUse from "@/pages/TermsOfUse"
 import AccountDeletion from "@/pages/AccountDeletion"
+import DataDeletion from "@/pages/DataDeletion"
 
 import Dashboard from "@/pages/Dashboard"
 import Onboarding from "@/pages/Onboarding"
@@ -61,10 +62,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />
-  }
-
+  if (!user) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
@@ -78,6 +76,7 @@ export default function App() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfUse />} />
           <Route path="/account-deletion" element={<AccountDeletion />} />
+          <Route path="/data-deletion" element={<DataDeletion />} />
           <Route path="/login" element={<Login />} />
           <Route path="/welcome" element={<Welcome />} />
           <Route path="/tutorial" element={<Tutorial />} />
@@ -86,14 +85,7 @@ export default function App() {
           <Route path="onboarding" element={<Onboarding />} />
           <Route path="setup-oab" element={<SetupOAB />} />
 
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          >
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
             <Route index element={<HomeDashboard />} />
             <Route path="ai-copilot" element={<AICopilot />} />
             <Route path="ai-copilot-history" element={<AICopilotHistory />} />
@@ -119,34 +111,9 @@ export default function App() {
             <Route path="jurisprudence-library" element={<JurisprudenceLibrary />} />
             <Route path="precedents" element={<Precedents />} />
             <Route path="cnj-processes" element={<CNJProcesses />} />
-
-            <Route
-              path="legal-intelligence-engine"
-              element={
-                <PlanGate requiredPlan="intelligence">
-                  <LegalIntelligenceEngine />
-                </PlanGate>
-              }
-            />
-
-            <Route
-              path="legal-intelligence-history"
-              element={
-                <PlanGate requiredPlan="intelligence">
-                  <LegalIntelligenceHistory />
-                </PlanGate>
-              }
-            />
-
-            <Route
-              path="litigation-strategy"
-              element={
-                <PlanGate requiredPlan="enterprise">
-                  <LitigationStrategyCenter />
-                </PlanGate>
-              }
-            />
-
+            <Route path="legal-intelligence-engine" element={<PlanGate requiredPlan="intelligence"><LegalIntelligenceEngine /></PlanGate>} />
+            <Route path="legal-intelligence-history" element={<PlanGate requiredPlan="intelligence"><LegalIntelligenceHistory /></PlanGate>} />
+            <Route path="litigation-strategy" element={<PlanGate requiredPlan="enterprise"><LitigationStrategyCenter /></PlanGate>} />
             <Route path="war-room" element={<WarRoomCenter />} />
             <Route path="partner-council" element={<PartnerCouncilCenter />} />
             <Route path="one-click-actions" element={<OneClickActionsCenter />} />

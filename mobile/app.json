@@ -31,11 +31,6 @@
         "NSPhotoLibraryUsageDescription": "O NexJud acessa seus arquivos para importar documentos jurídicos."
       }
     },
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#09090f"
-    },
     "plugins": [
       "expo-secure-store",
       "expo-document-picker",

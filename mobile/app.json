@@ -17,8 +17,11 @@
       },
       "permissions": [
         "CAMERA",
-        "RECORD_AUDIO",
-        "READ_MEDIA_IMAGES"
+        "RECORD_AUDIO"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO"
       ]
     },
     "ios": {
@@ -28,7 +31,7 @@
       "infoPlist": {
         "NSCameraUsageDescription": "O NexJud usa a câmera para digitalizar documentos jurídicos.",
         "NSMicrophoneUsageDescription": "O NexJud usa o microfone para registrar reuniões e perguntas por voz.",
-        "NSPhotoLibraryUsageDescription": "O NexJud acessa seus arquivos para importar documentos jurídicos."
+        "NSPhotoLibraryUsageDescription": "O NexJud acessa apenas os arquivos escolhidos pelo usuário para importar documentos jurídicos."
       }
     },
     "plugins": [

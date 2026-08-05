@@ -1,0 +1,120 @@
+name: NexJud Mobile - Local APK and AAB
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NODE_ENV: production
+      EAS_BUILD_NO_EXPO_GO_WARNING: "true"
+
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Apply runtime compatibility patch
+        run: node scripts/patch-runtime.mjs
+
+      - name: Generate and validate app assets
+        run: node scripts/generate-assets.mjs
+
+      - name: Create Android native project
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Configure fixed Play upload signing when secrets exist
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/nexjud-upload.keystore
+            cat >> android/gradle.properties <<EOF
+          NEXJUD_UPLOAD_STORE_FILE=nexjud-upload.keystore
+          NEXJUD_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
+          NEXJUD_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS
+          NEXJUD_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
+          EOF
+
+            node <<'NODE'
+          const fs = require('fs')
+          const path = 'android/app/build.gradle'
+          let source = fs.readFileSync(path, 'utf8')
+
+          source = source.replace(
+            /signingConfigs\s*\{\s*debug\s*\{([\s\S]*?)\n\s*\}\s*\}/m,
+            (full, debugBody) => `signingConfigs {\n        debug {${debugBody}\n        }\n        release {\n            storeFile file(NEXJUD_UPLOAD_STORE_FILE)\n            storePassword NEXJUD_UPLOAD_STORE_PASSWORD\n            keyAlias NEXJUD_UPLOAD_KEY_ALIAS\n            keyPassword NEXJUD_UPLOAD_KEY_PASSWORD\n        }\n    }`
+          )
+
+          source = source.replace(/signingConfig signingConfigs\.debug/g, 'signingConfig signingConfigs.release')
+          fs.writeFileSync(path, source)
+          NODE
+
+            echo "PLAY_SIGNED=true" >> "$GITHUB_ENV"
+          else
+            echo "Secrets de assinatura não encontrados. O AAB será gerado apenas para validação e NÃO deve ser enviado à Google Play."
+            echo "PLAY_SIGNED=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build APK and AAB with Gradle
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon clean assembleRelease bundleRelease
+
+      - name: Collect outputs
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          cp android/app/build/outputs/apk/release/*.apk artifacts/NexJud-Companion-release.apk
+          cp android/app/build/outputs/bundle/release/*.aab artifacts/NexJud-Companion-release.aab
+          if [ "$PLAY_SIGNED" = "true" ]; then
+            echo "signed" > artifacts/PLAY-STATUS.txt
+          else
+            echo "unsigned-or-debug-signed-not-for-play" > artifacts/PLAY-STATUS.txt
+          fi
+          sha256sum artifacts/* > artifacts/SHA256SUMS.txt
+
+      - name: Upload APK and AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexjud-local-apk-aab
+          path: mobile/artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Build summary
+        run: |
+          echo "## NexJud Companion - build local" >> "$GITHUB_STEP_SUMMARY"
+          echo "- APK: NexJud-Companion-release.apk" >> "$GITHUB_STEP_SUMMARY"
+          echo "- AAB: NexJud-Companion-release.aab" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Assinado para Google Play: $PLAY_SIGNED" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$PLAY_SIGNED" != "true" ]; then
+            echo "- Atenção: configure os quatro secrets de assinatura antes de publicar o AAB." >> "$GITHUB_STEP_SUMMARY"
+          fi

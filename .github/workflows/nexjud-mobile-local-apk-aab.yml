@@ -45,6 +45,9 @@ jobs:
       - name: Create Android native project
         run: npx expo prebuild --platform android --clean --no-install
 
+      - name: Enforce Google Play media permission policy
+        run: node scripts/enforce-play-media-permissions.mjs
+
       - name: Configure fixed Play upload signing when secrets exist
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -82,11 +85,39 @@ jobs:
             echo "PLAY_SIGNED=false" >> "$GITHUB_ENV"
           fi
 
+      - name: Verify merged Android manifest before release build
+        working-directory: mobile/android
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:processReleaseMainManifest
+          MERGED="app/build/intermediates/merged_manifests/release/processReleaseMainManifest/AndroidManifest.xml"
+          if [ ! -f "$MERGED" ]; then
+            MERGED=$(find app/build/intermediates -path '*release*' -name AndroidManifest.xml | head -n 1)
+          fi
+          echo "Merged manifest: $MERGED"
+          if grep -E 'android.permission.READ_MEDIA_IMAGES|android.permission.READ_MEDIA_VIDEO|android.permission.READ_EXTERNAL_STORAGE' "$MERGED"; then
+            echo "ERRO: permissão ampla de mídia ainda presente no manifesto final. Build abortado para proteger a publicação na Google Play."
+            exit 1
+          fi
+          echo "OK: manifesto final sem READ_MEDIA_IMAGES, READ_MEDIA_VIDEO ou READ_EXTERNAL_STORAGE."
+
       - name: Build APK and AAB with Gradle
         working-directory: mobile/android
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon clean assembleRelease bundleRelease
+
+      - name: Verify final release manifest again
+        working-directory: mobile/android
+        shell: bash
+        run: |
+          MERGED=$(find app/build/intermediates -path '*release*' -name AndroidManifest.xml | head -n 1)
+          if [ -n "$MERGED" ] && grep -E 'android.permission.READ_MEDIA_IMAGES|android.permission.READ_MEDIA_VIDEO|android.permission.READ_EXTERNAL_STORAGE' "$MERGED"; then
+            echo "ERRO: permissão ampla de mídia detectada após o build. Artefatos não serão publicados."
+            exit 1
+          fi
+          echo "PLAY_MEDIA_PERMISSIONS=clean" >> "$GITHUB_ENV"
 
       - name: Collect outputs
         shell: bash
@@ -99,6 +130,7 @@ jobs:
           else
             echo "unsigned-or-debug-signed-not-for-play" > artifacts/PLAY-STATUS.txt
           fi
+          echo "No READ_MEDIA_IMAGES / READ_MEDIA_VIDEO / READ_EXTERNAL_STORAGE" > artifacts/PLAY-MEDIA-PERMISSIONS.txt
           sha256sum artifacts/* > artifacts/SHA256SUMS.txt
 
       - name: Upload APK and AAB artifact
@@ -115,6 +147,7 @@ jobs:
           echo "- APK: NexJud-Companion-release.apk" >> "$GITHUB_STEP_SUMMARY"
           echo "- AAB: NexJud-Companion-release.aab" >> "$GITHUB_STEP_SUMMARY"
           echo "- Assinado para Google Play: $PLAY_SIGNED" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Permissões amplas de mídia: removidas e verificadas" >> "$GITHUB_STEP_SUMMARY"
           if [ "$PLAY_SIGNED" != "true" ]; then
             echo "- Atenção: configure os quatro secrets de assinatura antes de publicar o AAB." >> "$GITHUB_STEP_SUMMARY"
           fi

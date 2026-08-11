@@ -55,12 +55,11 @@ jobs:
         run: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/nexjud-upload.keystore
-            cat >> android/gradle.properties <<EOF
-          NEXJUD_UPLOAD_STORE_FILE=nexjud-upload.keystore
-          NEXJUD_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
-          NEXJUD_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS
-          NEXJUD_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
-          EOF
+
+            printf '\nNEXJUD_UPLOAD_STORE_FILE=nexjud-upload.keystore\nNEXJUD_UPLOAD_STORE_PASSWORD=%s\nNEXJUD_UPLOAD_KEY_ALIAS=%s\nNEXJUD_UPLOAD_KEY_PASSWORD=%s\n' \
+              "$ANDROID_KEYSTORE_PASSWORD" \
+              "$ANDROID_KEY_ALIAS" \
+              "$ANDROID_KEY_PASSWORD" >> android/gradle.properties
 
             node <<'NODE'
           const fs = require('fs')

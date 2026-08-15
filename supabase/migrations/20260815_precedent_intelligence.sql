@@ -111,13 +111,56 @@ alter table legal_precedent_monitors enable row level security;
 alter table legal_precedent_events enable row level security;
 alter table legal_case_precedent_impacts enable row level security;
 
-create policy if not exists "precedent analyses own rows" on legal_precedent_analyses for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy if not exists "precedent analysis items own rows" on legal_precedent_analysis_items for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy if not exists "precedent fact matrix own rows" on legal_precedent_fact_matrix for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy if not exists "precedent evidence matrix own rows" on legal_precedent_evidence_matrix for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy if not exists "precedent monitors own rows" on legal_precedent_monitors for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy if not exists "precedent events own rows" on legal_precedent_events for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy if not exists "case precedent impacts own rows" on legal_case_precedent_impacts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- PostgreSQL/Supabase does not support CREATE POLICY IF NOT EXISTS.
+-- Drop first so this migration remains safe to rerun after a partial execution.
+drop policy if exists "precedent analyses own rows" on legal_precedent_analyses;
+create policy "precedent analyses own rows"
+on legal_precedent_analyses
+for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "precedent analysis items own rows" on legal_precedent_analysis_items;
+create policy "precedent analysis items own rows"
+on legal_precedent_analysis_items
+for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "precedent fact matrix own rows" on legal_precedent_fact_matrix;
+create policy "precedent fact matrix own rows"
+on legal_precedent_fact_matrix
+for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "precedent evidence matrix own rows" on legal_precedent_evidence_matrix;
+create policy "precedent evidence matrix own rows"
+on legal_precedent_evidence_matrix
+for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "precedent monitors own rows" on legal_precedent_monitors;
+create policy "precedent monitors own rows"
+on legal_precedent_monitors
+for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "precedent events own rows" on legal_precedent_events;
+create policy "precedent events own rows"
+on legal_precedent_events
+for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "case precedent impacts own rows" on legal_case_precedent_impacts;
+create policy "case precedent impacts own rows"
+on legal_case_precedent_impacts
+for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
 
 create index if not exists idx_precedent_analyses_user on legal_precedent_analyses(user_id, created_at desc);
 create index if not exists idx_precedent_analysis_items_analysis on legal_precedent_analysis_items(analysis_id);

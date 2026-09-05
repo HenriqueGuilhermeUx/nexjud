@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Activity, BellRing, BrainCircuit, FileCheck2, Landmark, Radar, Scale, ShieldAlert, Sparkles } from "lucide-react"
+import { useSearchParams } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
+import { getLegalCases } from "@/services/aiWorkspaceService"
 import { searchPrecedents } from "@/services/precedentsService"
 import { runPrecedentIntelligenceAi } from "@/services/precedentIntelligenceService"
 
@@ -16,6 +18,9 @@ const steps = [
 
 export default function PrecedentIntelligence() {
   const { user } = useAuth()
+  const [params] = useSearchParams()
+  const caseId = params.get("caseId") || null
+  const [linkedCase, setLinkedCase] = useState<any>(null)
   const [caseFacts, setCaseFacts] = useState("")
   const [legalIssue, setLegalIssue] = useState("")
   const [query, setQuery] = useState("")
@@ -24,6 +29,34 @@ export default function PrecedentIntelligence() {
   const [loading, setLoading] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [output, setOutput] = useState<any>(null)
+
+  useEffect(() => {
+    async function loadLinkedCase() {
+      if (!user?.id || !caseId) return
+      try {
+        const cases = await getLegalCases(user.id)
+        const item = cases.find((c: any) => c.id === caseId)
+        if (!item) return
+        setLinkedCase(item)
+        if (!caseFacts.trim()) {
+          const facts = [
+            item.summary,
+            item.client_name ? `Cliente: ${item.client_name}.` : "",
+            item.opponent_name ? `Parte adversa: ${item.opponent_name}.` : "",
+            item.process_number ? `Processo: ${item.process_number}.` : "",
+            item.court ? `Tribunal/Vara: ${item.court}.` : "",
+          ].filter(Boolean).join("\n")
+          setCaseFacts(facts)
+        }
+        if (!legalIssue.trim() && Array.isArray(item.tags) && item.tags.length) {
+          setLegalIssue(`Analisar as questões jurídicas centrais relacionadas a: ${item.tags.join(", ")}.`)
+        }
+      } catch (e) {
+        console.error("Falha ao carregar caso vinculado", e)
+      }
+    }
+    loadLinkedCase()
+  }, [user, caseId])
 
   async function search() {
     if (!user?.id) return
@@ -48,7 +81,7 @@ export default function PrecedentIntelligence() {
     }
     setAiLoading(true)
     try {
-      const data = await runPrecedentIntelligenceAi({ userId: user.id, caseFacts, legalIssue, precedentIds: selected })
+      const data = await runPrecedentIntelligenceAi({ userId: user.id, caseId, caseFacts, legalIssue, precedentIds: selected })
       setOutput(data)
     } catch (e: any) {
       alert(e?.message || "Erro ao executar Precedent Intelligence")
@@ -72,7 +105,7 @@ export default function PrecedentIntelligence() {
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-7">
         <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-indigo-500/10 to-[#05050a] p-8">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="flex gap-4"><BrainCircuit className="text-primary mt-1" size={46} /><div><p className="text-xs uppercase tracking-[.25em] text-primary font-bold">NexJud Legal Intelligence</p><h1 className="text-4xl font-bold mt-1">Precedent Intelligence™</h1><p className="text-muted-foreground mt-2 max-w-3xl">Teste a aplicação do precedente contra fatos, provas, distinções e risco processual.</p></div></div>
+            <div className="flex gap-4"><BrainCircuit className="text-primary mt-1" size={46} /><div><p className="text-xs uppercase tracking-[.25em] text-primary font-bold">NexJud Legal Intelligence</p><h1 className="text-4xl font-bold mt-1">Precedent Intelligence™</h1><p className="text-muted-foreground mt-2 max-w-3xl">Teste a aplicação do precedente contra fatos, provas, distinções e risco processual.</p>{linkedCase && <p className="text-sm text-primary mt-3 font-bold">Vinculado ao caso: {linkedCase.title}</p>}</div></div>
             <div className="rounded-2xl border border-border bg-black/30 px-6 py-4 min-w-44"><p className="text-xs text-muted-foreground">Prontidão da análise</p><p className="text-3xl font-black text-primary">{readiness}%</p></div>
           </div>
         </section>
@@ -92,6 +125,7 @@ export default function PrecedentIntelligence() {
         </section>
 
         {result && <>
+          {caseId && <section className="rounded-2xl border border-primary/30 bg-primary/5 p-5"><p className="font-bold text-primary">Resultado conectado ao Dossiê Vivo</p><p className="text-sm text-muted-foreground mt-1">Esta análise foi executada com o ID do caso. Na próxima atualização do Dossiê Vivo, o Precedent Agent poderá consumir a análise persistida deste processo.</p></section>}
           <section className="grid md:grid-cols-4 gap-4">
             <Metric label="Aderência" value={`${result.adherence_score ?? 0}%`} />
             <Metric label="Aplicabilidade" value={result.applicability || "unknown"} />

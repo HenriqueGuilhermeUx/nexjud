@@ -7,6 +7,7 @@ export async function saveDraft({
   caseText,
   focus,
   result,
+  caseId,
 }: {
   userId: string
   title: string
@@ -14,11 +15,13 @@ export async function saveDraft({
   caseText: string
   focus: string
   result: any
+  caseId?: string | null
 }) {
   const { data, error } = await supabase
     .from("drafts")
     .insert({
       user_id: userId,
+      case_id: caseId || null,
       title,
       draft_type: draftType,
       case_text: caseText,

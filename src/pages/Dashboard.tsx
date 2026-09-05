@@ -58,6 +58,7 @@ export default function Dashboard() {
   const [analysisOpen, setAnalysisOpen] = useState(true)
 const [productionOpen, setProductionOpen] = useState(false)
 const [managementOpen, setManagementOpen] = useState(false)
+const [morningBriefUnread, setMorningBriefUnread] = useState(false)
   const { user, signOut } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -120,8 +121,24 @@ const isHistoryActive =
   const isKnowledgeBaseActive = location.pathname.includes("knowledge-base")
 const isLegalMemoryActive = location.pathname.includes("legal-memory")
 const isLegalCasesActive = location.pathname.includes("legal-cases")
+const isOfficeIntelligenceActive = location.pathname.includes("office-intelligence")
   const isJurisprudenceLibraryActive =
   location.pathname.includes("jurisprudence-library")
+
+  useEffect(() => {
+    async function checkMorningBriefUnread() {
+      if (!user?.id) return
+      const today = new Date().toLocaleDateString("en-CA")
+      const { data } = await supabase
+        .from("legal_morning_briefs")
+        .select("id, read_at")
+        .eq("user_id", user.id)
+        .eq("brief_date", today)
+        .maybeSingle()
+      setMorningBriefUnread(Boolean(data && !data.read_at))
+    }
+    checkMorningBriefUnread()
+  }, [user, location.pathname])
 
   useEffect(() => {
   async function checkUserSubscription() {
@@ -208,7 +225,7 @@ const isLegalCasesActive = location.pathname.includes("legal-cases")
     }
   }
 
-  const NavItem = ({ to, icon: Icon, label, description, active }: any) => (
+  const NavItem = ({ to, icon: Icon, label, description, active, badge }: any) => (
   <Link
     to={to}
     className={`flex items-start gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
@@ -219,8 +236,11 @@ const isLegalCasesActive = location.pathname.includes("legal-cases")
     onClick={() => setSidebarOpen(false)}
   >
     <Icon className="w-5 h-5 mt-0.5 shrink-0" />
-    <div className="min-w-0">
-      <span className="font-medium block leading-tight">{label}</span>
+    <div className="min-w-0 flex-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium block leading-tight">{label}</span>
+        {badge && <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-black">{badge}</span>}
+      </div>
       {description && (
         <span className="text-[11px] text-muted-foreground leading-snug block mt-1">
           {description}
@@ -447,6 +467,15 @@ description="Prepare relatórios para clientes, sócios e reuniões."
   open={managementOpen}
   onClick={() => setManagementOpen((v) => !v)}
 >
+  <NavItem
+    to="/dashboard/office-intelligence"
+    icon={Sparkles}
+    label="Office Intelligence"
+    description="Morning Brief, riscos, prioridades e memória do escritório."
+    active={isOfficeIntelligenceActive}
+    badge={morningBriefUnread ? "NOVO" : undefined}
+  />
+
   <NavItem
     to="/dashboard/legal-cases"
     icon={Database}

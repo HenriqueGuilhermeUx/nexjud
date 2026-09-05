@@ -6,6 +6,7 @@ import {
   Copy,
   AlertTriangle,
   CheckCircle,
+  Link2,
 } from "lucide-react"
 import { generateDraft } from "@/services/draftGeneratorService"
 import { useAuth } from "@/context/AuthContext"
@@ -20,19 +21,30 @@ export default function DraftGenerator() {
   const [draftType, setDraftType] = useState("peticao_inicial")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
+  const [linkedCaseId, setLinkedCaseId] = useState<string | null>(null)
+  const [contextSource, setContextSource] = useState<string | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem("nexjud_draft_context")
 
     if (saved) {
-      const parsed = JSON.parse(saved)
-      setCaseText(parsed.caseText || "")
-      setFocus(parsed.focus || "")
-      localStorage.removeItem("nexjud_draft_context")
+      try {
+        const parsed = JSON.parse(saved)
+        setCaseText(parsed.caseText || "")
+        setFocus(parsed.focus || "")
+        setLinkedCaseId(parsed.caseId || null)
+        setContextSource(parsed.source || null)
+      } catch (error) {
+        console.warn("Contexto de minuta inválido", error)
+      } finally {
+        localStorage.removeItem("nexjud_draft_context")
+      }
     }
   }, [])
 
   function loadExample() {
+    setLinkedCaseId(null)
+    setContextSource(null)
     setCaseText(
       "Ação trabalhista. Reclamante pede reconhecimento de vínculo empregatício e horas extras. Há mensagens de WhatsApp com ordens diárias, comprovantes de pagamento recorrente, testemunhas e registros de entrada. A empresa alega autonomia, ausência de exclusividade e prestação eventual."
     )
@@ -67,6 +79,7 @@ export default function DraftGenerator() {
           caseText,
           focus,
           result: data,
+          caseId: linkedCaseId,
         })
       }
     } catch (error) {
@@ -137,40 +150,22 @@ ${result.finalNote || "-"}
               <p className="text-gray-400 mt-1">
                 Gere o esqueleto estratégico de peças focadas nos pontos fracos identificados pelo Red Team.
               </p>
+              {linkedCaseId && (
+                <div className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-bold">
+                  <Link2 size={14} />
+                  Contexto estratégico vinculado ao Dossiê Vivo{contextSource === "live-dossier" ? "" : " do caso"}
+                </div>
+              )}
             </div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-4 mt-6">
-            <SelectCard
-              active={draftType === "peticao_inicial"}
-              label="Petição Inicial"
-              onClick={() => setDraftType("peticao_inicial")}
-            />
-            <SelectCard
-              active={draftType === "contestacao"}
-              label="Contestação"
-              onClick={() => setDraftType("contestacao")}
-            />
-            <SelectCard
-              active={draftType === "recurso"}
-              label="Recurso"
-              onClick={() => setDraftType("recurso")}
-            />
-            <SelectCard
-              active={draftType === "impugnacao"}
-              label="Impugnação"
-              onClick={() => setDraftType("impugnacao")}
-            />
-            <SelectCard
-              active={draftType === "memoriais"}
-              label="Memoriais"
-              onClick={() => setDraftType("memoriais")}
-            />
-            <SelectCard
-              active={draftType === "sustentacao_oral"}
-              label="Sustentação Oral"
-              onClick={() => setDraftType("sustentacao_oral")}
-            />
+            <SelectCard active={draftType === "peticao_inicial"} label="Petição Inicial" onClick={() => setDraftType("peticao_inicial")} />
+            <SelectCard active={draftType === "contestacao"} label="Contestação" onClick={() => setDraftType("contestacao")} />
+            <SelectCard active={draftType === "recurso"} label="Recurso" onClick={() => setDraftType("recurso")} />
+            <SelectCard active={draftType === "impugnacao"} label="Impugnação" onClick={() => setDraftType("impugnacao")} />
+            <SelectCard active={draftType === "memoriais"} label="Memoriais" onClick={() => setDraftType("memoriais")} />
+            <SelectCard active={draftType === "sustentacao_oral"} label="Sustentação Oral" onClick={() => setDraftType("sustentacao_oral")} />
           </div>
         </section>
 
@@ -185,9 +180,7 @@ ${result.finalNote || "-"}
               className="w-full h-72 rounded-2xl bg-[#0f0f15] border border-[#2a2a35] p-5 outline-none focus:border-primary"
             />
 
-            <h2 className="font-bold text-xl mt-6 mb-4">
-              Foco estratégico
-            </h2>
+            <h2 className="font-bold text-xl mt-6 mb-4">Foco estratégico</h2>
 
             <textarea
               value={focus}
@@ -202,129 +195,38 @@ ${result.finalNote || "-"}
                 disabled={loading}
                 className="px-6 py-4 rounded-2xl bg-primary text-white font-bold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="animate-spin" size={18} />
-                    GERANDO...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 size={18} />
-                    GERAR MINUTA
-                  </>
-                )}
+                {loading ? <><Loader2 className="animate-spin" size={18} />GERANDO...</> : <><Wand2 size={18} />GERAR MINUTA</>}
               </button>
 
-              <button
-                onClick={loadExample}
-                className="px-6 py-4 rounded-2xl bg-[#171721] border border-[#2a2a35] font-bold hover:bg-[#20202b]"
-              >
-                Usar exemplo
-              </button>
+              <button onClick={loadExample} className="px-6 py-4 rounded-2xl bg-[#171721] border border-[#2a2a35] font-bold hover:bg-[#20202b]">Usar exemplo</button>
             </div>
           </div>
 
           <div className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6">
             <div className="flex items-center justify-between gap-4 mb-4">
-              <h2 className="font-bold text-xl">
-                Resultado
-              </h2>
+              <h2 className="font-bold text-xl">Resultado</h2>
 
               {result && (
                 <div className="flex gap-3">
-                  <button
-                    onClick={copyFullDraft}
-                    className="px-4 py-2 rounded-xl bg-primary text-white font-semibold flex items-center gap-2"
-                  >
-                    <Copy size={16} />
-                    Copiar tudo
-                  </button>
-
-                  <button
-                    onClick={() => generateDraftPdf(result)}
-                    className="px-4 py-2 rounded-xl bg-[#171721] border border-[#2a2a35] font-semibold flex items-center gap-2"
-                  >
-                    <FileText size={16} />
-                    Exportar PDF
-                  </button>
+                  <button onClick={copyFullDraft} className="px-4 py-2 rounded-xl bg-primary text-white font-semibold flex items-center gap-2"><Copy size={16} />Copiar tudo</button>
+                  <button onClick={() => generateDraftPdf(result)} className="px-4 py-2 rounded-xl bg-[#171721] border border-[#2a2a35] font-semibold flex items-center gap-2"><FileText size={16} />Exportar PDF</button>
                 </div>
               )}
             </div>
 
             {!result ? (
-              <p className="text-gray-500">
-                A minuta aparecerá aqui após a geração.
-              </p>
+              <p className="text-gray-500">A minuta aparecerá aqui após a geração.</p>
             ) : (
               <div className="space-y-6">
-                <div className="rounded-xl bg-primary/10 border border-primary/20 p-5">
-                  <h3 className="font-bold text-2xl mb-2">
-                    {result.title}
-                  </h3>
-
-                  <p className="text-gray-300">
-                    {result.strategicObjective}
-                  </p>
-                </div>
-
-                <ResultBlock title="Tese Central">
-                  <p>{result.mainThesis}</p>
-                </ResultBlock>
-
-                <ResultList
-                  icon={<AlertTriangle className="text-red-400" />}
-                  title="Pontos Fracos a Defender"
-                  items={result.weakPointsToDefend}
-                  prefix="❌"
-                />
-
-                <ResultBlock title="Estrutura da Peça">
-                  <div className="space-y-4">
-                    {(result.structure || []).map((section: any, index: number) => (
-                      <div key={index} className="rounded-xl bg-[#0f0f15] border border-white/5 p-4">
-                        <h4 className="font-bold mb-1">
-                          {index + 1}. {section.section}
-                        </h4>
-                        <p className="text-sm text-gray-400 mb-3">
-                          {section.purpose}
-                        </p>
-                        <p className="text-gray-300 whitespace-pre-line">
-                          {section.content}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </ResultBlock>
-
-                <ResultList
-                  icon={<CheckCircle className="text-green-400" />}
-                  title="Provas a Anexar"
-                  items={result.evidenceToAttach}
-                  prefix="✓"
-                />
-
-                <ResultList
-                  title="Checklist de Argumentos"
-                  items={result.argumentChecklist}
-                  prefix="•"
-                />
-
-                <ResultList
-                  title="Pedidos / Requerimentos"
-                  items={result.closingRequests}
-                  prefix="➜"
-                />
-
-                <ResultList
-                  icon={<AlertTriangle className="text-yellow-400" />}
-                  title="Alertas de Risco"
-                  items={result.riskWarnings}
-                  prefix="⚠️"
-                />
-
-                <ResultBlock title="Nota Final">
-                  <p>{result.finalNote}</p>
-                </ResultBlock>
+                <div className="rounded-xl bg-primary/10 border border-primary/20 p-5"><h3 className="font-bold text-2xl mb-2">{result.title}</h3><p className="text-gray-300">{result.strategicObjective}</p></div>
+                <ResultBlock title="Tese Central"><p>{result.mainThesis}</p></ResultBlock>
+                <ResultList icon={<AlertTriangle className="text-red-400" />} title="Pontos Fracos a Defender" items={result.weakPointsToDefend} prefix="❌" />
+                <ResultBlock title="Estrutura da Peça"><div className="space-y-4">{(result.structure || []).map((section: any, index: number) => (<div key={index} className="rounded-xl bg-[#0f0f15] border border-white/5 p-4"><h4 className="font-bold mb-1">{index + 1}. {section.section}</h4><p className="text-sm text-gray-400 mb-3">{section.purpose}</p><p className="text-gray-300 whitespace-pre-line">{section.content}</p></div>))}</div></ResultBlock>
+                <ResultList icon={<CheckCircle className="text-green-400" />} title="Provas a Anexar" items={result.evidenceToAttach} prefix="✓" />
+                <ResultList title="Checklist de Argumentos" items={result.argumentChecklist} prefix="•" />
+                <ResultList title="Pedidos / Requerimentos" items={result.closingRequests} prefix="➜" />
+                <ResultList icon={<AlertTriangle className="text-yellow-400" />} title="Alertas de Risco" items={result.riskWarnings} prefix="⚠️" />
+                <ResultBlock title="Nota Final"><p>{result.finalNote}</p></ResultBlock>
               </div>
             )}
           </div>
@@ -335,50 +237,14 @@ ${result.finalNote || "-"}
 }
 
 function SelectCard({ active, label, onClick }: any) {
-  return (
-    <button
-      onClick={onClick}
-      className={`p-4 rounded-2xl border text-left font-semibold transition ${
-        active
-          ? "bg-primary/10 border-primary/40 text-primary"
-          : "bg-[#111118] border-[#2a2a35] text-gray-300 hover:bg-[#171721]"
-      }`}
-    >
-      {label}
-    </button>
-  )
+  return <button onClick={onClick} className={`p-4 rounded-2xl border text-left font-semibold transition ${active ? "bg-primary/10 border-primary/40 text-primary" : "bg-[#111118] border-[#2a2a35] text-gray-300 hover:bg-[#171721]"}`}>{label}</button>
 }
 
 function ResultBlock({ title, children }: any) {
-  return (
-    <div className="rounded-xl border border-[#2a2a35] bg-[#0f0f15] p-5">
-      <h3 className="font-bold text-lg mb-3">{title}</h3>
-      <div className="text-gray-300 whitespace-pre-line">{children}</div>
-    </div>
-  )
+  return <div className="rounded-xl border border-[#2a2a35] bg-[#0f0f15] p-5"><h3 className="font-bold text-lg mb-3">{title}</h3><div className="text-gray-300 whitespace-pre-line">{children}</div></div>
 }
 
 function ResultList({ icon, title, items, prefix }: any) {
   const list = Array.isArray(items) ? items : []
-
-  return (
-    <div className="rounded-xl border border-[#2a2a35] bg-[#0f0f15] p-5">
-      <div className="flex items-center gap-2 mb-3">
-        {icon}
-        <h3 className="font-bold text-lg">{title}</h3>
-      </div>
-
-      {list.length === 0 ? (
-        <p className="text-gray-500">Sem itens.</p>
-      ) : (
-        <ul className="space-y-2 text-gray-300">
-          {list.map((item: string, index: number) => (
-            <li key={index}>
-              {prefix} {item}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
+  return <div className="rounded-xl border border-[#2a2a35] bg-[#0f0f15] p-5"><div className="flex items-center gap-2 mb-3">{icon}<h3 className="font-bold text-lg">{title}</h3></div>{list.length === 0 ? <p className="text-gray-500">Sem itens.</p> : <ul className="space-y-2 text-gray-300">{list.map((item: string, index: number) => <li key={index}>{prefix} {item}</li>)}</ul>}</div>
 }

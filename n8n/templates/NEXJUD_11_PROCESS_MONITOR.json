@@ -1,0 +1,144 @@
+{
+  "name": "NEXJUD_11_PROCESS_MONITOR",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "schedule-process-monitor",
+      "name": "Every 2 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-520, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL + '/functions/v1/process-monitor-cron'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-nexjud-secret",
+              "value": "={{$env.NEXJUD_AUTOMATION_SECRET}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\"limit\":60}",
+        "options": {
+          "timeout": 240000
+        }
+      },
+      "id": "call-process-monitor",
+      "name": "Run Process Monitor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-260, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-errors",
+              "leftValue": "={{Array.isArray($json.errors) ? $json.errors.length : ($json.ok === false ? 1 : 0)}}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-errors",
+      "name": "Has Errors?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.NEXJUD_NOTIFICATION_ROUTER_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-nexjud-secret",
+              "value": "={{$env.NEXJUD_AUTOMATION_SECRET}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({type:'automation_error',priority:'high',title:'Falha no monitoramento processual',message:'O monitor automático encontrou '+(Array.isArray($json.errors)?$json.errors.length:1)+' erro(s).',metadata:{workflow:'NEXJUD_11_PROCESS_MONITOR',summary:$json}})}}"
+      },
+      "id": "route-errors",
+      "name": "Route Monitor Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, -120]
+    },
+    {
+      "parameters": {},
+      "id": "success-noop",
+      "name": "Monitor OK",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [260, 120]
+    }
+  ],
+  "connections": {
+    "Every 2 Hours": {
+      "main": [[{"node":"Run Process Monitor","type":"main","index":0}]]
+    },
+    "Run Process Monitor": {
+      "main": [[{"node":"Has Errors?","type":"main","index":0}]]
+    },
+    "Has Errors?": {
+      "main": [
+        [{"node":"Route Monitor Error","type":"main","index":0}],
+        [{"node":"Monitor OK","type":"main","index":0}]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "America/Sao_Paulo",
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "nexjud-11-process-monitor-v1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

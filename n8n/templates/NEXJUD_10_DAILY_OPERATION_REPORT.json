@@ -1,0 +1,152 @@
+{
+  "name": "NEXJUD_10_DAILY_OPERATION_REPORT",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 7 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Dias úteis 07:30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [180, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.SUPABASE_URL + '/rest/v1/profiles?select=id,email,full_name&subscription_status=eq.active'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "={{'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY}}"}
+          ]
+        },
+        "options": {"timeout": 20000}
+      },
+      "id": "users",
+      "name": "Buscar usuários ativos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "",
+        "options": {}
+      },
+      "id": "split",
+      "name": "Um usuário por vez",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL + '/functions/v1/office-intelligence-ai'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "={{'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({userId: $json.id, question: 'Produza o Morning Brief executivo de hoje. Priorize casos críticos, riscos, lacunas probatórias, impactos de precedentes e próximos movimentos recomendados. Não invente fatos ou precedentes.'})}}",
+        "options": {"timeout": 60000}
+      },
+      "id": "ai",
+      "name": "Gerar Morning Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const brief = $json;\nconst user = $('Um usuário por vez').item.json;\nconst today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });\nreturn [{json:{user_id:user.id,brief_date:today,executive_summary:brief.executive_summary||brief.answer||'Morning Brief pronto.',payload:brief,status:'ready',read_at:null}}];"
+      },
+      "id": "normalize",
+      "name": "Normalizar briefing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL + '/rest/v1/legal_morning_briefs?on_conflict=user_id,brief_date'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Authorization", "value": "={{'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY}}"},
+            {"name": "Content-Type", "value": "application/json"},
+            {"name": "Prefer", "value": "resolution=merge-duplicates,return=representation"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify($json)}}",
+        "options": {"timeout": 20000}
+      },
+      "id": "save",
+      "name": "Salvar Morning Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.NEXJUD_NOTIFICATION_ROUTER_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "x-nexjud-secret", "value": "={{$env.NEXJUD_AUTOMATION_SECRET}}"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{JSON.stringify({user_id: $('Normalizar briefing').item.json.user_id,type:'morning_brief',priority:'normal',title:'Seu Morning Brief está pronto',message:$('Normalizar briefing').item.json.executive_summary,action_url:'/dashboard/office-intelligence',metadata:{brief_date:$('Normalizar briefing').item.json.brief_date}})}}",
+        "options": {"timeout": 15000}
+      },
+      "id": "notify",
+      "name": "Criar notificação",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1620, 300]
+    }
+  ],
+  "connections": {
+    "Dias úteis 07:30": {"main": [[{"node": "Buscar usuários ativos", "type": "main", "index": 0}]]},
+    "Buscar usuários ativos": {"main": [[{"node": "Um usuário por vez", "type": "main", "index": 0}]]},
+    "Um usuário por vez": {"main": [[{"node": "Gerar Morning Brief", "type": "main", "index": 0}]]},
+    "Gerar Morning Brief": {"main": [[{"node": "Normalizar briefing", "type": "main", "index": 0}]]},
+    "Normalizar briefing": {"main": [[{"node": "Salvar Morning Brief", "type": "main", "index": 0}]]},
+    "Salvar Morning Brief": {"main": [[{"node": "Criar notificação", "type": "main", "index": 0}]]}
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none"
+  },
+  "active": false,
+  "versionId": "nexjud-daily-operation-report-v1",
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}

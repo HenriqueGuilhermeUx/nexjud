@@ -19,8 +19,20 @@ export async function runLiveDossier({ userId, caseId }: { userId: string; caseI
   return data
 }
 
-export async function saveCaseOutcome(payload: { user_id: string; case_id: string; recommendation?: string; lawyer_decision?: string; action_taken?: string; outcome?: string; outcome_type?: string }) {
+export async function saveCaseOutcome(payload: { user_id: string; case_id: string; recommendation?: string; lawyer_decision?: string; action_taken?: string; outcome?: string; outcome_type?: string; result_score?: number; result_status?: string; learned_lesson?: string; source?: string }) {
   const { data, error } = await supabase.from("legal_case_outcomes").insert(payload).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function getCaseOutcomes(userId: string, caseId: string) {
+  const { data, error } = await supabase.from("legal_case_outcomes").select("*").eq("user_id", userId).eq("case_id", caseId).order("created_at", { ascending: false }).limit(50)
+  if (error) throw error
+  return data || []
+}
+
+export async function getCaseOutcomeMetrics(userId: string, caseId: string) {
+  const { data, error } = await supabase.from("legal_case_outcome_metrics").select("*").eq("user_id", userId).eq("case_id", caseId).maybeSingle()
   if (error) throw error
   return data
 }

@@ -1,0 +1,34 @@
+name: Repair Home Dashboard Morning Brief
+on:
+  push:
+    paths:
+      - '.github/workflows/repair-home-morning-brief.yml'
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore HomeDashboard and add Morning Brief
+        run: |
+          git checkout a8a8b380bf7b5273704374b4ac98f32f9acb3b07 -- src/pages/HomeDashboard.tsx
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/pages/HomeDashboard.tsx')
+          s=p.read_text()
+          marker='import DashboardMetrics from "@/components/dashboard/DashboardMetrics"'
+          s=s.replace(marker, marker+'\nimport MorningBriefCard from "@/components/dashboard/MorningBriefCard"',1)
+          marker2='        <DashboardTrialHeader />'
+          s=s.replace(marker2, marker2+'\n\n        <MorningBriefCard />',1)
+          p.write_text(s)
+          PY
+      - name: Commit repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/HomeDashboard.tsx
+          git commit -m "fix: restore dashboard and add Morning Brief card"
+          git push

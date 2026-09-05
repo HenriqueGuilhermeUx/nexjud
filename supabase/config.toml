@@ -67,6 +67,12 @@ enabled = true
 policy = "oneshot"
 inspect = true
 
+# Server-to-server cron endpoint. Authentication is enforced inside the
+# function with the NEXJUD_AUTOMATION_SECRET header, so n8n never needs the
+# Supabase service role key.
+[functions.process-monitor-cron]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

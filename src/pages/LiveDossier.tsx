@@ -1,94 +1,38 @@
 import { useEffect, useState } from "react"
-import { BrainCircuit, Briefcase, FileSearch, Landmark, RefreshCw, ShieldAlert, Target, Zap, Wand2, CheckCircle2 } from "lucide-react"
+import { BrainCircuit, Briefcase, FileSearch, Landmark, RefreshCw, ShieldAlert, Target, Zap, Wand2, CheckCircle2, TrendingUp, Clock3 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import { getLegalCases } from "@/services/aiWorkspaceService"
-import { getAgentRuns, getLiveDossier, runLiveDossier, saveCaseOutcome } from "@/services/liveDossierService"
+import { getAgentRuns, getLiveDossier, runLiveDossier, saveCaseOutcome, getCaseOutcomes, getCaseOutcomeMetrics } from "@/services/liveDossierService"
 
 export default function LiveDossier() {
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const [cases,setCases]=useState<any[]>([])
-  const [caseId,setCaseId]=useState("")
-  const [dossier,setDossier]=useState<any>(null)
-  const [runs,setRuns]=useState<any[]>([])
-  const [loading,setLoading]=useState(false)
-  const [savingOutcome,setSavingOutcome]=useState(false)
-  const [lawyerDecision,setLawyerDecision]=useState("")
-
-  useEffect(()=>{ if(user?.id) getLegalCases(user.id).then(x=>{setCases(x); if(x[0]) setCaseId(x[0].id)}) },[user])
-  useEffect(()=>{ if(user?.id&&caseId) Promise.all([getLiveDossier(user.id,caseId),getAgentRuns(user.id,caseId)]).then(([d,r])=>{setDossier(d);setRuns(r)}) },[user,caseId])
-
-  async function analyze(){
-    if(!user?.id||!caseId)return
-    setLoading(true)
-    try{
-      const x=await runLiveDossier({userId:user.id,caseId})
-      setDossier(x.dossier)
-      setRuns(await getAgentRuns(user.id,caseId))
-    }catch(e:any){alert(e?.message||"Erro ao construir Dossiê Vivo")}
-    finally{setLoading(false)}
-  }
-
-  function openPrecedentIntelligence(){
-    if(!caseId)return
-    navigate(`/dashboard/precedent-intelligence?caseId=${encodeURIComponent(caseId)}`)
-  }
-
-  function draftFromStrategy(){
-    if(!dossier)return
-    const actions=(dossier.next_best_actions||[]).map((x:any,i:number)=>`${i+1}. ${x.action}${x.why?` — ${x.why}`:""}`).join("\n")
-    const evidence=(dossier.evidence_map||[]).map((x:any)=>`${x.requirement}: ${x.evidence||"sem prova"}; força ${x.strength||"não classificada"}; lacuna ${x.gap||"não informada"}`).join("\n")
-    const risks=(dossier.risks||[]).map((x:any)=>`${x.level||""}: ${x.risk||x.reason||""}`).join("\n")
-    const caseText=[
-      dossier.executive_summary,
-      `\nFATOS:\n${(dossier.facts||[]).map((x:any)=>`- ${x.fact||String(x)}`).join("\n")}`,
-      `\nQUESTÕES JURÍDICAS:\n${(dossier.legal_issues||[]).map((x:string)=>`- ${x}`).join("\n")}`,
-      `\nPROVAS E LACUNAS:\n${evidence}`,
-      `\nRISCOS:\n${risks}`
-    ].filter(Boolean).join("\n")
-    const focus=[dossier.strategy?.thesis?`Tese consolidada: ${dossier.strategy.thesis}`:"",actions?`Próximas ações recomendadas:\n${actions}`:""].filter(Boolean).join("\n\n")
-    localStorage.setItem("nexjud_draft_context",JSON.stringify({caseText,focus,caseId,source:"live-dossier"}))
-    navigate("/dashboard/draft-generator")
-  }
-
-  async function registerDecision(){
-    if(!user?.id||!caseId||!lawyerDecision.trim()) return
-    setSavingOutcome(true)
-    try{
-      const recommendation=dossier?.next_best_actions?.[0]?.action || dossier?.strategy?.thesis || ""
-      await saveCaseOutcome({user_id:user.id,case_id:caseId,recommendation,lawyer_decision:lawyerDecision.trim(),outcome_type:"lawyer_decision"})
-      setLawyerDecision("")
-      alert("Decisão registrada na memória do caso.")
-    }catch(e:any){alert(e?.message||"Erro ao registrar decisão")}
-    finally{setSavingOutcome(false)}
-  }
-
+  const { user } = useAuth(); const navigate=useNavigate()
+  const [cases,setCases]=useState<any[]>([]),[caseId,setCaseId]=useState(""),[dossier,setDossier]=useState<any>(null),[runs,setRuns]=useState<any[]>([]),[outcomes,setOutcomes]=useState<any[]>([]),[metrics,setMetrics]=useState<any>(null)
+  const [loading,setLoading]=useState(false),[saving,setSaving]=useState(false),[lawyerDecision,setLawyerDecision]=useState(""),[actionTaken,setActionTaken]=useState(""),[resultText,setResultText]=useState(""),[resultStatus,setResultStatus]=useState("pending")
+  useEffect(()=>{if(user?.id)getLegalCases(user.id).then(x=>{setCases(x);if(x[0])setCaseId(x[0].id)})},[user])
+  async function loadCase(){if(!user?.id||!caseId)return;const [d,r,o,m]=await Promise.all([getLiveDossier(user.id,caseId),getAgentRuns(user.id,caseId),getCaseOutcomes(user.id,caseId),getCaseOutcomeMetrics(user.id,caseId)]);setDossier(d);setRuns(r);setOutcomes(o);setMetrics(m)}
+  useEffect(()=>{loadCase()},[user,caseId])
+  async function analyze(){if(!user?.id||!caseId)return;setLoading(true);try{const x=await runLiveDossier({userId:user.id,caseId});setDossier(x.dossier);await loadCase()}catch(e:any){alert(e?.message||"Erro ao construir Dossiê Vivo")}finally{setLoading(false)}}
+  function openPrecedents(){navigate(`/dashboard/precedent-intelligence?caseId=${encodeURIComponent(caseId)}`)}
+  function draftFromStrategy(){if(!dossier)return;const actions=(dossier.next_best_actions||[]).map((x:any,i:number)=>`${i+1}. ${x.action}${x.why?` — ${x.why}`:""}`).join("\n");const evidence=(dossier.evidence_map||[]).map((x:any)=>`${x.requirement}: ${x.evidence||"sem prova"}; força ${x.strength||"não classificada"}; lacuna ${x.gap||"não informada"}`).join("\n");const risks=(dossier.risks||[]).map((x:any)=>`${x.level||""}: ${x.risk||x.reason||""}`).join("\n");const caseText=[dossier.executive_summary,`\nFATOS:\n${(dossier.facts||[]).map((x:any)=>`- ${x.fact||String(x)}`).join("\n")}`,`\nQUESTÕES JURÍDICAS:\n${(dossier.legal_issues||[]).map((x:string)=>`- ${x}`).join("\n")}`,`\nPROVAS E LACUNAS:\n${evidence}`,`\nRISCOS:\n${risks}`].filter(Boolean).join("\n");const focus=[dossier.strategy?.thesis?`Tese consolidada: ${dossier.strategy.thesis}`:"",actions?`Próximas ações recomendadas:\n${actions}`:""].filter(Boolean).join("\n\n");localStorage.setItem("nexjud_draft_context",JSON.stringify({caseText,focus,caseId,source:"live-dossier"}));navigate("/dashboard/draft-generator")}
+  async function register(type:"decision"|"result"){if(!user?.id||!caseId)return;setSaving(true);try{const recommendation=dossier?.next_best_actions?.[0]?.action||dossier?.strategy?.thesis||"";await saveCaseOutcome(type==="decision"?{user_id:user.id,case_id:caseId,recommendation,lawyer_decision:lawyerDecision.trim(),action_taken:actionTaken.trim(),outcome_type:"lawyer_decision",result_status:"pending",source:"live-dossier"}:{user_id:user.id,case_id:caseId,recommendation,action_taken:actionTaken.trim(),outcome:resultText.trim(),outcome_type:"case_result",result_status:resultStatus,source:"live-dossier"});setLawyerDecision("");if(type==="result")setResultText("");await loadCase();alert(type==="decision"?"Decisão registrada na memória do caso.":"Resultado registrado. Outcome Intelligence atualizado.")}catch(e:any){alert(e?.message||"Erro ao registrar") }finally{setSaving(false)}}
   const selected=cases.find(c=>c.id===caseId)
-
   return <div className="min-h-screen bg-background text-foreground"><div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-6">
-    <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-indigo-500/10 to-[#05050a] p-8"><div className="flex flex-col lg:flex-row justify-between gap-5"><div className="flex gap-4"><BrainCircuit className="text-primary" size={46}/><div><p className="text-xs uppercase tracking-[.25em] text-primary font-bold">NexJud Legal Operating System</p><h1 className="text-4xl font-black">Dossiê Vivo 2.0</h1><p className="text-muted-foreground mt-2">Fatos, provas, precedentes, risco e estratégia trabalhando como um único sistema.</p></div></div><div className="min-w-72 space-y-3"><select value={caseId} onChange={e=>setCaseId(e.target.value)} className="w-full rounded-xl bg-[#0f0f15] border border-border p-3">{cases.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</select><button onClick={analyze} disabled={loading||!caseId} className="w-full rounded-xl bg-primary py-3 font-black text-white flex justify-center gap-2"><RefreshCw size={18} className={loading?"animate-spin":""}/>{loading?"Agentes analisando...":"Atualizar inteligência"}</button></div></div></section>
-
-    {!caseId?<Empty text="Cadastre um Caso Jurídico para iniciar o Dossiê Vivo."/>:!dossier?<Empty text={`O caso ${selected?.title||"selecionado"} ainda não possui Dossiê Vivo. Clique em Atualizar inteligência.`}/>:<>
-      <section className="grid md:grid-cols-4 gap-4"><Metric label="Confiança" value={`${dossier.confidence_score||0}%`}/><Metric label="Fatos" value={String(dossier.facts?.length||0)}/><Metric label="Provas/Lacunas" value={String(dossier.evidence_map?.length||0)}/><Metric label="Próximas ações" value={String(dossier.next_best_actions?.length||0)}/></section>
-
-      <section className="grid md:grid-cols-2 gap-3">
-        <button onClick={openPrecedentIntelligence} className="rounded-2xl border border-primary/30 bg-primary/5 p-5 text-left hover:bg-primary/10 transition"><div className="flex gap-3"><Landmark className="text-primary"/><div><p className="font-black">Aprofundar precedentes</p><p className="text-sm text-muted-foreground mt-1">Levar este caso ao Precedent Intelligence com contexto e vínculo do processo.</p></div></div></button>
-        <button onClick={draftFromStrategy} className="rounded-2xl border border-primary/30 bg-primary/5 p-5 text-left hover:bg-primary/10 transition"><div className="flex gap-3"><Wand2 className="text-primary"/><div><p className="font-black">Gerar peça a partir da estratégia</p><p className="text-sm text-muted-foreground mt-1">Enviar fatos, provas, riscos e tese consolidada diretamente ao Gerador de Minutas.</p></div></div></button>
-      </section>
-
+    <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-indigo-500/10 to-[#05050a] p-8"><div className="flex flex-col lg:flex-row justify-between gap-5"><div className="flex gap-4"><BrainCircuit className="text-primary" size={46}/><div><p className="text-xs uppercase tracking-[.25em] text-primary font-bold">NexJud Legal Operating System</p><h1 className="text-4xl font-black">Command Center do Caso</h1><p className="text-muted-foreground mt-2">Dossiê Vivo 2.0 · fatos, provas, precedentes, estratégia, execução e resultado.</p></div></div><div className="min-w-72 space-y-3"><select value={caseId} onChange={e=>setCaseId(e.target.value)} className="w-full rounded-xl bg-[#0f0f15] border border-border p-3">{cases.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</select><button onClick={analyze} disabled={loading||!caseId} className="w-full rounded-xl bg-primary py-3 font-black text-white flex justify-center gap-2"><RefreshCw size={18} className={loading?"animate-spin":""}/>{loading?"Agentes analisando...":"Atualizar inteligência"}</button></div></div></section>
+    {!caseId?<Empty text="Cadastre um Caso Jurídico para iniciar."/>:!dossier?<Empty text={`O caso ${selected?.title||"selecionado"} ainda não possui Dossiê Vivo. Clique em Atualizar inteligência.`}/>:<>
+      <section className="grid md:grid-cols-4 gap-4"><Metric label="Confiança da análise" value={`${dossier.confidence_score||0}%`}/><Metric label="Lacunas probatórias" value={String((dossier.evidence_map||[]).filter((x:any)=>x.gap).length)}/><Metric label="Decisões registradas" value={String(metrics?.decisions_count||0)}/><Metric label="Resultados registrados" value={String(metrics?.outcomes_count||0)}/></section>
+      <section className="grid md:grid-cols-2 gap-3"><Action onClick={openPrecedents} icon={<Landmark/>} title="Aprofundar precedentes" text="Analisar aderência, distinguishing e impacto no caso."/><Action onClick={draftFromStrategy} icon={<Wand2/>} title="Gerar peça da estratégia" text="Transformar fatos, provas, riscos e tese em minuta contextual."/></section>
       <Panel title="Síntese executiva" icon={<Briefcase/>}><p className="text-gray-300 whitespace-pre-line">{dossier.executive_summary||"Sem síntese."}</p></Panel>
-      <section className="grid lg:grid-cols-2 gap-6"><Panel title="Case Analyst" icon={<FileSearch/>}><List items={dossier.facts} render={(x:any)=>x.fact||String(x)}/></Panel><Panel title="Evidence Analyst" icon={<ShieldAlert/>}><List items={dossier.evidence_map} render={(x:any)=>`${x.requirement}: ${x.evidence||"sem prova"} · força ${x.strength||"?"} · ${x.gap||"sem lacuna informada"}`}/></Panel><Panel title="Precedent Analyst" icon={<Landmark/>}><List items={dossier.precedent_map} render={(x:any)=>`${x.precedent}: ${x.applicability||"-"}${x.distinguishing?` · distinguishing: ${x.distinguishing}`:""}`}/></Panel><Panel title="Strategy Analyst" icon={<Target/>}><p className="text-gray-300">{dossier.strategy?.thesis||"Estratégia ainda não consolidada."}</p><div className="mt-4"><List items={dossier.risks} render={(x:any)=>`${x.level||""} — ${x.risk||x.reason||String(x)}`}/></div></Panel></section>
-      <Panel title="Next Best Legal Action" icon={<Zap/>}><div className="space-y-3">{(dossier.next_best_actions||[]).map((x:any,i:number)=><div key={i} className="rounded-xl border border-primary/20 bg-primary/5 p-4"><div className="flex gap-3"><span className="text-primary font-black">#{x.priority||i+1}</span><div><p className="font-bold">{x.action}</p><p className="text-sm text-muted-foreground mt-1">{x.why}</p>{x.depends_on&&<p className="text-xs text-gray-500 mt-2">Depende de: {x.depends_on}</p>}</div></div></div>)}</div></Panel>
-
-      <Panel title="Decisão do advogado" icon={<CheckCircle2/>}><p className="text-sm text-muted-foreground mb-3">Registre o que foi decidido. Isso cria a base do Outcome Intelligence: recomendação → decisão humana → ação → resultado.</p><div className="flex flex-col md:flex-row gap-3"><textarea value={lawyerDecision} onChange={e=>setLawyerDecision(e.target.value)} placeholder="Ex.: seguir a ação #1, produzir prova documental e adiar o protocolo da peça..." className="flex-1 min-h-24 rounded-xl bg-[#0f0f15] border border-border p-4"/><button onClick={registerDecision} disabled={savingOutcome||!lawyerDecision.trim()} className="md:w-52 rounded-xl bg-primary px-5 py-3 font-black text-white disabled:opacity-50">{savingOutcome?"Registrando...":"Registrar decisão"}</button></div></Panel>
-
-      <section className="grid md:grid-cols-4 gap-3">{["case","evidence","precedent","strategy"].map(a=><div key={a} className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-primary uppercase font-black">Agent Layer</p><p className="font-bold capitalize mt-1">{a} Agent</p><p className="text-xs text-muted-foreground mt-2">{runs.some(r=>r.agent_type===a)?"Última execução registrada":"Aguardando execução"}</p></div>)}</section>
+      <section className="grid lg:grid-cols-2 gap-6"><Panel title="Case Agent" icon={<FileSearch/>}><List items={dossier.facts} render={(x:any)=>x.fact||String(x)}/></Panel><Panel title="Evidence Intelligence" icon={<ShieldAlert/>}><List items={dossier.evidence_map} render={(x:any)=>`${x.requirement}: ${x.evidence||"sem prova"} · força ${x.strength||"?"} · lacuna: ${x.gap||"não"}`}/></Panel><Panel title="Precedent Agent" icon={<Landmark/>}><List items={dossier.precedent_map} render={(x:any)=>`${x.precedent}: ${x.applicability||"-"}${x.distinguishing?` · distinguishing: ${x.distinguishing}`:""}`}/></Panel><Panel title="Strategy Agent" icon={<Target/>}><p className="text-gray-300">{dossier.strategy?.thesis||"Estratégia ainda não consolidada."}</p><div className="mt-4"><List items={dossier.risks} render={(x:any)=>`${x.level||""} — ${x.risk||x.reason||String(x)}`}/></div></Panel></section>
+      <Panel title="Next Best Legal Action" icon={<Zap/>}><div className="space-y-3">{(dossier.next_best_actions||[]).map((x:any,i:number)=><div key={i} className="rounded-xl border border-primary/20 bg-primary/5 p-4"><p className="font-bold"><span className="text-primary mr-2">#{x.priority||i+1}</span>{x.action}</p><p className="text-sm text-muted-foreground mt-1">{x.why}</p>{x.depends_on&&<p className="text-xs text-gray-500 mt-2">Depende de: {x.depends_on}</p>}</div>)}</div></Panel>
+      <section className="grid lg:grid-cols-2 gap-6"><Panel title="Decisão e execução" icon={<CheckCircle2/>}><div className="space-y-3"><textarea value={lawyerDecision} onChange={e=>setLawyerDecision(e.target.value)} placeholder="Qual decisão o advogado tomou?" className="w-full min-h-24 rounded-xl bg-[#0f0f15] border border-border p-4"/><textarea value={actionTaken} onChange={e=>setActionTaken(e.target.value)} placeholder="Qual ação foi efetivamente executada?" className="w-full min-h-20 rounded-xl bg-[#0f0f15] border border-border p-4"/><button onClick={()=>register("decision")} disabled={saving||!lawyerDecision.trim()} className="w-full rounded-xl bg-primary py-3 font-black text-white disabled:opacity-50">Registrar decisão</button></div></Panel><Panel title="Resultado do movimento" icon={<TrendingUp/>}><div className="space-y-3"><select value={resultStatus} onChange={e=>setResultStatus(e.target.value)} className="w-full rounded-xl bg-[#0f0f15] border border-border p-3"><option value="pending">Pendente</option><option value="favorable">Favorável</option><option value="partial">Parcial</option><option value="adverse">Desfavorável</option></select><textarea value={resultText} onChange={e=>setResultText(e.target.value)} placeholder="O que aconteceu depois da ação? Decisão, acordo, despacho, produção de prova..." className="w-full min-h-28 rounded-xl bg-[#0f0f15] border border-border p-4"/><button onClick={()=>register("result")} disabled={saving||!resultText.trim()} className="w-full rounded-xl border border-primary/40 bg-primary/10 py-3 font-black text-primary disabled:opacity-50">Registrar resultado</button></div></Panel></section>
+      <Panel title="Outcome Intelligence" icon={<Clock3/>}><p className="text-sm text-muted-foreground mb-4">Memória operacional: recomendação → decisão → ação → resultado. As próximas análises do Dossiê Vivo usam este histórico como contexto.</p><div className="space-y-3">{outcomes.length?outcomes.slice(0,10).map((o:any)=><div key={o.id} className="rounded-xl border border-border bg-black/20 p-4"><div className="flex justify-between gap-3"><b>{o.outcome_type==="case_result"?"Resultado":"Decisão do advogado"}</b><span className="text-xs text-primary">{o.result_status||"registrado"}</span></div>{o.recommendation&&<p className="text-xs text-muted-foreground mt-2">NexJud recomendou: {o.recommendation}</p>}{o.lawyer_decision&&<p className="text-sm mt-2">Decisão: {o.lawyer_decision}</p>}{o.action_taken&&<p className="text-sm mt-1">Ação: {o.action_taken}</p>}{o.outcome&&<p className="text-sm mt-1">Resultado: {o.outcome}</p>}</div>):<span className="text-muted-foreground">Ainda não há decisões/resultados registrados.</span>}</div></Panel>
+      <section className="grid md:grid-cols-4 gap-3">{["case","evidence","precedent","strategy"].map(a=><div key={a} className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-primary uppercase font-black">Agent Layer</p><p className="font-bold capitalize mt-1">{a} Agent</p><p className="text-xs text-muted-foreground mt-2">{runs.some(r=>r.agent_type===a)?"Execução registrada":"Aguardando execução"}</p></div>)}</section>
     </>}
   </div></div>
 }
-
 function Empty({text}:{text:string}){return <div className="rounded-2xl border border-border bg-card p-10 text-center text-muted-foreground">{text}</div>}
 function Metric({label,value}:{label:string,value:string}){return <div className="rounded-2xl border border-primary/20 bg-card p-5"><p className="text-xs text-muted-foreground">{label}</p><p className="text-3xl font-black text-primary mt-1">{value}</p></div>}
+function Action({onClick,icon,title,text}:any){return <button onClick={onClick} className="rounded-2xl border border-primary/30 bg-primary/5 p-5 text-left hover:bg-primary/10 transition"><div className="flex gap-3 text-primary">{icon}<div><p className="font-black text-foreground">{title}</p><p className="text-sm text-muted-foreground mt-1">{text}</p></div></div></button>}
 function Panel({title,icon,children}:{title:string,icon:React.ReactNode,children:React.ReactNode}){return <section className="rounded-2xl border border-border bg-card p-6"><div className="flex gap-2 items-center text-primary mb-4">{icon}<h2 className="text-xl font-bold text-foreground">{title}</h2></div>{children}</section>}
 function List({items=[],render}:{items?:any[],render:(x:any)=>string}){return <div className="space-y-2">{items.length?items.map((x,i)=><div key={i} className="text-sm text-gray-300 flex gap-2"><span className="text-primary">•</span><span>{render(x)}</span></div>):<span className="text-muted-foreground">Nenhum item identificado.</span>}</div>}

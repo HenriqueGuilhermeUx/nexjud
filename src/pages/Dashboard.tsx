@@ -15,6 +15,7 @@ import {
   Database,
   Target,
   Sparkles,
+  Bell,
 ChevronDown,
 ChevronRight,
 } from "lucide-react"
@@ -59,6 +60,7 @@ export default function Dashboard() {
 const [productionOpen, setProductionOpen] = useState(false)
 const [managementOpen, setManagementOpen] = useState(false)
 const [morningBriefUnread, setMorningBriefUnread] = useState(false)
+const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
   const { user, signOut } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -122,8 +124,22 @@ const isHistoryActive =
 const isLegalMemoryActive = location.pathname.includes("legal-memory")
 const isLegalCasesActive = location.pathname.includes("legal-cases")
 const isOfficeIntelligenceActive = location.pathname.includes("office-intelligence")
+const isNotificationsActive = location.pathname.includes("notifications")
   const isJurisprudenceLibraryActive =
   location.pathname.includes("jurisprudence-library")
+
+  useEffect(() => {
+    async function checkNotificationUnread() {
+      if (!user?.id) return
+      const { count } = await supabase
+        .from("automation_notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .is("read_at", null)
+      setNotificationUnreadCount(count || 0)
+    }
+    checkNotificationUnread()
+  }, [user, location.pathname])
 
   useEffect(() => {
     async function checkMorningBriefUnread() {
@@ -474,6 +490,15 @@ description="Prepare relatórios para clientes, sócios e reuniões."
     description="Morning Brief, riscos, prioridades e memória do escritório."
     active={isOfficeIntelligenceActive}
     badge={morningBriefUnread ? "NOVO" : undefined}
+  />
+
+  <NavItem
+    to="/dashboard/notifications"
+    icon={Bell}
+    label="Central de Alertas"
+    description="Movimentações, riscos e ações que exigem atenção."
+    active={isNotificationsActive}
+    badge={notificationUnreadCount > 0 ? String(notificationUnreadCount) : undefined}
   />
 
   <NavItem

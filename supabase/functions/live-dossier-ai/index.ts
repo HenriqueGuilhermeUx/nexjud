@@ -14,19 +14,36 @@ serve(async (req) => {
     const { caseId } = await req.json()
     if (!caseId) throw new Error("caseId obrigatório")
 
-    const [{ data: legalCase }, { data: docs }, { data: chunks }, { data: precedents }] = await Promise.all([
+    const [
+      { data: legalCase },
+      { data: docs },
+      { data: chunks },
+      { data: precedents },
+      { data: drafts },
+      { data: outcomes },
+    ] = await Promise.all([
       supabase.from("legal_cases").select("*").eq("id", caseId).eq("user_id", user.id).single(),
       supabase.from("knowledge_documents").select("id,title,file_name,content,summary,created_at").eq("user_id", user.id).eq("case_id", caseId).limit(30),
       supabase.from("knowledge_chunks").select("content,chunk_number,document_id").eq("user_id", user.id).eq("case_id", caseId).limit(120),
       supabase.from("legal_precedent_analyses").select("*").eq("user_id", user.id).eq("case_id", caseId).order("created_at", { ascending: false }).limit(10),
+      supabase.from("drafts").select("id,title,draft_type,focus,result,created_at").eq("user_id", user.id).eq("case_id", caseId).order("created_at", { ascending: false }).limit(10),
+      supabase.from("legal_case_outcomes").select("recommendation,lawyer_decision,action_taken,outcome,outcome_type,occurred_at,created_at").eq("user_id", user.id).eq("case_id", caseId).order("created_at", { ascending: false }).limit(30),
     ])
     if (!legalCase) throw new Error("Caso não encontrado")
 
-    const context = { legalCase, documents: docs || [], chunks: chunks || [], precedentAnalyses: precedents || [] }
+    const context = {
+      legalCase,
+      documents: docs || [],
+      chunks: chunks || [],
+      precedentAnalyses: precedents || [],
+      priorDrafts: drafts || [],
+      lawyerDecisionsAndOutcomes: outcomes || [],
+    }
+
     const key = Deno.env.get("OPENAI_API_KEY")
     let result: any
     if (key) {
-      const prompt = `Você é o orquestrador do NexJud Legal Operating System. Quatro agentes devem analisar o caso: CASE ANALYST (fatos, partes, questões e cronologia), EVIDENCE ANALYST (requisitos, provas, força e lacunas), PRECEDENT ANALYST (precedentes, aderência e distinguishing; nunca invente precedentes), STRATEGY ANALYST (riscos, teses, movimentos e próxima melhor ação). Trabalhe apenas com o contexto fornecido. Separe fato de inferência. Quando faltar dado, declare a lacuna. Retorne JSON estrito com: executive_summary string, facts array de {fact,source,confidence}, legal_issues array de strings, parties array, timeline array de {date,event,source}, evidence_map array de {requirement,evidence,strength,gap,recommended_action}, precedent_map array de {precedent,applicability,distinguishing,risk}, risks array de {risk,level,reason,mitigation}, strategy objeto {thesis,objective,arguments,defensive_moves,offensive_moves}, next_best_actions array de {priority,action,why,depends_on}, confidence_score inteiro 0-100. CONTEXTO: ${JSON.stringify(context).slice(0,110000)}`
+      const prompt = `Você é o orquestrador do NexJud Legal Operating System. Quatro agentes devem analisar o caso: CASE ANALYST (fatos, partes, questões e cronologia), EVIDENCE ANALYST (requisitos, provas, força e lacunas), PRECEDENT ANALYST (precedentes, aderência e distinguishing; nunca invente precedentes), STRATEGY ANALYST (riscos, teses, movimentos e próxima melhor ação). Trabalhe apenas com o contexto fornecido. Separe fato de inferência. Quando faltar dado, declare a lacuna. Considere também minutas anteriores e decisões humanas registradas, sem tratá-las como fatos do processo quando forem apenas estratégia. Se houver resultado processual registrado, use-o como feedback histórico e explique quando ele muda a estratégia atual. Retorne JSON estrito com: executive_summary string, facts array de {fact,source,confidence}, legal_issues array de strings, parties array, timeline array de {date,event,source}, evidence_map array de {requirement,evidence,strength,gap,recommended_action}, precedent_map array de {precedent,applicability,distinguishing,risk}, risks array de {risk,level,reason,mitigation}, strategy objeto {thesis,objective,arguments,defensive_moves,offensive_moves}, next_best_actions array de {priority,action,why,depends_on}, confidence_score inteiro 0-100. CONTEXTO: ${JSON.stringify(context).slice(0,110000)}`
       const r = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: "gpt-4o-mini", response_format: { type: "json_object" }, temperature: 0.15, messages: [{ role: "system", content: "Você é um sistema de inteligência jurídica brasileiro. Não invente fatos, provas, fontes ou precedentes." }, { role: "user", content: prompt }] }) })
       if (!r.ok) throw new Error(`OpenAI ${r.status}: ${await r.text()}`)
       const ai = await r.json()
@@ -40,7 +57,24 @@ serve(async (req) => {
     if (error) throw error
 
     const agents = ["case", "evidence", "precedent", "strategy"]
-    await supabase.from("legal_agent_runs").insert(agents.map(agent => ({ user_id: user.id, case_id: caseId, dossier_id: dossier.id, agent_type: agent, status: "completed", input_snapshot: { document_count: docs?.length || 0, chunk_count: chunks?.length || 0 }, output: agent === "case" ? { facts: result.facts, legal_issues: result.legal_issues, timeline: result.timeline } : agent === "evidence" ? { evidence_map: result.evidence_map } : agent === "precedent" ? { precedent_map: result.precedent_map } : { strategy: result.strategy, risks: result.risks, next_best_actions: result.next_best_actions }, confidence_score: result.confidence_score || 0, model: key ? "gpt-4o-mini" : "structural-fallback", duration_ms: Date.now() - started })))
+    await supabase.from("legal_agent_runs").insert(agents.map(agent => ({
+      user_id: user.id,
+      case_id: caseId,
+      dossier_id: dossier.id,
+      agent_type: agent,
+      status: "completed",
+      input_snapshot: {
+        document_count: docs?.length || 0,
+        chunk_count: chunks?.length || 0,
+        precedent_analysis_count: precedents?.length || 0,
+        prior_draft_count: drafts?.length || 0,
+        outcome_count: outcomes?.length || 0,
+      },
+      output: agent === "case" ? { facts: result.facts, legal_issues: result.legal_issues, timeline: result.timeline } : agent === "evidence" ? { evidence_map: result.evidence_map } : agent === "precedent" ? { precedent_map: result.precedent_map } : { strategy: result.strategy, risks: result.risks, next_best_actions: result.next_best_actions },
+      confidence_score: result.confidence_score || 0,
+      model: key ? "gpt-4o-mini" : "structural-fallback",
+      duration_ms: Date.now() - started,
+    })))
 
     return new Response(JSON.stringify({ dossier, result }), { headers: { ...cors, "Content-Type": "application/json" } })
   } catch (e) {

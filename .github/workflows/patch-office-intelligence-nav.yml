@@ -1,0 +1,84 @@
+name: Patch Office Intelligence Navigation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-office-intelligence-nav.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch Dashboard and Office Intelligence safely
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          dashboard = Path('src/pages/Dashboard.tsx')
+          s = dashboard.read_text()
+
+          old = 'const [managementOpen, setManagementOpen] = useState(false)'
+          new = old + '\nconst [morningBriefUnread, setMorningBriefUnread] = useState(false)'
+          if old in s and 'morningBriefUnread' not in s:
+              s = s.replace(old, new, 1)
+
+          old = 'const isLegalCasesActive = location.pathname.includes("legal-cases")'
+          new = old + '\nconst isOfficeIntelligenceActive = location.pathname.includes("office-intelligence")'
+          if old in s and 'isOfficeIntelligenceActive' not in s:
+              s = s.replace(old, new, 1)
+
+          marker = '  useEffect(() => {\n  async function checkUserSubscription() {'
+          unread_effect = '''  useEffect(() => {\n    async function checkMorningBriefUnread() {\n      if (!user?.id) return\n      const today = new Date().toLocaleDateString("en-CA")\n      const { data } = await supabase\n        .from("legal_morning_briefs")\n        .select("id, read_at")\n        .eq("user_id", user.id)\n        .eq("brief_date", today)\n        .maybeSingle()\n      setMorningBriefUnread(Boolean(data && !data.read_at))\n    }\n    checkMorningBriefUnread()\n  }, [user, location.pathname])\n\n'''
+          if marker in s and 'checkMorningBriefUnread' not in s:
+              s = s.replace(marker, unread_effect + marker, 1)
+
+          old = 'const NavItem = ({ to, icon: Icon, label, description, active }: any) => ('
+          new = 'const NavItem = ({ to, icon: Icon, label, description, active, badge }: any) => ('
+          if old in s:
+              s = s.replace(old, new, 1)
+
+          old = '''    <div className="min-w-0">\n      <span className="font-medium block leading-tight">{label}</span>'''
+          new = '''    <div className="min-w-0 flex-1">\n      <div className="flex items-center justify-between gap-2">\n        <span className="font-medium block leading-tight">{label}</span>\n        {badge && <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-black">{badge}</span>}\n      </div>'''
+          if old in s and 'badge &&' not in s:
+              s = s.replace(old, new, 1)
+
+          anchor = '''<NavGroup\n  label="Gerenciar"\n  open={managementOpen}\n  onClick={() => setManagementOpen((v) => !v)}\n>'''
+          office_item = '''<NavGroup\n  label="Gerenciar"\n  open={managementOpen}\n  onClick={() => setManagementOpen((v) => !v)}\n>\n  <NavItem\n    to="/dashboard/office-intelligence"\n    icon={Sparkles}\n    label="Office Intelligence"\n    description="Morning Brief, riscos, prioridades e memória do escritório."\n    active={isOfficeIntelligenceActive}\n    badge={morningBriefUnread ? "NOVO" : undefined}\n  />\n'''
+          if anchor in s and 'to="/dashboard/office-intelligence"' not in s:
+              s = s.replace(anchor, office_item, 1)
+
+          dashboard.write_text(s)
+
+          office = Path('src/pages/OfficeIntelligence.tsx')
+          o = office.read_text()
+          old = 'import { askOfficeIntelligence,getOfficeIntelligence } from "@/services/officeIntelligenceService"'
+          new = 'import { askOfficeIntelligence,getOfficeIntelligence,getTodayMorningBrief,markMorningBriefRead } from "@/services/officeIntelligenceService"'
+          if old in o:
+              o = o.replace(old, new, 1)
+
+          old = 'useEffect(()=>{if(!user?.id)return;setLoading(true);getOfficeIntelligence(user.id).then(setData).catch((e)=>alert(e?.message||"Erro ao carregar Office Intelligence")).finally(()=>setLoading(false))},[user])'
+          new = 'useEffect(()=>{if(!user?.id)return;setLoading(true);Promise.all([getOfficeIntelligence(user.id),getTodayMorningBrief(user.id)]).then(async([officeData,today])=>{setData(officeData);if(today?.id&&!today.read_at)await markMorningBriefRead(today.id)}).catch((e)=>alert(e?.message||"Erro ao carregar Office Intelligence")).finally(()=>setLoading(false))},[user])'
+          if old in o:
+              o = o.replace(old, new, 1)
+          office.write_text(o)
+          PY
+      - name: Verify expected patches
+        run: |
+          grep -q 'office-intelligence' src/pages/Dashboard.tsx
+          grep -q 'morningBriefUnread' src/pages/Dashboard.tsx
+          grep -q 'markMorningBriefRead' src/pages/OfficeIntelligence.tsx
+          test $(wc -l < src/pages/Dashboard.tsx) -gt 700
+      - name: Commit patch
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/Dashboard.tsx src/pages/OfficeIntelligence.tsx
+          git commit -m "feat: add unread Morning Brief badge and Office Intelligence nav"
+          git push

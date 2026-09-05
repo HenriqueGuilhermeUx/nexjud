@@ -1,0 +1,88 @@
+name: Patch Notification Center
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-notification-center.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Patch App and Dashboard safely
+        shell: python
+        run: |
+          from pathlib import Path
+
+          app = Path('src/App.tsx')
+          s = app.read_text()
+          imp = 'import OfficeIntelligence from "@/pages/OfficeIntelligence"\n'
+          if 'import NotificationCenter from "@/pages/NotificationCenter"' not in s:
+              assert imp in s
+              s = s.replace(imp, imp + 'import NotificationCenter from "@/pages/NotificationCenter"\n', 1)
+          anchor = '<Route path="office-intelligence" element={<OfficeIntelligence />} />'
+          if 'path="notifications"' not in s:
+              assert anchor in s
+              s = s.replace(anchor, anchor + '<Route path="notifications" element={<NotificationCenter />} />', 1)
+          app.write_text(s)
+
+          dash = Path('src/pages/Dashboard.tsx')
+          d = dash.read_text()
+          assert len(d.splitlines()) > 700, 'Dashboard unexpectedly short; refusing patch'
+
+          if 'Bell,' not in d:
+              anchor = '  Sparkles,\n'
+              assert anchor in d
+              d = d.replace(anchor, anchor + '  Bell,\n', 1)
+
+          state_anchor = 'const [morningBriefUnread, setMorningBriefUnread] = useState(false)\n'
+          if 'notificationUnreadCount' not in d:
+              assert state_anchor in d
+              d = d.replace(state_anchor, state_anchor + 'const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)\n', 1)
+
+          active_anchor = 'const isOfficeIntelligenceActive = location.pathname.includes("office-intelligence")\n'
+          if 'isNotificationsActive' not in d:
+              assert active_anchor in d
+              d = d.replace(active_anchor, active_anchor + 'const isNotificationsActive = location.pathname.includes("notifications")\n', 1)
+
+          effect_anchor = '  useEffect(() => {\n    async function checkMorningBriefUnread() {'
+          if 'checkNotificationUnread' not in d:
+              assert effect_anchor in d
+              notification_effect = '''  useEffect(() => {\n    async function checkNotificationUnread() {\n      if (!user?.id) return\n      const { count } = await supabase\n        .from("automation_notifications")\n        .select("id", { count: "exact", head: true })\n        .eq("user_id", user.id)\n        .is("read_at", null)\n      setNotificationUnreadCount(count || 0)\n    }\n    checkNotificationUnread()\n  }, [user, location.pathname])\n\n'''
+              d = d.replace(effect_anchor, notification_effect + effect_anchor, 1)
+
+          menu_anchor = '''  <NavItem\n    to="/dashboard/office-intelligence"\n    icon={Sparkles}\n    label="Office Intelligence"\n    description="Morning Brief, riscos, prioridades e memória do escritório."\n    active={isOfficeIntelligenceActive}\n    badge={morningBriefUnread ? "NOVO" : undefined}\n  />\n'''
+          if 'to="/dashboard/notifications"' not in d:
+              assert menu_anchor in d
+              notification_item = '''\n  <NavItem\n    to="/dashboard/notifications"\n    icon={Bell}\n    label="Central de Alertas"\n    description="Movimentações, riscos e ações que exigem atenção."\n    active={isNotificationsActive}\n    badge={notificationUnreadCount > 0 ? String(notificationUnreadCount) : undefined}\n  />\n'''
+              d = d.replace(menu_anchor, menu_anchor + notification_item, 1)
+
+          assert 'to="/dashboard/notifications"' in d
+          assert 'notificationUnreadCount' in d
+          assert 'checkNotificationUnread' in d
+          assert len(d.splitlines()) > 700
+          dash.write_text(d)
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.tsx src/pages/Dashboard.tsx
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git commit -m "feat: connect notification center to dashboard"
+          git push

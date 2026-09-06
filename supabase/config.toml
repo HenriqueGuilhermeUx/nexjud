@@ -44,10 +44,9 @@ file_size_limit = "50MiB"
 
 [auth]
 enabled = true
-# Port used by the GoTrue server.
 port = 54321
-site_url = "https://nexjud.com"
-additional_redirect_urls = ["https://nexjud.com"]
+site_url = "https://nexjudsolucoes.com.br"
+additional_redirect_urls = ["https://nexjudsolucoes.com.br", "https://www.nexjudsolucoes.com.br"]
 jwt_expiry = 3600
 enable_signup = true
 

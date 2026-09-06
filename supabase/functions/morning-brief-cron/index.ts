@@ -8,12 +8,14 @@ const cors = {
 }
 
 function todayInSaoPaulo() {
-  return new Intl.DateTimeFormat("en-CA", {
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date())
+  }).formatToParts(new Date())
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]))
+  return `${map.year}-${map.month}-${map.day}`
 }
 
 function eligibleProfile(profile: any) {
@@ -125,16 +127,29 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}))
     const limit = Math.min(Math.max(Number(body.limit || 100), 1), 500)
     const force = body.force === true
+    const testUserId = String(body.test_user_id || "").trim()
     const today = todayInSaoPaulo()
 
-    const { data: profiles, error: profilesError } = await sb
+    let profilesQuery = sb
       .from("profiles")
       .select("id,subscription_status,trial_ends_at,premium_until,onboarding_completed")
-      .eq("onboarding_completed", true)
       .limit(limit)
+
+    if (testUserId) profilesQuery = profilesQuery.eq("id", testUserId)
+    else profilesQuery = profilesQuery.eq("onboarding_completed", true)
+
+    const { data: profiles, error: profilesError } = await profilesQuery
     if (profilesError) throw profilesError
 
-    const eligible = (profiles || []).filter(eligibleProfile)
+    const scanned = profiles || []
+    const eligible = testUserId && force ? scanned : scanned.filter(eligibleProfile)
+
+    const eligibilityBreakdown = scanned.reduce((acc: any, p: any) => {
+      const status = String(p.subscription_status || "empty").toLowerCase() || "empty"
+      acc[status] = (acc[status] || 0) + 1
+      return acc
+    }, {})
+
     let generated = 0
     let skipped = 0
     let notified = 0
@@ -191,10 +206,13 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       ok: errors.length === 0,
       date: today,
+      profiles_scanned: scanned.length,
       eligible_users: eligible.length,
+      eligibility_statuses: eligibilityBreakdown,
       generated,
       skipped,
       notified,
+      test_mode: Boolean(testUserId && force),
       errors,
       duration_ms: Date.now() - started,
     }), { headers: { ...cors, "Content-Type": "application/json" } })

@@ -43,46 +43,28 @@ export async function getOrCreateSubscription(userId: string) {
   if (existingError) throw existingError
   if (existing) return existing as Subscription
 
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .insert({
-      user_id: userId,
-      plan: "trial",
-      status: "trialing",
-      active: true,
-    })
-    .select()
-    .single()
+  // Trial creation is server-controlled so the browser cannot self-assign billing state.
+  const { data, error } = await supabase.functions.invoke("ensure-trial", {
+    body: {},
+  })
 
   if (error) throw error
+  if (data?.error) throw new Error(data.error)
   return data as Subscription
 }
 
 export async function updateSubscriptionPlan(
-  userId: string,
-  plan: PlanType,
-  status: Subscription["status"] = "active"
+  _userId: string,
+  _plan: PlanType,
+  _status: Subscription["status"] = "active"
 ) {
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .upsert({
-      user_id: userId,
-      plan,
-      status,
-      active: status === "active" || status === "trialing",
-      updated_at: new Date().toISOString(),
-    })
-    .select()
-    .single()
-
-  if (error) throw error
-  return data as Subscription
+  throw new Error("Alteração de plano é controlada pelo servidor e pelo webhook de pagamento.")
 }
 
 export function isTrialExpired(subscription?: Subscription | null) {
   if (!subscription) return false
   if (subscription.status !== "trialing") return false
-  if (!subscription.trial_end) return false
+  if (!subscription.trial_end) return true
 
   return new Date(subscription.trial_end).getTime() < Date.now()
 }

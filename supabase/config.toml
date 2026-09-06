@@ -76,6 +76,11 @@ verify_jwt = false
 [functions.morning-brief-cron]
 verify_jwt = false
 
+# External provider callback. Supabase JWT verification must be disabled because
+# Woovi is not a Supabase user; the function verifies the webhook signature itself.
+[functions.woovi-webhook]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

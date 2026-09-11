@@ -48,7 +48,7 @@ export default async (req) => {
   if (!user) return json(401, { ok: false, error: 'unauthorized' });
 
   const serviceKey = env('AV_DOCUMENT_INTELLIGENCE_KEY');
-  const upstreamUrl = env('AV_DOCUMENT_INTELLIGENCE_URL') || 'https://alternativeventures.com.br/api/document-intelligence/extract';
+  const upstreamUrl = env('AV_DOCUMENT_INTELLIGENCE_URL') || 'https://alternativeventures.com.br/api/document-intelligence/intake';
   if (!serviceKey) return json(503, { ok: false, error: 'document_intelligence_not_configured' });
 
   let body;
@@ -66,23 +66,25 @@ export default async (req) => {
       headers: { 'content-type': 'application/json', 'x-av-document-key': serviceKey },
       body: JSON.stringify({
         consumer: 'nexjud',
-        provider: 'internal',
+        intakeProvider: 'auto',
         documentType,
         text,
+        allowExternalProcessing: false,
+        includeText: false,
         file: {
           name: body?.file?.name || 'documento',
           mimeType: body?.file?.mimeType || 'text/plain',
           pages: Number(body?.file?.pages || 1),
         },
       }),
-      signal: AbortSignal.timeout(18_000),
+      signal: AbortSignal.timeout(22_000),
     });
     const payload = await upstream.json().catch(() => null);
-    if (!upstream.ok || !payload) return json(502, { ok: false, error: 'upstream_failed' });
+    if (!upstream.ok || !payload) return json(upstream.status || 502, payload || { ok: false, error: 'upstream_failed' });
     return json(upstream.status, payload);
   } catch (error) {
-    console.error('[NexJud AV Document Intelligence]', error instanceof Error ? error.message : error);
-    return json(502, { ok: false, error: 'document_intelligence_unavailable' });
+    console.error('[NexJud AV Document Intake]', error instanceof Error ? error.message : error);
+    return json(502, { ok: false, error: 'document_intake_unavailable' });
   }
 };
 

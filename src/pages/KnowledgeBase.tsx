@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { BookOpen, FileText, Plus, Search, Trash2, Sparkles } from "lucide-react"
+import { BookOpen, FileText, Plus, Search, Trash2, Sparkles, BrainCircuit } from "lucide-react"
 import * as pdfjsLib from "pdfjs-dist"
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url"
 import mammoth from "mammoth"
@@ -13,8 +13,8 @@ import {
   uploadKnowledgeFile,
   createKnowledgeChunks,
 } from "@/services/aiWorkspaceService"
+import { analyzeKnowledgeDocument, compactIntelligence } from "@/services/avDocumentIntelligenceService"
 import { supabase } from "@/lib/supabase"
-
 
 export default function KnowledgeBase() {
   const { user } = useAuth()
@@ -70,45 +70,46 @@ export default function KnowledgeBase() {
   }
 
   async function extractTextFromFile(file: File) {
-  const extension = file.name.split(".").pop()?.toLowerCase()
+    const extension = file.name.split(".").pop()?.toLowerCase()
 
-  if (extension === "txt") {
-    return await file.text()
-  }
-
-  if (extension === "pdf") {
-    const arrayBuffer = await file.arrayBuffer()
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-
-    let text = ""
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i)
-      const content = await page.getTextContent()
-
-      const pageText = content.items
-        .map((item: any) => item.str || "")
-        .join(" ")
-
-      text += `\n\n--- Página ${i} ---\n${pageText}`
+    if (extension === "txt") {
+      return await file.text()
     }
 
-    return text.trim()
+    if (extension === "pdf") {
+      const arrayBuffer = await file.arrayBuffer()
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+
+      let text = ""
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i)
+        const content = await page.getTextContent()
+
+        const pageText = content.items
+          .map((item: any) => item.str || "")
+          .join(" ")
+
+        text += `\n\n--- Página ${i} ---\n${pageText}`
+      }
+
+      return text.trim()
+    }
+
+    if (extension === "docx") {
+      const arrayBuffer = await file.arrayBuffer()
+      const result = await mammoth.extractRawText({ arrayBuffer })
+      return result.value || ""
+    }
+
+    if (["png", "jpg", "jpeg"].includes(extension || "")) {
+      const result = await Tesseract.recognize(file, "por+eng")
+      return result.data.text || ""
+    }
+
+    return ""
   }
 
-  if (extension === "docx") {
-    const arrayBuffer = await file.arrayBuffer()
-    const result = await mammoth.extractRawText({ arrayBuffer })
-    return result.value || ""
-  }
-
-  if (["png", "jpg", "jpeg"].includes(extension || "")) {
-    const result = await Tesseract.recognize(file, "por+eng")
-    return result.data.text || ""
-  }
-
-  return ""
-}
   async function saveDocument() {
     if (!user?.id) {
       alert("Faça login novamente.")
@@ -149,10 +150,29 @@ export default function KnowledgeBase() {
           ? `Arquivo enviado: ${uploaded.fileName}. Extração automática de PDF/DOCX será processada na próxima etapa.`
           : "")
 
+      let intelligence: any = null
+      if (finalContent.trim().length >= 20) {
+        try {
+          const pageMarkers = finalContent.match(/--- Página \d+ ---/g)?.length || 1
+          intelligence = await analyzeKnowledgeDocument({
+            text: finalContent,
+            documentType,
+            fileName: uploaded?.fileName || selectedFile?.name || finalTitle,
+            mimeType: uploaded?.mimeType || selectedFile?.type || "text/plain",
+            pages: pageMarkers,
+          })
+        } catch (error) {
+          // Document Intelligence is additive: a temporary shared-service issue must not block the Knowledge Base.
+          console.warn("[AV Document Intelligence] documento salvo sem enriquecimento", error)
+        }
+      }
+
+      const compact = compactIntelligence(intelligence)
       const summary =
-        finalContent.length > 500
+        compact?.summary ||
+        (finalContent.length > 500
           ? finalContent.slice(0, 500) + "..."
-          : finalContent
+          : finalContent)
 
       const savedDocument = await createKnowledgeDocument({
         user_id: user.id,
@@ -169,13 +189,16 @@ export default function KnowledgeBase() {
           .map((t) => t.trim())
           .filter(Boolean),
         status: uploaded ? "uploaded" : "processed",
-        metadata: uploaded
-          ? {
-              path: uploaded.path,
-              mimeType: uploaded.mimeType,
-              size: uploaded.size,
-            }
-          : {},
+        metadata: {
+          ...(uploaded
+            ? {
+                path: uploaded.path,
+                mimeType: uploaded.mimeType,
+                size: uploaded.size,
+              }
+            : {}),
+          ...(compact ? { av_document_intelligence: compact } : {}),
+        },
       })
 
       if (finalContent.length > 100) {
@@ -196,7 +219,12 @@ export default function KnowledgeBase() {
 
       await load()
 
-      alert("Documento salvo na Knowledge Base.")
+      if (compact) {
+        const confidence = Math.round(Number(compact.confidence || 0) * 100)
+        alert(`Documento salvo e analisado. Tipo: ${compact.documentType} · confiança ${confidence}%`)
+      } else {
+        alert("Documento salvo na Knowledge Base.")
+      }
     } catch (error: any) {
       console.error(error)
       alert(error.message || "Erro ao salvar documento.")
@@ -249,6 +277,9 @@ export default function KnowledgeBase() {
               <p className="text-muted-foreground mt-1">
                 Salve documentos, petições, contratos, decisões e pareceres para alimentar o Chat Jurídico.
               </p>
+              <p className="text-xs text-primary/80 mt-2 flex items-center gap-2">
+                <BrainCircuit size={14} /> Document Intelligence: classificação, datas, valores, partes e obrigações estruturadas.
+              </p>
             </div>
           </div>
         </section>
@@ -261,89 +292,38 @@ export default function KnowledgeBase() {
             </div>
 
             <div className="space-y-4">
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Título do documento"
-                className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary"
-              />
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título do documento" className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary" />
 
-              <select
-                value={documentType}
-                onChange={(e) => setDocumentType(e.target.value)}
-                className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary"
-              >
+              <select value={documentType} onChange={(e) => setDocumentType(e.target.value)} className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary">
                 <option value="peticao">Petição</option>
                 <option value="contrato">Contrato</option>
                 <option value="sentenca">Sentença</option>
                 <option value="acordao">Acórdão</option>
                 <option value="parecer">Parecer</option>
                 <option value="prova">Prova</option>
+                <option value="procuracao">Procuração</option>
+                <option value="societario">Documento societário</option>
                 <option value="geral">Geral</option>
               </select>
 
-              <input
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Cliente"
-                className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary"
-              />
-
-              <input
-                value={processNumber}
-                onChange={(e) => setProcessNumber(e.target.value)}
-                placeholder="Número do processo"
-                className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary"
-              />
-
-              <input
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="Tags separadas por vírgula"
-                className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary"
-              />
+              <input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Cliente" className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary" />
+              <input value={processNumber} onChange={(e) => setProcessNumber(e.target.value)} placeholder="Número do processo" className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary" />
+              <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags separadas por vírgula" className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary" />
 
               <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4">
-                <label className="text-sm font-bold text-primary">
-                  Upload de documento
-                </label>
-
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="mt-3 w-full text-sm"
-                />
-
-                {selectedFile && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Arquivo selecionado: {selectedFile.name}
-                  </p>
-                )}
+                <label className="text-sm font-bold text-primary">Upload de documento</label>
+                <input type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} className="mt-3 w-full text-sm" />
+                {selectedFile && <p className="text-xs text-muted-foreground mt-2">Arquivo selecionado: {selectedFile.name}</p>}
               </div>
 
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Cole aqui o conteúdo do documento..."
-                className="w-full h-64 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary"
-              />
+              <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Cole aqui o conteúdo do documento..." className="w-full h-64 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary" />
 
               <div className="flex gap-3">
-                <button
-                  onClick={saveDocument}
-                  disabled={uploading}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white font-bold disabled:opacity-50"
-                >
-                  {uploading ? "Salvando..." : "Salvar documento"}
+                <button onClick={saveDocument} disabled={uploading} className="flex-1 py-3 rounded-xl bg-primary text-white font-bold disabled:opacity-50">
+                  {uploading ? "Analisando e salvando..." : "Salvar + analisar"}
                 </button>
-
-                <button
-                  onClick={loadExample}
-                  className="px-5 py-3 rounded-xl bg-[#171721] border border-border font-bold flex items-center gap-2"
-                >
-                  <Sparkles size={16} />
-                  Exemplo
+                <button onClick={loadExample} className="px-5 py-3 rounded-xl bg-[#171721] border border-border font-bold flex items-center gap-2">
+                  <Sparkles size={16} /> Exemplo
                 </button>
               </div>
             </div>
@@ -353,76 +333,62 @@ export default function KnowledgeBase() {
             <div className="rounded-2xl border border-border bg-card p-5">
               <div className="flex items-center gap-3">
                 <Search className="text-primary" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar por cliente, processo, tese, tag ou conteúdo..."
-                  className="w-full bg-transparent outline-none"
-                />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por cliente, processo, tese, tag ou conteúdo..." className="w-full bg-transparent outline-none" />
               </div>
             </div>
 
             {filtered.length === 0 ? (
-              <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">
-                Nenhum documento salvo ainda.
-              </div>
+              <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">Nenhum documento salvo ainda.</div>
             ) : (
               <div className="space-y-4">
-                {filtered.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="rounded-2xl border border-border bg-card p-5"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <FileText className="text-primary" />
-                          <h2 className="font-bold text-xl">{doc.title}</h2>
+                {filtered.map((doc) => {
+                  const intelligence = doc?.metadata?.av_document_intelligence
+                  const confidence = Math.round(Number(intelligence?.confidence || 0) * 100)
+                  return (
+                    <div key={doc.id} className="rounded-2xl border border-border bg-card p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <FileText className="text-primary" />
+                            <h2 className="font-bold text-xl">{doc.title}</h2>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            {doc.document_type || "geral"} · {doc.client_name || "sem cliente"} · {doc.process_number || "sem processo"}
+                          </p>
                         </div>
-
-                        <p className="text-sm text-muted-foreground mt-2">
-                          {doc.document_type || "geral"} · {doc.client_name || "sem cliente"} ·{" "}
-                          {doc.process_number || "sem processo"}
-                        </p>
+                        <button onClick={() => deleteDocument(doc.id)} className="p-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20"><Trash2 size={18} /></button>
                       </div>
 
-                      <button
-                        onClick={() => deleteDocument(doc.id)}
-                        className="p-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {intelligence && (
+                        <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                          <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-primary">
+                            <BrainCircuit size={15} />
+                            <span>Document Intelligence</span>
+                            <span className="rounded-full bg-primary/10 px-2 py-1">{intelligence.documentType || "other"}</span>
+                            <span className="rounded-full bg-primary/10 px-2 py-1">{confidence}% confiança</span>
+                          </div>
+                          {intelligence.summary && <p className="text-sm text-gray-300 mt-3">{intelligence.summary}</p>}
+                          <div className="flex flex-wrap gap-2 mt-3 text-xs text-muted-foreground">
+                            {(intelligence.parties?.length || 0) > 0 && <span>{intelligence.parties.length} parte(s)</span>}
+                            {(intelligence.dates?.length || 0) > 0 && <span>· {intelligence.dates.length} data(s)</span>}
+                            {(intelligence.amounts?.length || 0) > 0 && <span>· {intelligence.amounts.length} valor(es)</span>}
+                            {(intelligence.obligations?.length || 0) > 0 && <span>· {intelligence.obligations.length} obrigação(ões)</span>}
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="text-gray-300 mt-4 line-clamp-4">{doc.summary || doc.content || "-"}</p>
+
+                      {Array.isArray(doc.tags) && doc.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          {doc.tags.map((tag: string) => <span key={tag} className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold">{tag}</span>)}
+                        </div>
+                      )}
+
+                      {doc.file_url && <a href={doc.file_url} target="_blank" rel="noreferrer" className="inline-block mt-4 text-primary text-sm font-bold hover:underline">Abrir arquivo enviado</a>}
                     </div>
-
-                    <p className="text-gray-300 mt-4 line-clamp-4">
-                      {doc.summary || doc.content || "-"}
-                    </p>
-
-                    {Array.isArray(doc.tags) && doc.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        {doc.tags.map((tag: string) => (
-                          <span
-                            key={tag}
-                            className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {doc.file_url && (
-                      <a
-                        href={doc.file_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-block mt-4 text-primary text-sm font-bold hover:underline"
-                      >
-                        Abrir arquivo enviado
-                      </a>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

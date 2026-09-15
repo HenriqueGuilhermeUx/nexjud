@@ -1,11 +1,28 @@
-import { useState } from "react"
-import { useAuth } from "@/context/AuthContext"
+import { useEffect, useState } from "react"
+import type { Session, User } from "@supabase/supabase-js"
+import { getSupabaseClient } from "@/lib/supabase"
 
 export default function NexOfficeLauncher() {
-  const { user, session } = useAuth()
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const enabled = import.meta.env.VITE_NEXOFFICE_ENABLED === "true"
+
+  useEffect(() => {
+    if (!enabled) return
+    const client = getSupabaseClient()
+    if (!client) return
+    client.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      setUser(data.session?.user ?? null)
+    })
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession)
+      setUser(nextSession?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [enabled])
 
   if (!enabled || !user || !session?.access_token) return null
 

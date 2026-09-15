@@ -78,6 +78,7 @@ function normalizeRole(value) {
 
 export function resolveNexOfficeIdentity(user) {
   const app = user?.app_metadata || {};
+  const userId = clean(user?.id);
   const externalWorkspaceRef = firstTrusted(app, [
     'nexoffice_workspace_ref',
     'organization_id',
@@ -88,19 +89,20 @@ export function resolveNexOfficeIdentity(user) {
     'firmId',
     'tenant_id',
     'tenantId',
-  ]) || clean(user?.id);
-  const memberRole = normalizeRole(firstTrusted(app, [
+  ]) || userId;
+  const sharedWorkspace = externalWorkspaceRef !== userId;
+  const explicitRole = normalizeRole(firstTrusted(app, [
     'nexoffice_role',
     'organization_role',
     'organizationRole',
     'office_role',
     'officeRole',
-  ])) || 'owner';
+  ]));
   return {
     externalWorkspaceRef,
-    externalUserSubject: clean(user?.id),
-    memberRole,
-    sharedWorkspace: externalWorkspaceRef !== clean(user?.id),
+    externalUserSubject: userId,
+    memberRole: explicitRole || (sharedWorkspace ? 'member' : 'owner'),
+    sharedWorkspace,
   };
 }
 

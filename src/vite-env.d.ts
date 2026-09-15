@@ -9,6 +9,7 @@ interface ImportMetaEnv {
   readonly VITE_CNJ_API_KEY: string
   readonly VITE_ESCAVADOR_API_KEY: string
   readonly VITE_NEXOFFICE_ENABLED?: string
+  readonly VITE_NEXOFFICE_LEGAL_SIGNALS_ENABLED?: string
 }
 
 interface ImportMeta {

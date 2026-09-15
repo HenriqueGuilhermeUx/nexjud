@@ -14,5 +14,7 @@ jobs:
         with:
           node-version: 20
       - run: npm install --legacy-peer-deps
+      - name: Test trusted NexOffice federation mapping
+        run: node scripts/test-nexoffice-identity.mjs
       - run: npx tsc -b
       - run: npx vite build

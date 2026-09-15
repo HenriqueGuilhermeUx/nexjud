@@ -2,6 +2,15 @@ import { useEffect, useState } from "react"
 import type { Session, User } from "@supabase/supabase-js"
 import { getSupabaseClient } from "@/lib/supabase"
 
+function bridgeError(status: number, code?: string) {
+  if (status === 401 || code === "unauthorized") return "Sua sessão expirou. Entre novamente no NexJud e tente de novo."
+  if (status === 503 || code === "nexoffice_not_configured" || code === "platform_bridge_not_configured") return "O NexOffice ainda não está configurado neste ambiente."
+  if (code === "workspace_access_revoked") return "Seu acesso ao workspace NexOffice foi revogado."
+  if (code === "onboarding_required") return "Seu acesso ao escritório ainda precisa ser concluído."
+  if (status >= 500) return "O NexOffice está temporariamente indisponível. Tente novamente em instantes."
+  return "Não foi possível abrir o NexOffice."
+}
+
 export default function NexOfficeLauncher() {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
@@ -40,10 +49,10 @@ export default function NexOfficeLauncher() {
         body: JSON.stringify({}),
       })
       const payload = await response.json().catch(() => ({}))
-      if (!response.ok || !payload?.url) throw new Error(payload?.error || "NexOffice indisponível")
+      if (!response.ok || !payload?.url) throw Object.assign(new Error("nexoffice_handoff_failed"), { status: response.status, code: payload?.error })
       window.location.assign(String(payload.url))
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Não foi possível abrir o NexOffice")
+    } catch (cause: any) {
+      setError(bridgeError(Number(cause?.status || 0), String(cause?.code || cause?.message || "")))
       setBusy(false)
     }
   }

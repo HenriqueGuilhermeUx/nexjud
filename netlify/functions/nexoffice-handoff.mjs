@@ -58,13 +58,62 @@ async function nexoffice(path, body) {
   return payload;
 }
 
+function clean(value, max = 220) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return text ? text.slice(0, max) : '';
+}
+
+function firstTrusted(metadata, keys) {
+  for (const key of keys) {
+    const value = clean(metadata?.[key]);
+    if (value) return value;
+  }
+  return '';
+}
+
+function normalizeRole(value) {
+  const role = clean(value, 40).toLowerCase();
+  return ['owner', 'admin', 'member', 'viewer'].includes(role) ? role : '';
+}
+
+export function resolveNexOfficeIdentity(user) {
+  const app = user?.app_metadata || {};
+  const externalWorkspaceRef = firstTrusted(app, [
+    'nexoffice_workspace_ref',
+    'organization_id',
+    'organizationId',
+    'office_id',
+    'officeId',
+    'firm_id',
+    'firmId',
+    'tenant_id',
+    'tenantId',
+  ]) || clean(user?.id);
+  const memberRole = normalizeRole(firstTrusted(app, [
+    'nexoffice_role',
+    'organization_role',
+    'organizationRole',
+    'office_role',
+    'officeRole',
+  ])) || 'owner';
+  return {
+    externalWorkspaceRef,
+    externalUserSubject: clean(user?.id),
+    memberRole,
+    sharedWorkspace: externalWorkspaceRef !== clean(user?.id),
+  };
+}
+
 function displayName(user) {
   const metadata = user?.user_metadata || {};
   return String(metadata.full_name || metadata.name || metadata.display_name || user.email?.split('@')[0] || 'Usuário NexJud').slice(0, 160);
 }
 
-function businessName(user) {
+function businessName(user, identity) {
+  const trusted = user?.app_metadata || {};
   const metadata = user?.user_metadata || {};
+  const trustedName = firstTrusted(trusted, ['nexoffice_workspace_name', 'organization_name', 'office_name', 'firm_name']);
+  if (identity?.sharedWorkspace && trustedName) return trustedName.slice(0, 180);
   return String(metadata.office_name || metadata.company_name || metadata.organization_name || metadata.firm_name || displayName(user)).slice(0, 180);
 }
 
@@ -74,10 +123,13 @@ export default async (req) => {
   const user = await authenticatedUser(req);
   if (!user) return json(401, { ok: false, error: 'unauthorized' });
 
+  const identity = resolveNexOfficeIdentity(user);
+  if (!identity.externalWorkspaceRef || !identity.externalUserSubject) return json(422, { ok: false, error: 'invalid_federated_identity' });
+
   const access = {
     sourceProduct: 'nexjud',
-    externalWorkspaceRef: user.id,
-    externalUserSubject: user.id,
+    externalWorkspaceRef: identity.externalWorkspaceRef,
+    externalUserSubject: identity.externalUserSubject,
     email: String(user.email).toLowerCase(),
   };
 
@@ -85,10 +137,11 @@ export default async (req) => {
     await nexoffice('/v1/platform/provision', {
       sourceProduct: access.sourceProduct,
       externalWorkspaceRef: access.externalWorkspaceRef,
-      businessName: businessName(user),
+      businessName: businessName(user, identity),
       vertical: 'legal',
       ownerEmail: access.email,
       ownerName: displayName(user),
+      memberRole: identity.memberRole,
       externalUserSubject: access.externalUserSubject,
       entitlements: ['addon.nexjud'],
     });
@@ -101,6 +154,7 @@ export default async (req) => {
       url: handoff.url,
       expiresAt: handoff.expiresAt,
       vertical: 'legal',
+      sharedWorkspace: identity.sharedWorkspace,
     });
   } catch (error) {
     const status = Number(error?.status || 502);

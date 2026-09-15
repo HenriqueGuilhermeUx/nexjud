@@ -16,5 +16,9 @@ jobs:
       - run: npm install --legacy-peer-deps
       - name: Test trusted NexOffice federation mapping
         run: node scripts/test-nexoffice-identity.mjs
+      - name: Check Netlify NexOffice functions
+        run: |
+          node --check netlify/functions/nexoffice-handoff.mjs
+          node --check netlify/functions/nexoffice-health.mjs
       - run: npx tsc -b
       - run: npx vite build

@@ -37,6 +37,15 @@ const invalidRole=resolveNexOfficeIdentity({
   app_metadata:{office_id:'office-123',office_role:'superadmin'},
   user_metadata:{}
 });
-assert.equal(invalidRole.memberRole,'owner');
+assert.equal(invalidRole.memberRole,'member');
 
-console.log(JSON.stringify({ok:true,cases:4}));
+const sharedWithoutRole=resolveNexOfficeIdentity({
+  id:'user-4',
+  email:'member2@example.com',
+  app_metadata:{tenant_id:'office-123'},
+  user_metadata:{}
+});
+assert.equal(sharedWithoutRole.memberRole,'member');
+assert.equal(sharedWithoutRole.sharedWorkspace,true);
+
+console.log(JSON.stringify({ok:true,cases:5}));

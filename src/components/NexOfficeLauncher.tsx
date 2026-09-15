@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import type { Session, User } from "@supabase/supabase-js"
 import { getSupabaseClient } from "@/lib/supabase"
+import { useNexOfficeLegalSync } from "@/hooks/useNexOfficeLegalSync"
 
 function bridgeError(status: number, code?: string) {
   if (status === 401 || code === "unauthorized") return "Sua sessão expirou. Entre novamente no NexJud e tente de novo."
@@ -32,6 +33,8 @@ export default function NexOfficeLauncher() {
     })
     return () => subscription.unsubscribe()
   }, [enabled])
+
+  useNexOfficeLegalSync(session)
 
   if (!enabled || !user || !session?.access_token) return null
 

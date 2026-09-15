@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_ZAPSIGN_API_TOKEN: string
   readonly VITE_CNJ_API_KEY: string
   readonly VITE_ESCAVADOR_API_KEY: string
+  readonly VITE_NEXOFFICE_ENABLED?: string
 }
 
 interface ImportMeta {

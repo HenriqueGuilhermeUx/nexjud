@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
+import { supabase } from "@/lib/supabase"
 import {
   getOrCreateSubscription,
   getTrialDaysLeft,
@@ -16,9 +17,12 @@ const PLAN_LEVEL: Record<PlanType, number> = {
   enterprise_plus: 4,
 }
 
+type InternalAccessLevel = "owner" | "admin" | "support"
+
 export function usePlan() {
   const { user } = useAuth()
   const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [internalAccess, setInternalAccess] = useState<InternalAccessLevel | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -27,6 +31,8 @@ export function usePlan() {
 
   async function load() {
     if (!user?.id) {
+      setSubscription(null)
+      setInternalAccess(null)
       setLoading(false)
       return
     }
@@ -34,21 +40,46 @@ export function usePlan() {
     setLoading(true)
 
     try {
-      const data = await getOrCreateSubscription(user.id)
-      setSubscription(data)
+      const [{ data: entitlement, error: entitlementError }, subscriptionResult] = await Promise.all([
+        supabase
+          .from("internal_access")
+          .select("access_level, active")
+          .eq("user_id", user.id)
+          .eq("active", true)
+          .maybeSingle(),
+        getOrCreateSubscription(user.id).then(
+          (data) => ({ data, error: null as unknown }),
+          (error) => ({ data: null as Subscription | null, error })
+        ),
+      ])
+
+      // During rollout the table may not exist yet; billing must continue to work normally.
+      if (!entitlementError && entitlement?.active) {
+        setInternalAccess(entitlement.access_level as InternalAccessLevel)
+      } else {
+        setInternalAccess(null)
+      }
+
+      if (subscriptionResult.data) {
+        setSubscription(subscriptionResult.data)
+      } else if (!entitlement?.active) {
+        console.error("Erro ao carregar assinatura:", subscriptionResult.error)
+      }
     } catch (error) {
-      console.error("Erro ao carregar assinatura:", error)
+      console.error("Erro ao carregar acesso:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  const plan = subscription?.plan || "trial"
+  const isInternal = internalAccess !== null
+  const plan: PlanType = isInternal ? "enterprise_plus" : (subscription?.plan || "trial")
   const level = PLAN_LEVEL[plan]
-  const trialExpired = isTrialExpired(subscription)
-  const trialDaysLeft = getTrialDaysLeft(subscription)
+  const trialExpired = isInternal ? false : isTrialExpired(subscription)
+  const trialDaysLeft = isInternal ? 0 : getTrialDaysLeft(subscription)
 
   function hasPlan(required: PlanType) {
+    if (isInternal) return true
     if (!subscription) return false
     if (subscription.status === "trialing" && !trialExpired) return true
     if (!subscription.active) return false
@@ -79,7 +110,7 @@ export function usePlan() {
       canUseAgenda: hasPlan("enterprise"),
       canUseAlerts: hasPlan("enterprise"),
     }),
-    [subscription]
+    [subscription, internalAccess]
   )
 
   return {
@@ -88,6 +119,8 @@ export function usePlan() {
     loading,
     trialExpired,
     trialDaysLeft,
+    isInternal,
+    internalAccess,
     refresh: load,
     hasPlan,
     ...permissions,

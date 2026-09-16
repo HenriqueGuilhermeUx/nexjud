@@ -2,7 +2,7 @@ name: NexOffice Bridge CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/nexoffice-staging-integration]
   pull_request:
 
 jobs:
@@ -18,6 +18,8 @@ jobs:
         run: node scripts/test-nexoffice-identity.mjs
       - name: Test privacy-safe Legal Operations aggregate builder
         run: node scripts/test-nexoffice-legal-signals.mjs
+      - name: Test controlled staging safety contract
+        run: node scripts/test-nexoffice-staging-safety.mjs
       - name: Check Netlify NexOffice functions
         run: |
           node --check netlify/functions/nexoffice-handoff.mjs

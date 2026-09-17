@@ -9,10 +9,14 @@ function json(status, body) {
   });
 }
 
-async function authenticatedUser(req) {
+function bearerToken(req) {
   const authorization = req.headers.get('authorization') || '';
-  if (!authorization.startsWith('Bearer ')) return null;
-  const token = authorization.slice(7).trim();
+  if (!authorization.startsWith('Bearer ')) return '';
+  return authorization.slice(7).trim();
+}
+
+async function authenticatedUser(req) {
+  const token = bearerToken(req);
   if (!token) return null;
   const supabaseUrl = env('VITE_SUPABASE_URL');
   const anonKey = env('VITE_SUPABASE_ANON_KEY');
@@ -27,6 +31,31 @@ async function authenticatedUser(req) {
     return user?.id && user?.email ? user : null;
   } catch {
     return null;
+  }
+}
+
+async function nexJudEntitlement(req, userId) {
+  const token = bearerToken(req);
+  const supabaseUrl = env('VITE_SUPABASE_URL');
+  const anonKey = env('VITE_SUPABASE_ANON_KEY');
+  if (!token || !supabaseUrl || !anonKey) return { eligible: false, reason: 'billing_unavailable' };
+
+  const headers = { apikey: anonKey, authorization: `Bearer ${token}`, accept: 'application/json' };
+  try {
+    const [internalResponse, subscriptionResponse] = await Promise.all([
+      fetch(`${supabaseUrl}/rest/v1/internal_access?user_id=eq.${encodeURIComponent(userId)}&active=eq.true&select=access_level&limit=1`, { headers, signal: AbortSignal.timeout(8_000) }),
+      fetch(`${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(userId)}&active=eq.true&status=eq.active&plan=neq.trial&select=plan,status,active&limit=1`, { headers, signal: AbortSignal.timeout(8_000) }),
+    ]);
+
+    const internal = internalResponse.ok ? await internalResponse.json().catch(() => []) : [];
+    if (Array.isArray(internal) && internal.length > 0) return { eligible: true, source: 'internal' };
+
+    const subscriptions = subscriptionResponse.ok ? await subscriptionResponse.json().catch(() => []) : [];
+    if (Array.isArray(subscriptions) && subscriptions.length > 0) return { eligible: true, source: 'paid_nexjud' };
+
+    return { eligible: false, reason: 'paid_nexjud_required' };
+  } catch {
+    return { eligible: false, reason: 'billing_unavailable' };
   }
 }
 
@@ -129,6 +158,9 @@ export default async (req) => {
   const user = await authenticatedUser(req);
   if (!user) return json(401, { ok: false, error: 'unauthorized' });
 
+  const entitlement = await nexJudEntitlement(req, user.id);
+  if (!entitlement.eligible) return json(403, { ok: false, error: entitlement.reason });
+
   const identity = resolveNexOfficeIdentity(user);
   if (!identity.externalWorkspaceRef || !identity.externalUserSubject) return json(422, { ok: false, error: 'invalid_federated_identity' });
 
@@ -149,7 +181,7 @@ export default async (req) => {
       ownerName: displayName(user),
       memberRole: identity.memberRole,
       externalUserSubject: access.externalUserSubject,
-      entitlements: ['addon.nexjud'],
+      entitlements: ['addon.nexjud', 'included.by.nexjud'],
     });
 
     const handoff = await nexoffice('/v1/platform/handoff', access);
@@ -160,6 +192,7 @@ export default async (req) => {
       url: handoff.url,
       expiresAt: handoff.expiresAt,
       vertical: 'legal',
+      includedBy: 'nexjud',
       sharedWorkspace: identity.sharedWorkspace,
       externalEffects: config.externalEffects,
     });

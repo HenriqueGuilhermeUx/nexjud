@@ -18,10 +18,13 @@ jobs:
         run: node scripts/test-nexoffice-identity.mjs
       - name: Test privacy-safe Legal Operations aggregate builder
         run: node scripts/test-nexoffice-legal-signals.mjs
+      - name: Test NexJud Mini narrow bridge contract
+        run: node scripts/test-nexoffice-mini.mjs
       - name: Check Netlify NexOffice functions
         run: |
           node --check netlify/functions/nexoffice-handoff.mjs
           node --check netlify/functions/nexoffice-health.mjs
           node --check netlify/functions/nexoffice-legal-signals.mjs
+          node --check netlify/functions/nexoffice-mini.mjs
       - run: npx tsc -b
       - run: npx vite build

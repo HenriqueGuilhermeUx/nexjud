@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { ArrowLeft, Brain, Briefcase, Camera, CheckCircle, Download, Smartphone, Upload } from "lucide-react"
+import { ArrowLeft, Brain, Briefcase, Camera, CheckCircle, Smartphone, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const features = [
@@ -8,6 +8,8 @@ const features = [
   [Briefcase, "Casos sincronizados", "Acesse no celular os mesmos casos cadastrados no NexJud Workspace."],
   [Upload, "Um ecossistema", "Tudo que for enviado pelo Companion aparece também na Knowledge Base do Workspace."],
 ]
+
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.nexjud.companion&pcampaignid=web_share"
 
 export default function Companion() {
   return (
@@ -34,9 +36,11 @@ export default function Companion() {
                 Scanner, IA jurídica, casos e documentos conectados ao mesmo Legal Brain do NexJud Workspace.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                <Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white" disabled>
-                  <Download size={18} /> Android em preparação
-                </Button>
+                <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer">
+                  <Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
+                    <Smartphone size={18} /> Baixar no Google Play
+                  </Button>
+                </a>
                 <Link to="/login">
                   <Button size="lg" variant="outline" className="border-[#334155] text-white hover:bg-[#111827]">
                     Acessar Workspace
@@ -44,7 +48,7 @@ export default function Companion() {
                 </Link>
               </div>
               <p className="text-xs text-gray-500 mt-4">
-                O código do aplicativo já está integrado ao Supabase e ao Legal Brain. A liberação na Google Play depende apenas do build assinado e da aprovação da loja.
+                NexJud Companion para Android. Use o mesmo login do Workspace para acessar o ecossistema NexJud.
               </p>
             </div>
 
@@ -83,7 +87,7 @@ export default function Companion() {
 
         <section className="px-4 py-20">
           <div className="max-w-5xl mx-auto rounded-3xl border border-[#6366f1]/30 bg-gradient-to-r from-[#6366f1]/20 to-[#22d3ee]/10 p-10">
-            <h2 className="text-4xl font-bold">Comunicação já preparada</h2>
+            <h2 className="text-4xl font-bold">Workspace e Companion conectados</h2>
             <div className="grid md:grid-cols-2 gap-4 mt-8">
               {["Supabase Auth compartilhado", "Legal Brain legal-chat-ai", "Casos sincronizados", "Storage knowledge-files", "Trial e assinatura compartilhados", "Documentos enviados ao Workspace"].map((item) => (
                 <div key={item} className="flex gap-3 items-center text-gray-200"><CheckCircle className="text-green-400" size={18} />{item}</div>

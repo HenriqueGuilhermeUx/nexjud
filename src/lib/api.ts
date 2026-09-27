@@ -57,7 +57,6 @@ export interface JurisprudenceSearchResult {
   recommendations: string[]
 }
 
-// Interfaces adicionadas para o ecossistema da Woovi (Pix Automático)
 export interface WooviCustomerInput {
   name: string
   email: string
@@ -71,11 +70,9 @@ export interface WooviSubscriptionResult {
   subscriptionId: string
 }
 
-// Get Supabase URL from environment
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Get user ID from localStorage (set during auth)
 const getUserId = (): string => {
   try {
     const sessionData = localStorage.getItem('supabase.session')
@@ -87,7 +84,6 @@ const getUserId = (): string => {
   return 'anonymous'
 }
 
-// Função auxiliar para pegar o token JWT de sessão real do Supabase
 const getAuthHeader = (): string => {
   try {
     const sessionData = localStorage.getItem('supabase.session')
@@ -101,7 +97,6 @@ const getAuthHeader = (): string => {
   return `Bearer ${SUPABASE_ANON_KEY}`
 }
 
-// DNA do Juiz chart data (static mock - real data would come from analysis)
 const DNA_JUIZ_DATA = [
   { subject: "Trabalhista", score: 78, fullMark: 100 },
   { subject: "Previdenciário", score: 65, fullMark: 100 },
@@ -111,7 +106,6 @@ const DNA_JUIZ_DATA = [
   { subject: "Civil", score: 71, fullMark: 100 },
 ]
 
-// Score recursal chart data (static mock)
 const SCORE_RECURSAL = [
   { instancia: "1ª Inst.", favoravel: 72, desfavoravel: 28 },
   { instancia: "2ª Inst.", favoravel: 58, desfavoravel: 42 },
@@ -119,14 +113,12 @@ const SCORE_RECURSAL = [
   { instancia: "STF", favoravel: 21, desfavoravel: 79 },
 ]
 
-// Alertas jurisprudência (static mock - real alerts would come from CNJ)
 const ALERTAS_JURISPRUDENCIA = [
   { msg: "STJ alterou entendimento sobre correção IPCA-E (Tema 905)", data: "08/05/2026", impacto: "alto" },
   { msg: "TRF-3 uniformizou tese sobre prescrição quinquenal", data: "02/05/2026", impacto: "medio" },
   { msg: "Nova súmula vinculante sobre FGTS — STF", data: "28/04/2026", impacto: "alto" },
 ]
 
-// Tendências mock data
 const TENDENCIAS_TRIBUNAL = [
   { ano: "2022", STJ: 58, STF: 45, TRF3: 72 },
   { ano: "2023", STJ: 62, STF: 48, TRF3: 69 },
@@ -135,7 +127,6 @@ const TENDENCIAS_TRIBUNAL = [
   { ano: "2026", STJ: 74, STF: 58, TRF3: 81 },
 ]
 
-// Timeline mudanças mock data
 const TIMELINE_MUDANCAS = [
   { data: "Abr/2026", evento: "STJ — Tema 905: IPCA-E revisado", impacto: "alto" },
   { data: "Mar/2026", evento: "TRF-3 — Súmula 89: prescrição quinquenal", impacto: "medio" },
@@ -145,57 +136,36 @@ const TIMELINE_MUDANCAS = [
 
 export async function performPredictiveAnalysis(input: PredictiveAnalysisInput): Promise<PredictiveAnalysisResult> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error("Supabase não configurado.");
+    throw new Error("Supabase não configurado.")
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('free_uses_count, is_premium')
-    .single();
-
-  if (!profile?.is_premium && (profile?.free_uses_count || 0) >= 3) {
-    throw new Error("LIMIT_EXCEEDED");
-  }
-
-  const userId = getUserId();
+  const userId = getUserId()
 
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/super-responder`, {
       method: 'POST',
       headers: {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-  'apikey': SUPABASE_ANON_KEY,
-},
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
       body: JSON.stringify({
         caseNumber: input.caseNumber,
         caseDescription: input.caseDescription,
         caseType: input.caseType,
-        userId: userId,
+        userId,
       }),
-    });
+    })
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Erro ao analisar caso');
+      const error = await response.json()
+      throw new Error(error.error || 'Erro ao analisar caso')
     }
 
-    const result = await response.json();
-
-    if (!profile?.is_premium) {
-      await supabase
-        .from('profiles')
-        .update({ free_uses_count: (profile?.free_uses_count || 0) + 1 })
-        .eq('id', userId);
-    }
-
-    return result;
-
+    return await response.json()
   } catch (error) {
-    console.error('Erro na análise preditiva:', error);
-    throw error;
+    console.error('Erro na análise preditiva:', error)
+    throw error
   }
 }
 
@@ -210,17 +180,17 @@ export async function performJurisprudenceSearch(input: JurisprudenceSearchInput
     const response = await fetch(`${SUPABASE_URL}/functions/v1/rapid-api`, {
       method: 'POST',
       headers: {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-  'apikey': SUPABASE_ANON_KEY,
-},
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
       body: JSON.stringify({
         theme: input.theme,
         court: input.court,
         period: input.period,
         camara: input.camara || '',
         materia: input.materia || '',
-        userId: userId,
+        userId,
       }),
     })
 
@@ -229,57 +199,47 @@ export async function performJurisprudenceSearch(input: JurisprudenceSearchInput
       throw new Error(error.error || 'Erro ao buscar jurisprudência')
     }
 
-    const result = await response.json()
-    return result
-
+    return await response.json()
   } catch (error) {
     console.error('Erro na busca de jurisprudência:', error)
     throw error
   }
 }
 
-// Objeto de conexão à Woovi (Pix Automático) via Edge Functions
-// Objeto de conexão à Woovi adaptado para RPC Direto
 export const wooviApi = {
   createSubscription: async (planId: string, customer: WooviCustomerInput): Promise<WooviSubscriptionResult> => {
     if (!SUPABASE_URL) {
-      throw new Error("Supabase URL não configurada.");
+      throw new Error("Supabase URL não configurada.")
     }
 
-    const token = getAuthHeader();
+    const token = getAuthHeader()
 
-    // Chamamos a função 'create_woovi_subscription' que criamos no banco de dados
     const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_woovi_subscription`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token,
-        'apikey': SUPABASE_ANON_KEY
+        'apikey': SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({
         plan_id: planId,
         customer_name: customer.name,
         customer_email: customer.email,
-        customer_tax_id: customer.taxID
+        customer_tax_id: customer.taxID,
       }),
-    });
+    })
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Erro ao gerar assinatura por Pix.');
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Erro ao gerar assinatura por Pix.')
     }
 
-    const result = await response.json();
-    
-    // Se o banco retornar um erro interno da Woovi, repassa para o front
-    if (result.error) {
-      throw new Error(result.error);
-    }
+    const result = await response.json()
+    if (result.error) throw new Error(result.error)
+    return result
+  },
+}
 
-    return result;
-  }
-};
-// Export mock data for charts (these remain static - could be dynamic in future)
 export const getMockData = () => ({
   DNA_JUIZ_DATA,
   SCORE_RECURSAL,

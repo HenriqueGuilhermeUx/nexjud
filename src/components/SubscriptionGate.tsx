@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom"
 import { usePlan } from "@/hooks/usePlan"
 
 export default function SubscriptionGate({ children }: { children: ReactNode }) {
-  const { subscription, loading, trialExpired } = usePlan()
+  const { subscription, loading, trialExpired, isInternal } = usePlan()
 
   if (loading) {
     return (
@@ -12,6 +12,8 @@ export default function SubscriptionGate({ children }: { children: ReactNode }) 
       </div>
     )
   }
+
+  if (isInternal) return <>{children}</>
 
   if (!subscription) return <Navigate to="/upgrade" replace />
 

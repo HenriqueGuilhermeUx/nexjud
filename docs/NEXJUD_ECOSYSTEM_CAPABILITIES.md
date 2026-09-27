@@ -113,3 +113,9 @@ A ativação ocorre por capability e ambiente, depois de E2E controlado.
 6. NexJud não recebe dados financeiros além do necessário ao resultado jurídico.
 7. Falha externa gera estado de integração, não erro global do produto.
 8. Outcome Intelligence só grava eventos confirmados e rastreáveis.
+
+## Trusted outcome ingestion
+
+A função server-side `ecosystem-outcome-ingest` recebe somente uma allowlist de eventos confirmados. Exige `NEXJUD_ECOSYSTEM_INGEST_KEY`, valida vínculo user/case antes de gravar, deduplica por provider + external event id e descarta payload bruto. Apenas referências, hash de evidência e dados mínimos de resultado entram no ledger. O evento confirmado é espelhado conservadoramente em Outcome Intelligence; aprendizado continua sendo uma etapa separada.
+
+Eventos inicialmente aceitos: `document.signed`, `signature.completed`, `obligation.completed`, `payment.completed`, `charge.completed`, `charge.expired`.

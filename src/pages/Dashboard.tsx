@@ -75,6 +75,7 @@ const [isPaywallOpen, setIsPaywallOpen] = useState(false)
   const WOOVI_PLAN_ID = "SEU_ID_DE_PLANO_WOOVI_AQUI"
 
   const isHomeActive = location.pathname === "/dashboard"
+  const isDecisionIntelligenceActive = location.pathname.includes("decision-intelligence")
 
 const isAICopilotHistoryActive =
   location.pathname.includes("ai-copilot-history")
@@ -312,10 +313,10 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
 />
 
 <QuickAction
-  to="/dashboard/ai-copilot"
-  icon={Sparkles}
-  title="Quero analisar um processo"
-  description="Receba riscos, chances de êxito e estratégia."
+  to="/dashboard/decision-intelligence"
+  icon={Target}
+  title="Quero analisar um processo contra o padrão decisório"
+  description="Veja evidências, aderências, divergências e decisões-fonte."
 />
 
 <QuickAction
@@ -416,6 +417,15 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
   onClick={() => setAnalysisOpen((v) => !v)}
 >
   <NavItem
+    to="/dashboard/decision-intelligence"
+    icon={Target}
+    label="Decision Intelligence"
+    description="Compare processo e tese com padrões decisórios observados."
+    active={isDecisionIntelligenceActive}
+    badge="DESTAQUE"
+  />
+
+  <NavItem
     to="/dashboard/legal-chat"
     icon={Brain}
     label="Conversar com a IA"
@@ -435,7 +445,7 @@ description="Envie contratos, estatutos, atas, PDFs, DOCX e imagens."
     to="/dashboard/ai-copilot"
     icon={Sparkles}
     label="Analisar um processo"
-description="Receba riscos, chances, estratégia e próximos passos."
+description="Aprofunde riscos, estratégia e próximos passos com o AI Copilot."
     active={isAICopilotActive}
   />
 
@@ -575,7 +585,7 @@ description="Consulte análises anteriores da IA."
     to="/dashboard/judge-simulator"
     icon={Gavel}
     label="Simular juiz"
-    description="Antecipe riscos e decisões possíveis."
+    description="Treine argumentos e pressão de audiência sem promessa de resultado."
     active={isJudgeSimulatorActive}
   />
 

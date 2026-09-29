@@ -24,9 +24,9 @@ export default function Landing() {
   const resources = [
     ["Analisar documentos", "PDFs, DOCX, contratos, estatutos, atas e imagens com OCR.", FileText],
     ["Conversar com a IA", "Pergunte usando seus documentos, casos e memória jurídica.", Brain],
-    ["Analisar processos", "Riscos, chances de êxito, estratégia e próximos passos.", Target],
+    ["Decision Intelligence", "Compare processo, fatos e teses com padrões decisórios observados e decisões-fonte.", Target],
     ["Criar petições", "Gere peças, contratos, notificações e minutas com IA.", Wand2],
-    ["Simular decisões", "Antecipe como um juiz poderia enxergar o caso.", Gavel],
+    ["Simular audiências", "Treine argumentos, objeções e sustentação com o Judge Simulator.", Gavel],
     ["War Room", "Cenários, riscos, ataques prováveis e plano de ação.", ShieldAlert],
   ]
 
@@ -68,16 +68,15 @@ export default function Landing() {
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            A IA jurídica que trabalha
+            Inteligência jurídica para
             <br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] to-[#22d3ee]">
-              como um sócio do escritório.
+              decidir melhor antes de agir.
             </span>
           </h1>
 
           <p className="text-xl text-gray-400 max-w-4xl mx-auto mb-10">
-            O NexJud analisa documentos, organiza casos, encontra riscos, monta estratégias,
-            simula decisões e ajuda a criar peças jurídicas em um único workspace.
+            O NexJud conecta processo, documentos, jurisprudência e estratégia para mostrar evidências, riscos e próximos passos — sem prometer o resultado do caso.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -94,7 +93,7 @@ export default function Landing() {
           </div>
 
           <div className="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            <Metric value="PDF" label="DOCX e OCR" />
+            <Metric value="CNJ" label="processos e contexto oficial" />
             <Metric value="IA" label="com memória jurídica" />
             <Metric value="7 dias" label="trial premium" />
             <Metric value="Web + App" label="um único ecossistema" />
@@ -109,16 +108,15 @@ export default function Landing() {
               <Brain className="w-4 h-4 text-[#22d3ee]" />
               <span className="text-sm text-gray-300">Como funciona</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Do documento à estratégia em poucos minutos.</h2>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">Do processo à evidência. Da evidência à estratégia.</h2>
             <p className="text-gray-400 text-lg mb-8">
-              Envie um contrato, estatuto, ata, petição ou PDF. O NexJud lê, organiza o contexto,
-              cruza com memória, jurisprudência, precedentes e CNJ e entrega uma resposta objetiva e estratégica.
+              Informe um processo ou envie documentos. O NexJud organiza o contexto, consulta as fontes disponíveis e coloca a evidência antes da interpretação para apoiar sua estratégia.
             </p>
             <Link to={ctaLink}><Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">Começar agora<ArrowRight className="w-4 h-4" /></Button></Link>
           </div>
 
           <div className="space-y-4">
-            {["Envie documento, processo ou pergunta jurídica", "A IA identifica o modo correto da análise", "O Legal Brain consulta todas as fontes relevantes", "Você recebe resposta, riscos e próximos passos", "Continue no computador ou no NexJud Companion"].map((step, index) => (
+            {["Informe o processo, documento ou tese", "O NexJud organiza fatos, pedidos e contexto", "As fontes e a amostra aparecem antes da interpretação", "Você identifica aderências, divergências, riscos e oportunidades", "Continue no dossiê, minuta, jurisprudência ou Companion"].map((step, index) => (
               <div key={step} className="flex gap-4 rounded-2xl border border-[#1e293b] bg-[#121218] p-5">
                 <div className="w-10 h-10 rounded-full bg-[#6366f1]/10 flex items-center justify-center shrink-0"><span className="font-bold text-[#6366f1]">{index + 1}</span></div>
                 <p className="text-gray-300">{step}</p>
@@ -131,8 +129,8 @@ export default function Landing() {
       <section className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Tudo que o advogado faz. Em um único lugar.</h2>
-            <p className="text-gray-400 text-lg">Menos abas abertas. Mais clareza, estratégia e produtividade.</p>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">Inteligência jurídica que vira ação.</h2>
+            <p className="text-gray-400 text-lg">Mantenha o que já funciona no escritório. Use o NexJud para investigar, comparar, decidir, produzir e acompanhar.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {resources.map(([title, desc, Icon]: any) => (
@@ -180,8 +178,8 @@ export default function Landing() {
       <section className="py-20 px-4 bg-[#0f0f14]">
         <div className="max-w-5xl mx-auto rounded-3xl border border-[#6366f1]/30 bg-gradient-to-r from-[#6366f1]/20 to-[#22d3ee]/10 p-10 text-center">
           <Zap className="mx-auto text-[#22d3ee] mb-4" size={44} />
-          <h2 className="text-4xl font-bold mb-4">Pronto para testar o NexJud?</h2>
-          <p className="text-gray-300 text-lg mb-8">Comece com 7 dias grátis e veja como a IA pode acelerar análise, estratégia e produção jurídica.</p>
+          <h2 className="text-4xl font-bold mb-4">Veja o NexJud trabalhando em um caso real.</h2>
+          <p className="text-gray-300 text-lg mb-8">Comece com 7 dias grátis. Consulte um processo, confira as evidências encontradas e transforme a análise em estratégia e produção jurídica.</p>
           <Link to={ctaLink}><Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">{ctaLabel}<ArrowRight className="w-4 h-4" /></Button></Link>
         </div>
       </section>

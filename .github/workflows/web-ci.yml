@@ -24,19 +24,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install dependencies
-        run: corepack pnpm install --no-frozen-lockfile
+        run: npm install --ignore-scripts=false
 
       - name: TypeScript
-        run: corepack pnpm exec tsc -b
+        run: npx tsc -b
 
       - name: Vite build
-        run: corepack pnpm exec vite build
+        run: npx vite build

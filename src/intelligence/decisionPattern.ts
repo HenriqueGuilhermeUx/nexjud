@@ -27,8 +27,7 @@ export function buildObservedDecisionPattern(items: JudicialDecisionEvidence[]):
   return {
     court: qualified[0].court,
     judgingBody: qualified[0].judgingBody,
-    decisionsAnalyed: undefined as never,
-    decisionsAnalyzed: qualified.length,
+decisionsAnalyzed: qualified.length,
     period: dates.length ? `${dates[0]} a ${dates[dates.length - 1]}` : undefined,
     recurringTheses: count(qualified.flatMap((item) => item.legalTheses)),
     recurringPrecedents: count(qualified.flatMap((item) => item.citedPrecedents)),

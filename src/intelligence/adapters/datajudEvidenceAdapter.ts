@@ -1,5 +1,5 @@
 import type { DatajudProcess } from "@/services/datajudService"
-import type { JudicialDecisionEvidence } from "./judicialDecisionSchema"
+import type { JudicialDecisionEvidence } from "../judicialDecisionSchema"
 
 function text(value: unknown) { return typeof value === "string" ? value.trim() : "" }
 function list(value: unknown): string[] { return Array.isArray(value) ? value.map(text).filter(Boolean) : text(value) ? [text(value)] : [] }

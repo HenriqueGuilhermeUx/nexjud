@@ -4,6 +4,9 @@ import { Brain, Search, Scale, FileText, AlertTriangle, Target, Database, ArrowR
 import { useAuth } from "@/context/AuthContext"
 import { searchProcessDatajud, buildCaseTextFromDatajud, formatCnj, detectTribunalAliasFromCnj } from "@/services/datajudService"
 import { searchSimilarCasesDatajud } from "@/services/realJurisprudenceService"
+import { datajudCasesToEvidence } from "@/intelligence/adapters/datajudEvidenceAdapter"
+import { evidenceStore } from "@/intelligence/evidenceStore"
+import { buildObservedDecisionPattern } from "@/intelligence/decisionPattern"
 
 export default function DecisionIntelligence() {
   const { user } = useAuth()
@@ -14,6 +17,7 @@ export default function DecisionIntelligence() {
   const [lawyerArgument, setLawyerArgument] = useState("")
   const [process, setProcess] = useState<any>(null)
   const [evidence, setEvidence] = useState<any>(null)
+  const [observedPattern, setObservedPattern] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
   async function analyze() {
@@ -29,7 +33,10 @@ export default function DecisionIntelligence() {
       const similar = await searchSimilarCasesDatajud({
         cnj, tribunalAlias: tribunal, classe: found.process.className, assunto: found.process.subject,
       })
-      setEvidence({ prediction: similar.prediction, cases: similar.cases || [], argument: lawyerArgument.trim() })
+      const normalized = datajudCasesToEvidence(similar.cases || [], tribunal)
+      await evidenceStore.put(normalized)
+      setObservedPattern(buildObservedDecisionPattern(normalized))
+      setEvidence({ prediction: similar.prediction, cases: similar.cases || [], normalized, argument: lawyerArgument.trim() })
     } catch (error) {
       console.error(error)
       alert("Não foi possível concluir a análise agora. Os dados disponíveis não serão apresentados como previsão.")
@@ -42,9 +49,9 @@ export default function DecisionIntelligence() {
   return <div className="min-h-screen bg-background text-foreground">
     <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-7">
       <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-indigo-500/10 to-[#05050a] p-8 lg:p-10">
-        <div className="inline-flex items-center gap-2 text-primary text-sm mb-4"><Brain size={17}/> DECISION INTELLIGENCE</div>
-        <h1 className="text-4xl lg:text-5xl font-bold">Como este processo conversa com o padrão decisório observado?</h1>
-        <p className="text-gray-400 text-lg mt-4 max-w-4xl">Localize o processo e confronte fatos, pedidos, teses e seus argumentos com decisões encontradas para o mesmo contexto. O NexJud mostra evidências, aderências e divergências — não prevê o resultado do processo.</p>
+        <div className="inline-flex items-center gap-2 text-primary text-sm mb-4"><Brain size={17}/> ANÁLISE DO JUÍZO</div>
+        <h1 className="text-4xl lg:text-5xl font-bold">Como este juízo costuma decidir casos como o seu?</h1>
+        <p className="text-gray-400 text-lg mt-4 max-w-4xl">Informe o processo e, se quiser, acrescente os pontos principais da sua tese. A NexJud compara fatos, pedidos e argumentos com decisões públicas encontradas para este juízo e mostra o que merece sua atenção — sem prever ou garantir o resultado.</p>
       </section>
 
       <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6 space-y-4">
@@ -60,36 +67,37 @@ export default function DecisionIntelligence() {
 
       {!evidence ? <section className="rounded-2xl border border-dashed border-[#343442] p-8 text-center">
         <Database className="mx-auto text-gray-500 mb-3"/>
-        <h2 className="font-bold text-xl">Ainda não há evidência para comparar</h2>
-        <p className="text-gray-500 mt-2">Informe um processo. Quando houver decisões localizadas, você verá aqui a amostra, o período disponível, a fonte e os sinais observados antes de qualquer interpretação.</p>
+        <h2 className="font-bold text-xl">Vamos começar pelo processo</h2>
+        <p className="text-gray-500 mt-2">Informe o número do processo. Quando localizarmos decisões relacionadas, você verá quantas foram analisadas, de qual período são e quais decisões sustentam a análise.</p>
       </section> : <>
         <section className="grid md:grid-cols-4 gap-4">
-          <Box label="Amostra analisada" value={String(sample)} />
-          <Box label="Casos localizados" value={String(p?.totalFound || evidence.cases.length || 0)} />
+          <Box label="Decisões analisadas" value={String(sample)} />
+          <Box label="Decisões encontradas" value={String(p?.totalFound || evidence.cases.length || 0)} />
           <Box label="Período" value={p?.period || "Conforme dados retornados"} />
           <Box label="Fonte" value={p?.source || "DataJud/CNJ"} />
         </section>
         <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
-          <h2 className="font-bold text-xl flex items-center gap-2"><Scale className="text-primary"/> Evidências antes da interpretação</h2>
+          <h2 className="font-bold text-xl flex items-center gap-2"><Scale className="text-primary"/> O que encontramos</h2>
           <p className="text-gray-400 mt-2">Classe: {process?.className || "-"} · Assunto: {process?.subject || "-"} · Unidade: {process?.courtUnit || "-"}</p>
-          <p className="text-sm text-gray-500 mt-3">{p?.warning || "A amostra observada serve como apoio à estratégia e não representa probabilidade de êxito."}</p>
+          <p className="text-sm text-gray-500 mt-3">{observedPattern?.warning || p?.warning || "As decisões encontradas servem de apoio à estratégia. Esta análise não representa probabilidade de êxito nem garantia de resultado."}</p>
+          {observedPattern && <p className="text-sm text-gray-400 mt-3">Base estruturada: {observedPattern.decisionsAnalyzed} decisões públicas normalizadas{observedPattern.period ? ` · ${observedPattern.period}` : ""}. Cada padrão mantém vínculo com as decisões que o sustentam.</p>}
         </section>
         <section className="grid lg:grid-cols-3 gap-4">
-          <Insight icon={<Target/>} title="Aderências" text="Compare os fatos, pedidos e fundamentos do caso com os sinais recorrentes encontrados na amostra. Confirme sempre nas decisões-fonte."/>
-          <Insight icon={<AlertTriangle/>} title="Divergências e riscos" text="Procure fatos ausentes, pedidos excessivos, fundamentos rejeitados ou diferenças relevantes entre seu caso e a amostra."/>
-          <Insight icon={<Brain/>} title="Oportunidades" text={lawyerArgument ? "Seu argumento foi registrado como hipótese de trabalho. Use as decisões-fonte para reforçar, limitar ou reformular a tese." : "Cole uma tese ou argumento para orientar a comparação estratégica."}/>
+          <Insight icon={<Target/>} title="O que favorece sua tese" text="Veja quais fatos, pedidos e fundamentos do seu caso também aparecem nas decisões encontradas. Confira sempre as decisões que sustentam a análise."/>
+          <Insight icon={<AlertTriangle/>} title="Pontos de atenção" text="Veja diferenças relevantes, fundamentos que não costumam ser acolhidos e pontos do seu caso que merecem reforço."/>
+          <Insight icon={<Brain/>} title="Como fortalecer o caso" text={lawyerArgument ? "Sua tese foi incluída na análise. Use as decisões encontradas para reforçar, ajustar ou delimitar o argumento." : "Acrescente uma tese ou argumento para tornar a análise mais útil à sua estratégia."}/>
         </section>
       </>}
 
       <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6">
-        <h2 className="font-bold text-xl">Depois da inteligência, escolha o próximo passo</h2>
-        <p className="text-gray-400 mt-1 mb-4">O NexJud mantém o foco na decisão jurídica; os motores e integrações ficam em segundo plano.</p>
+        <h2 className="font-bold text-xl">E agora, o que você quer fazer?</h2>
+        <p className="text-gray-400 mt-1 mb-4">Leve a análise para o trabalho do caso sem precisar entender os motores que funcionam por trás da NexJud.</p>
         <div className="grid md:grid-cols-3 gap-3">
           <Next title="Abrir Dossiê Vivo" desc="Leve contexto e evidências para acompanhar o caso." onClick={()=>navigate("/dashboard/live-dossier")}/>
           <Next title="Preparar documento" desc="Transforme a estratégia em minuta ou peça." onClick={()=>navigate("/dashboard/draft-generator")}/>
-          <Next title="Explorar jurisprudência" desc="Abra a biblioteca e confira fundamentos e fontes." onClick={()=>navigate("/dashboard/jurisprudence-library")}/>
+          <Next title="Conferir decisões" desc="Confira os fundamentos e as fontes usadas na análise." onClick={()=>navigate("/dashboard/jurisprudence-library")}/>
         </div>
-        <p className="text-xs text-gray-500 mt-5">Assinatura ICP-Brasil, procurações e fluxos externos aparecem quando necessários ao próximo passo; não são o centro da experiência NexJud.</p>
+        <p className="text-xs text-gray-500 mt-5">A NexJud mostra as ferramentas certas conforme o trabalho avança. Você não precisa navegar pela complexidade técnica do sistema.</p>
       </section>
     </div>
   </div>

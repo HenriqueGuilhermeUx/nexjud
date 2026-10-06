@@ -34,7 +34,7 @@ import { supabase } from "./src/lib/supabase"
 
 const Stack = createNativeStackNavigator()
 const Tabs = createBottomTabNavigator()
-const WEB_URL = "https://nexjud.netlify.app"
+const WEB_URL = "https://nexjudsolucoes.com.br"
 
 const colors = {
   bg: "#080A10", card: "#111521", cardAlt: "#171C2B", border: "#293147",
@@ -121,7 +121,7 @@ function LoginScreen() {
         <TextInput style={styles.input} placeholder="Senha" placeholderTextColor={colors.muted} secureTextEntry value={password} onChangeText={setPassword} onSubmitEditing={login} />
         <Button label={loading ? "Entrando..." : "Entrar"} onPress={login} disabled={loading} />
         <Pressable onPress={() => Linking.openURL(`${WEB_URL}/login`)}><Text style={styles.linkText}>Criar conta ou recuperar senha</Text></Pressable>
-        <View style={styles.inline}><ShieldCheck color={colors.success} size={17} /><Text style={styles.helper}>Mesma conta, casos e documentos do Workspace.</Text></View>
+        <View style={styles.inline}><ShieldCheck color={colors.success} size={17} /><Text style={styles.helper}>Mesma conta, casos, documentos e análises da NexJud.</Text></View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   )
@@ -133,6 +133,7 @@ function HomeScreen({ navigation }: any) {
   const [counts, setCounts] = useState({ docs: 0, chats: 0, cnj: 0 })
   const [agenda, setAgenda] = useState<AgendaItem[]>([])
   const [refreshing, setRefreshing] = useState(false)
+  const [processNumber, setProcessNumber] = useState("")
 
   async function load() {
     setRefreshing(true)
@@ -145,8 +146,7 @@ function HomeScreen({ navigation }: any) {
       supabase.from("chat_sessions").select("id", { count: "exact", head: true }).eq("user_id", uid),
       supabase.from("cnj_processes").select("id", { count: "exact", head: true }).eq("user_id", uid),
     ])
-    setProfile(p.data)
-    setCases(c.data || [])
+    setProfile(p.data); setCases(c.data || [])
     setCounts({ docs: d.count || 0, chats: h.count || 0, cnj: n.count || 0 })
     const raw = await AsyncStorage.getItem(`nexjud-agenda-${uid}`)
     setAgenda(raw ? JSON.parse(raw) : [])
@@ -158,51 +158,56 @@ function HomeScreen({ navigation }: any) {
   const firstName = (profile?.name || profile?.full_name || "Advogado").split(" ")[0]
   const today = new Date().toISOString().slice(0, 10)
   const todayItems = agenda.filter(i => i.date === today && !i.done)
-  const trialDays = profile?.trial_ends_at ? Math.max(0, Math.ceil((new Date(profile.trial_ends_at).getTime() - Date.now()) / 86400000)) : null
+
+  function analyzeCourt() {
+    const value = processNumber.trim()
+    if (!value) return Alert.alert("Informe o processo", "Digite ou cole o número CNJ para iniciar a análise.")
+    Linking.openURL(`${WEB_URL}/dashboard/decision-intelligence?cnj=${encodeURIComponent(value)}`)
+  }
 
   const actions = [
     { title: "Analisar documento", subtitle: "Foto, PDF ou DOCX", icon: FileSearch, route: "Scanner" },
-    { title: "Criar peça", subtitle: "Rascunho guiado por IA", icon: FilePlus2, parent: "Studio" },
-    { title: "Preparar audiência", subtitle: "Briefing do caso", icon: Gavel, parent: "HearingPicker" },
+    { title: "Fortalecer uma peça", subtitle: "Rascunho e argumentos", icon: FilePlus2, parent: "Studio" },
+    { title: "Treinar argumentos", subtitle: "Prepare audiência e sustentação", icon: Gavel, parent: "HearingPicker" },
     { title: "Perguntar à IA", subtitle: "Legal Brain contextual", icon: Brain, route: "IA" },
-    { title: "Registrar reunião", subtitle: "Anotação e tarefas", icon: Mic, parent: "MeetingNote" },
-    { title: "Consultar casos", subtitle: "Processos e estratégia", icon: Briefcase, route: "Casos" },
+    { title: "Consultar casos", subtitle: "Dossiês e estratégia", icon: Briefcase, route: "Casos" },
   ]
 
   return (
     <ScrollView style={styles.safe} contentContainerStyle={styles.page} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} tintColor={colors.primary} />}>
       <View style={styles.topRow}>
-        <View style={{ flex: 1 }}><Text style={styles.eyebrow}>NEXJUD COMPANION</Text><Text style={styles.hero}>Olá, {firstName}.</Text></View>
+        <View style={{ flex: 1 }}><Text style={styles.eyebrow}>NEXJUD · INTELIGÊNCIA DECISÓRIA</Text><Text style={styles.hero}>Olá, {firstName}.</Text></View>
         <Pressable style={styles.iconButton} onPress={() => navigation.navigate("Agenda")}><Bell color={colors.text} size={21} /></Pressable>
       </View>
-      <Text style={styles.subtitle}>O que você precisa resolver agora?</Text>
 
       <View style={styles.statusCard}>
-        <View style={styles.inline}><CheckCircle2 color={colors.success} size={20} /><Text style={styles.cardTitle}>{profile?.subscription_status === "active" ? "Plano ativo" : trialDays !== null ? `${trialDays} dia(s) de Trial Premium` : "Conta NexJud"}</Text></View>
-        <Text style={styles.body}>{todayItems.length ? `${todayItems.length} compromisso(s) pendente(s) hoje.` : "Nenhuma pendência registrada para hoje."}</Text>
+        <View style={styles.inline}><Scale color={colors.primary} size={21} /><Text style={styles.cardTitle}>Como este juízo costuma decidir casos como o seu?</Text></View>
+        <Text style={styles.body}>Compare seu processo com decisões públicas encontradas e veja evidências, pontos de atenção e caminhos para fortalecer sua estratégia.</Text>
+        <TextInput style={styles.input} placeholder="Digite ou cole o número CNJ" placeholderTextColor={colors.muted} value={processNumber} onChangeText={setProcessNumber} autoCapitalize="none" />
+        <Button label="ANALISAR PROCESSO" onPress={analyzeCourt} icon={<Search color="#fff" size={18} />} />
+        <Text style={styles.helper}>A NexJud analisa padrões observados em decisões públicas. Não prevê nem garante o resultado do processo.</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Resolver agora</Text>
+      <Text style={styles.sectionTitle}>O que você quer fazer agora?</Text>
       <View style={styles.actionGrid}>
         {actions.map(({ title, subtitle, icon: Icon, route, parent }) => (
           <Pressable key={title} style={styles.actionCard} onPress={() => parent ? navigation.getParent()?.navigate(parent) : navigation.navigate(route)}>
             <View style={styles.actionIcon}><Icon color={colors.primary} size={24} /></View>
-            <Text style={styles.cardTitle}>{title}</Text>
-            <Text style={styles.helper}>{subtitle}</Text>
+            <Text style={styles.cardTitle}>{title}</Text><Text style={styles.helper}>{subtitle}</Text>
           </Pressable>
         ))}
       </View>
 
-      <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Visão rápida</Text><Pressable onPress={() => navigation.navigate("Agenda")}><Text style={styles.linkTextSmall}>Ver agenda</Text></Pressable></View>
+      <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Sua atividade</Text><Pressable onPress={() => navigation.navigate("Agenda")}><Text style={styles.linkTextSmall}>Ver agenda</Text></Pressable></View>
       <View style={styles.metricsRow}>
-        <Metric value={todayItems.length} label="Hoje" icon={<CalendarDays color={colors.primary} size={18} />} />
+        <Metric value={counts.cnj} label="Processos" icon={<Scale color={colors.primary} size={18} />} />
         <Metric value={counts.docs} label="Documentos" icon={<FileText color={colors.primary} size={18} />} />
-        <Metric value={counts.cnj} label="CNJ" icon={<Scale color={colors.primary} size={18} />} />
+        <Metric value={todayItems.length} label="Hoje" icon={<CalendarDays color={colors.primary} size={18} />} />
       </View>
 
       <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Casos recentes</Text><Pressable onPress={() => navigation.navigate("Casos")}><Text style={styles.linkTextSmall}>Ver todos</Text></Pressable></View>
       {cases.length ? cases.map(item => <CaseCard key={item.id} item={item} onPress={() => navigation.getParent()?.navigate("CaseDetail", { caseId: item.id })} />) :
-        <Empty title="Nenhum caso cadastrado" text="Cadastre seu primeiro caso no Workspace para sincronizar aqui." />}
+        <Empty title="Comece pela análise de um processo" text="Informe o número CNJ acima. Seus casos e documentos continuarão disponíveis aqui." />}
     </ScrollView>
   )
 }

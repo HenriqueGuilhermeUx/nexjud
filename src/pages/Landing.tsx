@@ -34,15 +34,9 @@ export default function Landing() {
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[#1e293b] bg-[#0a0a0f]/80 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#6366f1] to-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">⚖</span>
-            </div>
-            <div>
-              <span className="text-xl font-bold">NexJud</span>
-              <p className="text-xs text-gray-400">AI Legal Workspace</p>
-            </div>
-          </div>
+          <Link to="/" className="flex items-center">
+            <img src="/nexjud-logo.svg" alt="NexJud" className="h-14 md:h-16 w-auto object-contain" />
+          </Link>
 
           <div className="flex items-center gap-2">
             <Link to="/companion" className="hidden md:block">
@@ -186,7 +180,7 @@ export default function Landing() {
 
       <footer className="border-t border-[#1e293b] py-8 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <span className="font-bold">⚖ NexJud</span>
+          <img src="/nexjud-logo.svg" alt="NexJud" className="h-14 w-auto object-contain" />
           <p className="text-sm text-gray-400">© 2026 NexJud. Todos os direitos reservados.</p>
           <Link to="/companion" className="text-xs text-[#818cf8] hover:underline">NexJud Companion</Link>
         </div>

@@ -553,12 +553,12 @@ function CourtAnalysisScreen({ route, navigation }: any) {
   const [cnj, setCnj] = useState(route.params?.cnj || "")
   const [thesis, setThesis] = useState("")
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<any>(null)\n  const [errorText, setErrorText] = useState("")
 
   async function analyze() {
     const processNumber = cnj.trim()
     if (!processNumber) return Alert.alert("Informe o processo", "Digite ou cole o número CNJ.")
-    setLoading(true); setResult(null)
+    setLoading(true); setResult(null); setErrorText("")
     try {
       const { data, error } = await supabase.functions.invoke("decision-intelligence", {
         body: { cnj: processNumber, argument: thesis.trim() || undefined, source: "mobile" },
@@ -566,7 +566,7 @@ function CourtAnalysisScreen({ route, navigation }: any) {
       if (error) throw error
       setResult(data)
     } catch (error: any) {
-      Alert.alert("Análise indisponível", error?.message || "Não foi possível concluir a análise agora.")
+      const message = error?.message || "Não foi possível concluir a análise agora."\n      setErrorText(message)\n      Alert.alert("Análise indisponível", message)
     } finally { setLoading(false) }
   }
 
@@ -585,7 +585,7 @@ function CourtAnalysisScreen({ route, navigation }: any) {
       <TextInput style={[styles.input, styles.textareaSmall]} placeholder="Opcional: tese, argumento ou ponto que você quer testar" placeholderTextColor={colors.muted} multiline value={thesis} onChangeText={setThesis} />
       <Button label={loading ? "ANALISANDO..." : "ANALISAR PROCESSO"} onPress={analyze} disabled={loading} icon={loading ? <ActivityIndicator color="#fff" /> : <Search color="#fff" size={18} />} />
     </View>
-    {!result ? <Empty title="Comece pelo número do processo" text="A NexJud mostrará a amostra, o período e as decisões públicas que sustentam cada padrão observado." /> : <>
+    {errorText ? <View style={styles.card}><View style={styles.inline}><CircleAlert color={colors.warning} size={20}/><Text style={styles.cardTitle}>Não foi possível analisar agora</Text></View><Text style={styles.helper}>{errorText}</Text></View> : null}\n    {!result ? <Empty title="Comece pelo número do processo" text="A NexJud mostrará a amostra, o período e as decisões públicas que sustentam cada padrão observado." /> : <>
       <View style={styles.metricsRow}>
         <Metric value={sample} label="Analisadas" icon={<Scale color={colors.primary} size={18} />} />
         <Metric value={found} label="Encontradas" icon={<FileSearch color={colors.primary} size={18} />} />

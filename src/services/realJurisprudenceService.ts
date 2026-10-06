@@ -55,20 +55,20 @@ export async function searchSimilarCasesDatajud({
 
 export function buildRealJurisprudenceText(prediction: RealJurisprudencePrediction) {
   return `
-JURISPRUDÊNCIA PREDITIVA REAL — DATAJUD/CNJ
+PADRÕES OBSERVADOS EM DECISÕES — DATAJUD/CNJ
 
 Fonte: ${prediction.source}
 Tribunal/Alias: ${prediction.alias}
 Classe: ${prediction.className}
 Assunto: ${prediction.subject}
 
-Casos encontrados: ${prediction.totalFound}
-Amostra analisada: ${prediction.sampledCases}
+Decisões encontradas: ${prediction.totalFound}
+Decisões analisadas: ${prediction.sampledCases}
 
 Sinais de sentença: ${prediction.sentenceSignals}
 Sinais de recurso: ${prediction.appealSignals}
 
-Força da base histórica: ${prediction.historicalStrength}
+Consistência da base observada: ${prediction.historicalStrength}
 
 Aviso: ${prediction.warning}
 `.trim()

@@ -553,7 +553,8 @@ function CourtAnalysisScreen({ route, navigation }: any) {
   const [cnj, setCnj] = useState(route.params?.cnj || "")
   const [thesis, setThesis] = useState("")
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)\n  const [errorText, setErrorText] = useState("")
+  const [result, setResult] = useState<any>(null)
+  const [errorText, setErrorText] = useState("")
 
   async function analyze() {
     const processNumber = cnj.trim()
@@ -566,7 +567,9 @@ function CourtAnalysisScreen({ route, navigation }: any) {
       if (error) throw error
       setResult(data)
     } catch (error: any) {
-      const message = error?.message || "Não foi possível concluir a análise agora."\n      setErrorText(message)\n      Alert.alert("Análise indisponível", message)
+      const message = error?.message || "Não foi possível concluir a análise agora."
+      setErrorText(message)
+      Alert.alert("Análise indisponível", message)
     } finally { setLoading(false) }
   }
 
@@ -585,7 +588,8 @@ function CourtAnalysisScreen({ route, navigation }: any) {
       <TextInput style={[styles.input, styles.textareaSmall]} placeholder="Opcional: tese, argumento ou ponto que você quer testar" placeholderTextColor={colors.muted} multiline value={thesis} onChangeText={setThesis} />
       <Button label={loading ? "ANALISANDO..." : "ANALISAR PROCESSO"} onPress={analyze} disabled={loading} icon={loading ? <ActivityIndicator color="#fff" /> : <Search color="#fff" size={18} />} />
     </View>
-    {errorText ? <View style={styles.card}><View style={styles.inline}><CircleAlert color={colors.warning} size={20}/><Text style={styles.cardTitle}>Não foi possível analisar agora</Text></View><Text style={styles.helper}>{errorText}</Text></View> : null}\n    {!result ? <Empty title="Comece pelo número do processo" text="A NexJud mostrará a amostra, o período e as decisões públicas que sustentam cada padrão observado." /> : <>
+    {errorText ? <View style={styles.card}><View style={styles.inline}><CircleAlert color={colors.warning} size={20}/><Text style={styles.cardTitle}>Não foi possível analisar agora</Text></View><Text style={styles.helper}>{errorText}</Text></View> : null}
+    {!result ? <Empty title="Comece pelo número do processo" text="A NexJud mostrará a amostra, o período e as decisões públicas que sustentam cada padrão observado." /> : <>
       <View style={styles.metricsRow}>
         <Metric value={sample} label="Analisadas" icon={<Scale color={colors.primary} size={18} />} />
         <Metric value={found} label="Encontradas" icon={<FileSearch color={colors.primary} size={18} />} />
@@ -639,7 +643,8 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {session ? <>
             <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="CourtAnalysis" component={CourtAnalysisScreen} />\n            <Stack.Screen name="CaseDetail" component={CaseDetailScreen} />
+            <Stack.Screen name="CourtAnalysis" component={CourtAnalysisScreen} />
+            <Stack.Screen name="CaseDetail" component={CaseDetailScreen} />
             <Stack.Screen name="HearingPicker" component={HearingPickerScreen} />
             <Stack.Screen name="Hearing" component={HearingScreen} />
             <Stack.Screen name="Studio" component={StudioScreen} />

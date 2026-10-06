@@ -40,7 +40,7 @@ export default function Onboarding() {
 
       if (error) throw error
 
-      navigate("/dashboard")
+      navigate(goal === "analisar_processo" ? "/dashboard/decision-intelligence" : "/dashboard")
     } catch (error: any) {
       alert(error.message || "Erro ao salvar onboarding.")
     } finally {
@@ -106,7 +106,7 @@ export default function Onboarding() {
           <h2 className="text-xl font-bold">3. O que você quer fazer primeiro?</h2>
           <div className="grid md:grid-cols-3 gap-4">
             <Option value="analisar_documentos" selected={goal} onClick={setGoal} icon={FileText} title="Analisar documentos" description="PDF, DOCX, estatutos e contratos." />
-            <Option value="analisar_processo" selected={goal} onClick={setGoal} icon={Brain} title="Analisar processo" description="Riscos, chances e estratégia." />
+            <Option value="analisar_processo" selected={goal} onClick={setGoal} icon={Brain} title="Ver como o juízo costuma decidir" description="Compare seu processo com decisões públicas encontradas para este juízo." />
             <Option value="criar_peticao" selected={goal} onClick={setGoal} icon={Wand2} title="Criar petição" description="Peças e minutas com IA." />
             <Option value="organizar_casos" selected={goal} onClick={setGoal} icon={Database} title="Organizar casos" description="Clientes, processos e histórico." />
             <Option value="conversar_ia" selected={goal} onClick={setGoal} icon={Brain} title="Conversar com IA" description="Tire dúvidas jurídicas." />

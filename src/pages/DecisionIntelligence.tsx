@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom"
 import { Brain, Search, Scale, FileText, AlertTriangle, Target, Database, ArrowRight } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { searchProcessDatajud, buildCaseTextFromDatajud, formatCnj, detectTribunalAliasFromCnj } from "@/services/datajudService"
-import { searchSimilarCasesDatajud } from "@/services/realJurisprudenceService"\nimport { datajudCasesToEvidence } from "@/intelligence/adapters/datajudEvidenceAdapter"\nimport { evidenceStore } from "@/intelligence/evidenceStore"\nimport { buildObservedDecisionPattern } from "@/intelligence/decisionPattern"
+import { searchSimilarCasesDatajud } from "@/services/realJurisprudenceService"
+import { datajudCasesToEvidence } from "@/intelligence/adapters/datajudEvidenceAdapter"
+import { evidenceStore } from "@/intelligence/evidenceStore"
+import { buildObservedDecisionPattern } from "@/intelligence/decisionPattern"
 
 export default function DecisionIntelligence() {
   const { user } = useAuth()
@@ -13,7 +16,8 @@ export default function DecisionIntelligence() {
   const [caseText, setCaseText] = useState("")
   const [lawyerArgument, setLawyerArgument] = useState("")
   const [process, setProcess] = useState<any>(null)
-  const [evidence, setEvidence] = useState<any>(null)\n  const [observedPattern, setObservedPattern] = useState<any>(null)
+  const [evidence, setEvidence] = useState<any>(null)
+  const [observedPattern, setObservedPattern] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
   async function analyze() {
@@ -29,7 +33,10 @@ export default function DecisionIntelligence() {
       const similar = await searchSimilarCasesDatajud({
         cnj, tribunalAlias: tribunal, classe: found.process.className, assunto: found.process.subject,
       })
-      const normalized = datajudCasesToEvidence(similar.cases || [], tribunal)\n      await evidenceStore.put(normalized)\n      setObservedPattern(buildObservedDecisionPattern(normalized))\n      setEvidence({ prediction: similar.prediction, cases: similar.cases || [], normalized, argument: lawyerArgument.trim() })
+      const normalized = datajudCasesToEvidence(similar.cases || [], tribunal)
+      await evidenceStore.put(normalized)
+      setObservedPattern(buildObservedDecisionPattern(normalized))
+      setEvidence({ prediction: similar.prediction, cases: similar.cases || [], normalized, argument: lawyerArgument.trim() })
     } catch (error) {
       console.error(error)
       alert("Não foi possível concluir a análise agora. Os dados disponíveis não serão apresentados como previsão.")
@@ -72,7 +79,8 @@ export default function DecisionIntelligence() {
         <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
           <h2 className="font-bold text-xl flex items-center gap-2"><Scale className="text-primary"/> O que encontramos</h2>
           <p className="text-gray-400 mt-2">Classe: {process?.className || "-"} · Assunto: {process?.subject || "-"} · Unidade: {process?.courtUnit || "-"}</p>
-          <p className="text-sm text-gray-500 mt-3">{observedPattern?.warning || p?.warning || "As decisões encontradas servem de apoio à estratégia. Esta análise não representa probabilidade de êxito nem garantia de resultado."}</p>\n          {observedPattern && <p className="text-sm text-gray-400 mt-3">Base estruturada: {observedPattern.decisionsAnalyzed} decisões públicas normalizadas{observedPattern.period ? ` · ${observedPattern.period}` : ""}. Cada padrão mantém vínculo com as decisões que o sustentam.</p>}
+          <p className="text-sm text-gray-500 mt-3">{observedPattern?.warning || p?.warning || "As decisões encontradas servem de apoio à estratégia. Esta análise não representa probabilidade de êxito nem garantia de resultado."}</p>
+          {observedPattern && <p className="text-sm text-gray-400 mt-3">Base estruturada: {observedPattern.decisionsAnalyzed} decisões públicas normalizadas{observedPattern.period ? ` · ${observedPattern.period}` : ""}. Cada padrão mantém vínculo com as decisões que o sustentam.</p>}
         </section>
         <section className="grid lg:grid-cols-3 gap-4">
           <Insight icon={<Target/>} title="O que favorece sua tese" text="Veja quais fatos, pedidos e fundamentos do seu caso também aparecem nas decisões encontradas. Confira sempre as decisões que sustentam a análise."/>

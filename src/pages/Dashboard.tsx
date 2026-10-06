@@ -315,8 +315,8 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
 <QuickAction
   to="/dashboard/decision-intelligence"
   icon={Target}
-  title="Quero analisar um processo contra o padrão decisório"
-  description="Veja evidências, aderências, divergências e decisões-fonte."
+  title="Quero saber como este juízo costuma decidir"
+  description="Compare seu processo com decisões públicas encontradas para este juízo."
 />
 
 <QuickAction
@@ -350,8 +350,8 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
 <QuickAction
   to="/dashboard/judge-simulator"
   icon={Gavel}
-  title="Quero simular uma decisão"
-  description="Veja como um juiz poderia analisar o caso."
+  title="Quero treinar meus argumentos"
+  description="Simule questionamentos e teste a sustentação dos seus argumentos."
 />
 
 <QuickAction
@@ -419,8 +419,8 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
   <NavItem
     to="/dashboard/decision-intelligence"
     icon={Target}
-    label="Decision Intelligence"
-    description="Compare processo e tese com padrões decisórios observados."
+    label="Análise do Juízo"
+    description="Veja como fatos, pedidos e teses aparecem nas decisões encontradas."
     active={isDecisionIntelligenceActive}
     badge="DESTAQUE"
   />

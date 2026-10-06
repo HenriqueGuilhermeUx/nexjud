@@ -1,0 +1,55 @@
+name: NexJud Store Builds
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Store build target
+        required: true
+        default: all
+        type: choice
+        options: [all, android, ios]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexjud-store-build
+  cancel-in-progress: false
+
+jobs:
+  android:
+    if: ${{ inputs.platform == 'all' || inputs.platform == 'android' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --ignore-scripts=false
+      - run: npx tsc --noEmit
+      - name: Build Google Play AAB
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli@latest build --platform android --profile production --non-interactive --wait
+
+  ios:
+    if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --ignore-scripts=false
+      - run: npx tsc --noEmit
+      - name: Build App Store IPA
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli@latest build --platform ios --profile production --non-interactive --wait

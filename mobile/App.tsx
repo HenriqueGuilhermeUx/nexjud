@@ -162,7 +162,7 @@ function HomeScreen({ navigation }: any) {
   function analyzeCourt() {
     const value = processNumber.trim()
     if (!value) return Alert.alert("Informe o processo", "Digite ou cole o número CNJ para iniciar a análise.")
-    Linking.openURL(`${WEB_URL}/dashboard/decision-intelligence?cnj=${encodeURIComponent(value)}`)
+    navigation.getParent()?.navigate("CourtAnalysis", { cnj: value })
   }
 
   const actions = [
@@ -549,6 +549,65 @@ function Menu({ label, onPress, danger = false }: any) {
   return <Pressable style={styles.menu} onPress={onPress}><Text style={[styles.body, danger && { color: colors.danger }]}>{label}</Text><ChevronRight color={danger ? colors.danger : colors.muted} size={20} /></Pressable>
 }
 
+function CourtAnalysisScreen({ route, navigation }: any) {
+  const [cnj, setCnj] = useState(route.params?.cnj || "")
+  const [thesis, setThesis] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<any>(null)
+
+  async function analyze() {
+    const processNumber = cnj.trim()
+    if (!processNumber) return Alert.alert("Informe o processo", "Digite ou cole o número CNJ.")
+    setLoading(true); setResult(null)
+    try {
+      const { data, error } = await supabase.functions.invoke("decision-intelligence", {
+        body: { cnj: processNumber, argument: thesis.trim() || undefined, source: "mobile" },
+      })
+      if (error) throw error
+      setResult(data)
+    } catch (error: any) {
+      Alert.alert("Análise indisponível", error?.message || "Não foi possível concluir a análise agora.")
+    } finally { setLoading(false) }
+  }
+
+  const sample = result?.decisionsAnalyzed ?? result?.sampledCases ?? result?.evidence?.length ?? 0
+  const found = result?.totalFound ?? result?.decisionsFound ?? sample
+  const favorable = result?.adherences || result?.strengths || []
+  const attention = result?.divergences || result?.risks || []
+  const opportunities = result?.opportunities || result?.recommendations || []
+  const evidence = result?.evidence || result?.decisions || []
+
+  return <ScrollView style={styles.safe} contentContainerStyle={styles.page}>
+    <Pressable onPress={() => navigation.goBack()}><Text style={styles.linkTextSmall}>← Voltar</Text></Pressable>
+    <ScreenTitle eyebrow="ANÁLISE DO JUÍZO" title="Como este juízo costuma decidir casos como o seu?" subtitle="Compare o processo com decisões públicas relevantes e confira as evidências que sustentam a análise." />
+    <View style={styles.card}>
+      <TextInput style={styles.input} placeholder="Número CNJ" placeholderTextColor={colors.muted} value={cnj} onChangeText={setCnj} autoCapitalize="none" />
+      <TextInput style={[styles.input, styles.textareaSmall]} placeholder="Opcional: tese, argumento ou ponto que você quer testar" placeholderTextColor={colors.muted} multiline value={thesis} onChangeText={setThesis} />
+      <Button label={loading ? "ANALISANDO..." : "ANALISAR PROCESSO"} onPress={analyze} disabled={loading} icon={loading ? <ActivityIndicator color="#fff" /> : <Search color="#fff" size={18} />} />
+    </View>
+    {!result ? <Empty title="Comece pelo número do processo" text="A NexJud mostrará a amostra, o período e as decisões públicas que sustentam cada padrão observado." /> : <>
+      <View style={styles.metricsRow}>
+        <Metric value={sample} label="Analisadas" icon={<Scale color={colors.primary} size={18} />} />
+        <Metric value={found} label="Encontradas" icon={<FileSearch color={colors.primary} size={18} />} />
+        <Metric value={result?.period || "—"} label="Período" icon={<CalendarDays color={colors.primary} size={18} />} />
+      </View>
+      <AnalysisBlock title="O que favorece sua tese" items={favorable} icon={<CheckCircle2 color={colors.success} size={20} />} />
+      <AnalysisBlock title="Pontos de atenção" items={attention} icon={<CircleAlert color={colors.warning} size={20} />} />
+      <AnalysisBlock title="Como fortalecer o caso" items={opportunities} icon={<Sparkles color={colors.primary} size={20} />} />
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Decisões que sustentam a análise</Text>
+        {evidence.length ? evidence.slice(0, 10).map((item: any, index: number) => <View key={item.id || index} style={styles.rowCard}><FileText color={colors.primary} size={18} /><View style={{flex:1}}><Text style={styles.body}>{item.processNumber || item.title || `Decisão ${index + 1}`}</Text><Text style={styles.helper}>{item.court || item.judgingBody || "Fonte pública"}</Text></View></View>) : <Text style={styles.helper}>Nenhuma decisão estruturada foi retornada para exibição.</Text>}
+      </View>
+    </>}
+    <Text style={styles.disclaimer}>A NexJud analisa padrões observados em decisões públicas. Não prevê nem garante o resultado do processo.</Text>
+  </ScrollView>
+}
+
+function AnalysisBlock({ title, items, icon }: any) {
+  const values = Array.isArray(items) ? items : []
+  return <View style={styles.card}><View style={styles.inline}>{icon}<Text style={styles.cardTitle}>{title}</Text></View>{values.length ? values.map((item: any, index: number) => <Text key={index} style={styles.body}>• {typeof item === "string" ? item : item.label || item.text || JSON.stringify(item)}</Text>) : <Text style={styles.helper}>Ainda não há evidência suficiente para afirmar este ponto.</Text>}</View>
+}
+
 function MainTabs() {
   return (
     <Tabs.Navigator screenOptions={{ headerShown: false, tabBarStyle: styles.tabBar, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarLabelStyle: styles.tabLabel }}>
@@ -571,7 +630,7 @@ export default function App() {
   }, [])
 
   const theme = useMemo(() => ({ ...DarkTheme, colors: { ...DarkTheme.colors, primary: colors.primary, background: colors.bg, card: colors.card, text: colors.text, border: colors.border, notification: colors.primary } }), [])
-  if (!ready) return <Loader label="Iniciando NexJud Companion..." />
+  if (!ready) return <Loader label="Iniciando NexJud..." />
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -580,7 +639,7 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {session ? <>
             <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="CaseDetail" component={CaseDetailScreen} />
+            <Stack.Screen name="CourtAnalysis" component={CourtAnalysisScreen} />\n            <Stack.Screen name="CaseDetail" component={CaseDetailScreen} />
             <Stack.Screen name="HearingPicker" component={HearingPickerScreen} />
             <Stack.Screen name="Hearing" component={HearingScreen} />
             <Stack.Screen name="Studio" component={StudioScreen} />

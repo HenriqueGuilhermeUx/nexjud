@@ -1,4 +1,4 @@
-import type { JudicialDecisionEvidence } from "./judicialDecisionSchema"
+import type { JudicialDecisionEvidence } from "./judicialDecisionSchema"\nimport { assessEvidenceQuality } from "./evidenceQuality"\nimport { hasTraceableSource } from "./provenance"
 
 export interface ObservedDecisionPattern {
   court: string
@@ -18,14 +18,14 @@ export function buildObservedDecisionPattern(items: JudicialDecisionEvidence[]):
   if (!items.length) return null
   const dates=items.map(i=>i.decisionDate).filter(Boolean).sort() as string[]
   return {
-    court: items[0].court,
-    judgingBody: items[0].judgingBody,
-    decisionsAnalyzed: items.length,
+    court: qualified[0].court,
+    judgingBody: qualified[0].judgingBody,
+    decisionsAnalyzed: qualified.length,
     period: dates.length ? `${dates[0]} a ${dates[dates.length-1]}` : undefined,
-    recurringTheses: count(items.flatMap(i=>i.legalTheses)),
-    recurringPrecedents: count(items.flatMap(i=>i.citedPrecedents)),
-    observedOutcomes: count(items.map(i=>i.observedOutcome || "")),
-    evidenceIds: items.map(i=>i.id),
+    recurringTheses: count(qualified.flatMap(i=>i.legalTheses)),
+    recurringPrecedents: count(qualified.flatMap(i=>i.citedPrecedents)),
+    observedOutcomes: count(qualified.map(i=>i.observedOutcome || "")),
+    evidenceIds: qualified.map(i=>i.id),
     warning: "Padrões observados em decisões públicas não representam previsão nem garantia de resultado.",
   }
 }

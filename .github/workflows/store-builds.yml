@@ -54,13 +54,8 @@ jobs:
           node-version: 20
       - run: npm install --ignore-scripts=false
       - run: npx tsc --noEmit
-      - name: Build App Store IPA
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: npx eas-cli@latest build --platform ios --profile production --non-interactive --wait
 
       - name: Prepare App Store Connect API key
-        if: ${{ inputs.submit_ios }}
         shell: bash
         env:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
@@ -70,6 +65,14 @@ jobs:
           test -n "$APPLE_API_KEY_ID"
           printf '%s\n' "$APPLE_API_KEY_P8" > "$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
           chmod 600 "$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
+
+      - name: Build App Store IPA
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_ASC_API_KEY_PATH: ${{ runner.temp }}/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          EXPO_ASC_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: npx eas-cli@latest build --platform ios --profile production --non-interactive --wait
 
       - name: Submit iOS build to App Store Connect
         if: ${{ inputs.submit_ios }}

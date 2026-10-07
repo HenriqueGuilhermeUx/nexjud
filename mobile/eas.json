@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 12.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -22,9 +22,18 @@
       "android": {
         "buildType": "app-bundle"
       }
+    },
+    "ios-api-ci": {
+      "extends": "production",
+      "credentialsSource": "local",
+      "autoIncrement": false
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6820244418"
+      }
+    }
   }
 }

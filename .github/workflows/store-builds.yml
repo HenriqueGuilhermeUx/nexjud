@@ -9,6 +9,11 @@ on:
         default: all
         type: choice
         options: [all, android, ios]
+      submit_ios:
+        description: Submit iOS build to App Store Connect after a successful build
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -53,3 +58,26 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: npx eas-cli@latest build --platform ios --profile production --non-interactive --wait
+
+      - name: Prepare App Store Connect API key
+        if: ${{ inputs.submit_ios }}
+        shell: bash
+        env:
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          test -n "$APPLE_API_KEY_P8"
+          test -n "$APPLE_API_KEY_ID"
+          printf '%s\n' "$APPLE_API_KEY_P8" > "$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
+          chmod 600 "$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
+
+      - name: Submit iOS build to App Store Connect
+        if: ${{ inputs.submit_ios }}
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_ASC_API_KEY_PATH: ${{ runner.temp }}/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          EXPO_ASC_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          EXPO_ASC_APP_ID: ${{ secrets.APPLE_APP_ID }}
+        run: npx eas-cli@latest submit --platform ios --profile production --latest --non-interactive

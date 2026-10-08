@@ -305,21 +305,7 @@ jobs:
         run: |
           set -euo pipefail
           IPA="$GITHUB_WORKSPACE/NexJud-AppStore.ipa"
-          INFO_ENTRY="$(unzip -Z1 "$IPA" | grep -E '^Payload/[^/]+\.app/Info\.plist        run: |
-          set -euo pipefail
-          eas submit --platform ios --profile production --path "$GITHUB_WORKSPACE/NexJud-AppStore.ipa" --non-interactive --wait
-
-      - name: Upload signed IPA artifact
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: NexJud-IOS
-          path: |
-            NexJud-AppStore.ipa
-            SHA256SUMS-IOS.txt
-          if-no-files-found: error
-          retention-days: 30
- | head -n1)"
+          INFO_ENTRY="$(unzip -Z1 "$IPA" | grep '/Info.plist' | head -n1)"
           test -n "$INFO_ENTRY"
           unzip -p "$IPA" "$INFO_ENTRY" > "$RUNNER_TEMP/NexJud-Info.plist"
           SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$RUNNER_TEMP/NexJud-Info.plist")"

@@ -301,6 +301,36 @@ jobs:
           test -s "$IPA"
           shasum -a 256 "$IPA" > "$GITHUB_WORKSPACE/SHA256SUMS-IOS.txt"
 
+      - name: Verify final NexJud IPA before upload
+        run: |
+          set -euo pipefail
+          IPA="$GITHUB_WORKSPACE/NexJud-AppStore.ipa"
+          INFO_ENTRY="$(unzip -Z1 "$IPA" | grep -E '^Payload/[^/]+\.app/Info\.plist        run: |
+          set -euo pipefail
+          eas submit --platform ios --profile production --path "$GITHUB_WORKSPACE/NexJud-AppStore.ipa" --non-interactive --wait
+
+      - name: Upload signed IPA artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NexJud-IOS
+          path: |
+            NexJud-AppStore.ipa
+            SHA256SUMS-IOS.txt
+          if-no-files-found: error
+          retention-days: 30
+ | head -n1)"
+          test -n "$INFO_ENTRY"
+          unzip -p "$IPA" "$INFO_ENTRY" > "$RUNNER_TEMP/NexJud-Info.plist"
+          SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$RUNNER_TEMP/NexJud-Info.plist")"
+          BUILD_NUMBER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$RUNNER_TEMP/NexJud-Info.plist")"
+          BUNDLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$RUNNER_TEMP/NexJud-Info.plist")"
+          echo "Embedded NexJud version=$SHORT_VERSION build=$BUILD_NUMBER bundle=$BUNDLE"
+          test "$SHORT_VERSION" = "1.0.1"
+          test "$BUILD_NUMBER" = "1"
+          test "$BUNDLE" = "com.nexjud.companion"
+          echo "PASS: final NexJud IPA identity verified."
+
       - name: Upload NexJud to TestFlight
         run: |
           set -euo pipefail

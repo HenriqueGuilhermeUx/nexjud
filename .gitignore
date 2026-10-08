@@ -33,3 +33,11 @@ dev-dist/
 
 # OS
 Thumbs.db
+
+# Apple signing material - never commit
+*.p8
+*.p12
+*.key
+*.mobileprovision
+credentials.json
+mobile/ios/certs/

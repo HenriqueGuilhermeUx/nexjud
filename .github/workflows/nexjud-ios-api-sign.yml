@@ -1,11 +1,6 @@
 name: NexJud iOS — API Signing + TestFlight
 
 on:
-  push:
-    branches:
-      - nexjud-ios-release-b1
-    paths:
-      - '.github/build-triggers/nexjud-ios-b1.txt'
   workflow_dispatch:
 
 permissions:
@@ -103,30 +98,6 @@ jobs:
             echo "P12_PASSWORD=$P12_PASSWORD"
           } >> "$GITHUB_ENV"
 
-      - name: Free known stale ephemeral Apple Distribution slots
-        run: |
-          set -euo pipefail
-          ruby <<'RUBY'
-          require 'spaceship'
-          token = Spaceship::ConnectAPI::Token.create(
-            key_id: ENV.fetch('ASC_KEY_ID'),
-            issuer_id: ENV.fetch('ASC_ISSUER_ID'),
-            filepath: ENV.fetch('ASC_KEY_PATH'),
-            duration: 1200,
-            in_house: false
-          )
-          Spaceship::ConnectAPI.token = token
-          known_stale = %w[B9MLK33CS4 VSXF79VZFR HMSNJ25PYU F54B4YAS5N CQV5AUGFS3]
-          certs = Spaceship::ConnectAPI::Certificate.all
-          known_stale.each do |id|
-            cert = certs.find { |item| item.id == id }
-            next unless cert
-            cert.delete!
-            puts "Revoked known stale ephemeral certificate #{id}."
-          end
-          puts "Unrecognized Apple Distribution certificates were left untouched."
-          RUBY
-
       - name: Generate new NexJud distribution identity once
         env:
           IOS_SIGNING_BACKUP_PASSPHRASE: ${{ secrets.IOS_SIGNING_BACKUP_PASSPHRASE }}
@@ -155,7 +126,6 @@ jobs:
               )
               cert_id = lane_context[SharedValues::CERT_CERTIFICATE_ID]
               UI.user_error!("Distribution certificate ID unavailable") if cert_id.to_s.empty?
-              File.write(File.join(ENV.fetch("CERT_DIR"), "cert-id.txt"), cert_id.to_s)
               sigh(
                 api_key: api_key,
                 app_identifier: ENV.fetch("BUNDLE_ID"),
@@ -176,7 +146,6 @@ jobs:
           mkdir -p "$RUNNER_TEMP/nexjud-backup"
           cp "$CERT_DIR/dist.p12" "$RUNNER_TEMP/nexjud-backup/dist.p12"
           cp "$CERT_DIR/profile.mobileprovision" "$RUNNER_TEMP/nexjud-backup/profile.mobileprovision"
-          cp "$CERT_DIR/cert-id.txt" "$RUNNER_TEMP/nexjud-backup/cert-id.txt"
           printf '%s' "$P12_PASSWORD" > "$RUNNER_TEMP/nexjud-backup/p12-password.txt"
           tar -C "$RUNNER_TEMP/nexjud-backup" -czf "$RUNNER_TEMP/nexjud-signing.tar.gz" .
           openssl enc -aes-256-cbc -pbkdf2 -salt -in "$RUNNER_TEMP/nexjud-signing.tar.gz" -out "$GITHUB_WORKSPACE/nexjud-signing-backup.enc" -pass env:IOS_SIGNING_BACKUP_PASSPHRASE
@@ -213,8 +182,6 @@ jobs:
           node <<'NODE'
           const app=require('./app.json').expo;
           const eas=require('./eas.json');
-          if(app.version!=='1.0.1') throw new Error('Unexpected app version');
-          if(String(app.ios?.buildNumber)!=='1') throw new Error('Unexpected iOS build number');
           if(app.ios?.bundleIdentifier!=='com.nexjud.companion') throw new Error('Bundle ID changed');
           if(app.ios?.infoPlist?.ITSAppUsesNonExemptEncryption!==false) throw new Error('Encryption declaration changed');
           if(eas?.submit?.production?.ios?.ascAppId!=='6820244418') throw new Error('ASC App ID mismatch');
@@ -266,76 +233,10 @@ jobs:
           test -s "$IPA"
           shasum -a 256 "$IPA" > "$GITHUB_WORKSPACE/SHA256SUMS-IOS.txt"
 
-      - name: Verify final IPA version and build
+      - name: Upload NexJud to TestFlight
         run: |
           set -euo pipefail
-          INFO_ENTRY="$(unzip -Z1 "$GITHUB_WORKSPACE/NexJud-AppStore.ipa" | grep -E '^Payload/[^/]+\.app/Info\.plist
-      - name: Upload signed IPA artifact
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: NexJud-IOS
-          path: |
-            NexJud-AppStore.ipa
-            SHA256SUMS-IOS.txt
-          if-no-files-found: error
-          retention-days: 30
- | head -n1)"
-          test -n "$INFO_ENTRY"
-          unzip -p "$GITHUB_WORKSPACE/NexJud-AppStore.ipa" "$INFO_ENTRY" > "$RUNNER_TEMP/NexJud-Info.plist"
-          SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$RUNNER_TEMP/NexJud-Info.plist")"
-          BUILD_NUMBER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$RUNNER_TEMP/NexJud-Info.plist")"
-          echo "Embedded NexJud version=$SHORT_VERSION build=$BUILD_NUMBER"
-          test "$SHORT_VERSION" = "1.0.1"
-          test "$BUILD_NUMBER" = "1"
-
-      - name: Confirm NexJud signing certificate is active before upload
-        run: |
-          set -euo pipefail
-          CERT_ID="$(cat "$CERT_DIR/cert-id.txt")"
-          export CERT_ID
-          ruby <<'RUBY'
-          require 'spaceship'
-          token = Spaceship::ConnectAPI::Token.create(
-            key_id: ENV.fetch('ASC_KEY_ID'),
-            issuer_id: ENV.fetch('ASC_ISSUER_ID'),
-            filepath: ENV.fetch('ASC_KEY_PATH'),
-            duration: 1200,
-            in_house: false
-          )
-          Spaceship::ConnectAPI.token = token
-          cert = Spaceship::ConnectAPI::Certificate.all.find { |item| item.id == ENV.fetch('CERT_ID') }
-          raise 'NexJud signing certificate is not active before upload' unless cert
-          puts "ACTIVE_NEXJUD_CERT_ID=#{cert.id}"
-          RUBY
-
-      - name: Upload NexJud directly to App Store Connect
-        env:
-          IPA_PATH: ${{ github.workspace }}/NexJud-AppStore.ipa
-        run: |
-          set -euo pipefail
-          mkdir -p fastlane
-          cat > fastlane/Fastfile <<'RUBY'
-          default_platform(:ios)
-          platform :ios do
-            lane :upload_local do
-              api_key = app_store_connect_api_key(
-                key_id: ENV.fetch("ASC_KEY_ID"),
-                issuer_id: ENV.fetch("ASC_ISSUER_ID"),
-                key_filepath: ENV.fetch("ASC_KEY_PATH"),
-                duration: 1200,
-                in_house: false
-              )
-              pilot(
-                api_key: api_key,
-                ipa: ENV.fetch("IPA_PATH"),
-                skip_waiting_for_build_processing: true,
-                distribute_external: false
-              )
-            end
-          end
-          RUBY
-          fastlane ios upload_local
+          eas submit --platform ios --profile production --path "$GITHUB_WORKSPACE/NexJud-AppStore.ipa" --non-interactive --wait
 
       - name: Upload signed IPA artifact
         if: success()

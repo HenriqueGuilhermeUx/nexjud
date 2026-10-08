@@ -304,18 +304,31 @@ jobs:
       - name: Verify final NexJud IPA before upload
         run: |
           set -euo pipefail
-          IPA="$GITHUB_WORKSPACE/NexJud-AppStore.ipa"
-          INFO_ENTRY="$(unzip -Z1 "$IPA" | grep '/Info.plist' | head -n1)"
-          test -n "$INFO_ENTRY"
-          unzip -p "$IPA" "$INFO_ENTRY" > "$RUNNER_TEMP/NexJud-Info.plist"
-          SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$RUNNER_TEMP/NexJud-Info.plist")"
-          BUILD_NUMBER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$RUNNER_TEMP/NexJud-Info.plist")"
-          BUNDLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$RUNNER_TEMP/NexJud-Info.plist")"
-          echo "Embedded NexJud version=$SHORT_VERSION build=$BUILD_NUMBER bundle=$BUNDLE"
-          test "$SHORT_VERSION" = "1.0.1"
-          test "$BUILD_NUMBER" = "1"
-          test "$BUNDLE" = "com.nexjud.companion"
-          echo "PASS: final NexJud IPA identity verified."
+          python3 <<'PY'
+          import os, plistlib, zipfile
+          ipa = os.path.join(os.environ["GITHUB_WORKSPACE"], "NexJud-AppStore.ipa")
+          with zipfile.ZipFile(ipa) as z:
+              infos = [
+                  n for n in z.namelist()
+                  if n.startswith("Payload/")
+                  and n.endswith(".app/Info.plist")
+                  and n.count("/") == 2
+              ]
+              if len(infos) != 1:
+                  raise SystemExit(f"Expected one root app Info.plist, found: {infos}")
+              info = plistlib.loads(z.read(infos[0]))
+          version = str(info.get("CFBundleShortVersionString", ""))
+          build = str(info.get("CFBundleVersion", ""))
+          bundle = str(info.get("CFBundleIdentifier", ""))
+          print(f"Embedded NexJud version={version} build={build} bundle={bundle}")
+          if version != "1.0.1":
+              raise SystemExit(f"Unexpected version: {version}")
+          if build != "1":
+              raise SystemExit(f"Unexpected build: {build}")
+          if bundle != "com.nexjud.companion":
+              raise SystemExit(f"Unexpected bundle: {bundle}")
+          print("PASS: final NexJud IPA identity verified.")
+          PY
 
       - name: Upload NexJud to TestFlight
         run: |

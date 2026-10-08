@@ -161,6 +161,39 @@ jobs:
           NODE
           npx tsc --noEmit
 
+      - name: Validate and repair PNG asset chunk checksums
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import struct, zlib
+          for path in Path("assets").glob("*.png"):
+              data = path.read_bytes()
+              if not data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+                  raise SystemExit(f"Invalid PNG signature: {path}")
+              out = bytearray(data[:8])
+              pos = 8
+              fixes = 0
+              while pos + 12 <= len(data):
+                  size = struct.unpack(">I", data[pos:pos+4])[0]
+                  end = pos + 12 + size
+                  if end > len(data):
+                      raise SystemExit(f"Truncated PNG chunk: {path}")
+                  chunk = data[pos+4:pos+8+size]
+                  old_crc = struct.unpack(">I", data[pos+8+size:end])[0]
+                  crc = zlib.crc32(chunk) & 0xffffffff
+                  out += data[pos:pos+8+size] + struct.pack(">I", crc)
+                  fixes += (old_crc != crc)
+                  pos = end
+                  if chunk[:4] == b"IEND":
+                      break
+              if pos != len(data):
+                  raise SystemExit(f"Invalid PNG trailing data: {path}")
+              if fixes:
+                  path.write_bytes(out)
+              print(f"{path}: {fixes} PNG CRC corrections")
+          PY
+
       - name: Build signed App Store IPA locally
         env:
           NODE_ENV: production

@@ -104,6 +104,45 @@ jobs:
             echo "P12_PASSWORD=$P12_PASSWORD"
           } >> "$GITHUB_ENV"
 
+      - name: Download reusable NexJud signing backup
+        uses: actions/download-artifact@v4
+        with:
+          name: NexJud-Encrypted-Apple-Signing-Backup
+          path: nexjud-signing-restore
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 37824029137
+
+      - name: Restore reusable NexJud signing identity
+        id: restore_signing
+        env:
+          IOS_SIGNING_BACKUP_PASSPHRASE: ${{ secrets.IOS_SIGNING_BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          RESTORE_DIR="$RUNNER_TEMP/nexjud-signing-restore"
+          mkdir -p "$RESTORE_DIR"
+          test -s "$GITHUB_WORKSPACE/nexjud-signing-restore/nexjud-signing-backup.enc"
+          cp "$GITHUB_WORKSPACE/nexjud-signing-restore/nexjud-signing-backup.enc" "$GITHUB_WORKSPACE/nexjud-signing-backup.enc"
+          openssl enc -d -aes-256-cbc -pbkdf2 \
+            -in "$GITHUB_WORKSPACE/nexjud-signing-restore/nexjud-signing-backup.enc" \
+            -out "$RESTORE_DIR/signing.tar.gz" \
+            -pass env:IOS_SIGNING_BACKUP_PASSPHRASE
+          mkdir -p "$RESTORE_DIR/unpacked"
+          tar -C "$RESTORE_DIR/unpacked" -xzf "$RESTORE_DIR/signing.tar.gz"
+          test -s "$RESTORE_DIR/unpacked/dist.p12"
+          test -s "$RESTORE_DIR/unpacked/profile.mobileprovision"
+          test -s "$RESTORE_DIR/unpacked/p12-password.txt"
+          cp "$RESTORE_DIR/unpacked/dist.p12" "$CERT_DIR/dist.p12"
+          cp "$RESTORE_DIR/unpacked/profile.mobileprovision" "$CERT_DIR/profile.mobileprovision"
+          P12_PASSWORD="$(cat "$RESTORE_DIR/unpacked/p12-password.txt")"
+          echo "::add-mask::$P12_PASSWORD"
+          echo "P12_PASSWORD=$P12_PASSWORD" >> "$GITHUB_ENV"
+          security import "$CERT_DIR/dist.p12" -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+          echo "restored=true" >> "$GITHUB_OUTPUT"
+          echo "PASS: NexJud reusable signing identity restored."
+
       - name: Free known stale Apple Distribution slots
         run: |
           set -euo pipefail

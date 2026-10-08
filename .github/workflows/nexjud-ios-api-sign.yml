@@ -1,6 +1,11 @@
 name: NexJud iOS — API Signing + TestFlight
 
 on:
+  push:
+    branches:
+      - nexjud-ios-release-b1
+    paths:
+      - '.github/build-triggers/nexjud-ios-b1.txt'
   workflow_dispatch:
 
 permissions:

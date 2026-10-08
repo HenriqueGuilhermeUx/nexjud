@@ -1,1 +1,3 @@
-Build NexJud 1.0.1 iOS build 1. Free only known stale CI certificates, preserve the new encrypted signing backup, build the IPA, and submit to TestFlight.
+Build NexJud 1.0.1 iOS build 1 after replacing corrupted PNG assets.
+Reuse the encrypted Apple Distribution signing identity from run 37824029137.
+Validate the final IPA identity before TestFlight upload.

@@ -1,4 +1,4 @@
 Build NexJud 1.0.1 iOS build 1.
-Use the validated adaptive PNG blob for icon and splash.
+Use the validated PNG assets.
 Restore the reusable Apple signing backup from run 37824029137.
-Validate the final IPA identity before TestFlight upload.
+Validate the root app Info.plist from the final IPA, then upload to TestFlight.

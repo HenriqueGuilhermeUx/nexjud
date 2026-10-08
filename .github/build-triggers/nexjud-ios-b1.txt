@@ -1,1 +1,1 @@
-Build NexJud 1.0.1 iOS build 1 using stabilized signing and direct App Store Connect upload.
+Build NexJud 1.0.1 iOS build 1. Free only known stale CI certificates, preserve the new encrypted signing backup, build the IPA, and submit to TestFlight.

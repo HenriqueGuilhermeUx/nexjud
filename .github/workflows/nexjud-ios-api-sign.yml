@@ -144,6 +144,7 @@ jobs:
           echo "PASS: NexJud reusable signing identity restored."
 
       - name: Free known stale Apple Distribution slots
+        if: steps.restore_signing.outputs.restored != 'true'
         run: |
           set -euo pipefail
           ruby <<'RUBY'
@@ -165,6 +166,7 @@ jobs:
           RUBY
 
       - name: Generate new NexJud distribution identity once
+        if: steps.restore_signing.outputs.restored != 'true'
         env:
           IOS_SIGNING_BACKUP_PASSPHRASE: ${{ secrets.IOS_SIGNING_BACKUP_PASSPHRASE }}
         run: |

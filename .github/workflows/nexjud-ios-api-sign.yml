@@ -88,52 +88,29 @@ jobs:
             echo "P12_PASSWORD=$P12_PASSWORD"
           } >> "$GITHUB_ENV"
 
-      - name: Generate Apple Distribution certificate and App Store profile via API
+      - name: Reuse existing Apple distribution identity
+        env:
+          IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
+          IOS_DISTRIBUTION_P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
         run: |
           set -euo pipefail
-          mkdir -p fastlane
-          cat > fastlane/Fastfile <<'RUBY'
-          default_platform(:ios)
-          platform :ios do
-            lane :bootstrap_signing do
-              api_key = app_store_connect_api_key(
-                key_id: ENV.fetch("ASC_KEY_ID"),
-                issuer_id: ENV.fetch("ASC_ISSUER_ID"),
-                key_filepath: ENV.fetch("ASC_KEY_PATH"),
-                duration: 1200,
-                in_house: false
-              )
-              cert(
-                api_key: api_key,
-                team_id: ENV.fetch("APPLE_TEAM_ID"),
-                development: false,
-                generate_apple_certs: true,
-                output_path: ENV.fetch("CERT_DIR"),
-                keychain_path: ENV.fetch("KEYCHAIN_PATH"),
-                keychain_password: ENV.fetch("KEYCHAIN_PASSWORD")
-              )
-              cert_id = lane_context[SharedValues::CERT_CERTIFICATE_ID]
-              UI.user_error!("Distribution certificate ID unavailable") if cert_id.to_s.empty?
-              sigh(
-                api_key: api_key,
-                app_identifier: ENV.fetch("BUNDLE_ID"),
-                team_id: ENV.fetch("APPLE_TEAM_ID"),
-                force: true,
-                filename: "profile.mobileprovision",
-                output_path: ENV.fetch("CERT_DIR"),
-                cert_id: cert_id
-              )
-            end
-          end
-          RUBY
-          fastlane ios bootstrap_signing
+          if [[ -z "${IOS_DISTRIBUTION_P12_BASE64:-}" || -z "${IOS_DISTRIBUTION_P12_PASSWORD:-}" || -z "${IOS_PROVISIONING_PROFILE_BASE64:-}" ]]; then
+            echo "::error::Existing Apple distribution certificate limit reached. Reuse an existing signing identity via repository secrets IOS_DISTRIBUTION_P12_BASE64, IOS_DISTRIBUTION_P12_PASSWORD and IOS_PROVISIONING_PROFILE_BASE64. No new certificates will be created or revoked."
+            exit 1
+          fi
+          printf '%s' "$IOS_DISTRIBUTION_P12_BASE64" | base64 --decode > "$CERT_DIR/existing.p12"
+          printf '%s' "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$CERT_DIR/profile.mobileprovision"
+          security import "$CERT_DIR/existing.p12" -k "$KEYCHAIN_PATH" -P "$IOS_DISTRIBUTION_P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
           test -s "$CERT_DIR/profile.mobileprovision"
+          echo "P12_PASSWORD=$IOS_DISTRIBUTION_P12_PASSWORD" >> "$GITHUB_ENV"
 
       - name: Export signing identity for local EAS build
         run: |
           set -euo pipefail
-          security export -k "$KEYCHAIN_PATH" -t identities -f pkcs12 -P "$P12_PASSWORD" -o "$GITHUB_WORKSPACE/mobile/ios/certs/dist.p12"
+          cp "$CERT_DIR/existing.p12" "$GITHUB_WORKSPACE/mobile/ios/certs/dist.p12"
           cp "$CERT_DIR/profile.mobileprovision" "$GITHUB_WORKSPACE/mobile/ios/certs/profile.mobileprovision"
           test -s "$GITHUB_WORKSPACE/mobile/ios/certs/dist.p12"
           test -s "$GITHUB_WORKSPACE/mobile/ios/certs/profile.mobileprovision"
@@ -169,7 +146,7 @@ jobs:
           import struct, zlib
           for path in Path("assets").glob("*.png"):
               data = path.read_bytes()
-              if not data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+              if not data.startswith(bytes.fromhex("89504e470d0a1a0a")):
                   raise SystemExit(f"Invalid PNG signature: {path}")
               out = bytearray(data[:8])
               pos = 8

@@ -1,0 +1,1 @@
+Build NexJud 1.0.1 iOS build 1 using stabilized signing and direct App Store Connect upload.

@@ -12,6 +12,7 @@ import PrivacyPolicy from "@/pages/PrivacyPolicy"
 import TermsOfUse from "@/pages/TermsOfUse"
 import AccountDeletion from "@/pages/AccountDeletion"
 import DataDeletion from "@/pages/DataDeletion"
+import Support from "@/pages/Support"
 import Dashboard from "@/pages/Dashboard"
 import Onboarding from "@/pages/Onboarding"
 import ProcessCheck from "@/pages/ProcessCheck"
@@ -66,7 +67,7 @@ export default function App() {
   return <AuthProvider><BrowserRouter><Routes>
     <Route path="/" element={<Landing />} />
     <Route path="/companion" element={<Companion />} />
-    <Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfUse />} /><Route path="/account-deletion" element={<AccountDeletion />} /><Route path="/data-deletion" element={<DataDeletion />} />
+    <Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfUse />} /><Route path="/support" element={<Support />} /><Route path="/account-deletion" element={<AccountDeletion />} /><Route path="/data-deletion" element={<DataDeletion />} />
     <Route path="/login" element={<Login />} /><Route path="/welcome" element={<Welcome />} /><Route path="/tutorial" element={<Tutorial />} /><Route path="/pricing" element={<PricingPage />} /><Route path="/upgrade" element={<UpgradePage />} /><Route path="onboarding" element={<Onboarding />} /><Route path="setup-oab" element={<SetupOAB />} />
     <Route path="/dashboard" element={<ProtectedRoute><SubscriptionGate><Dashboard /></SubscriptionGate></ProtectedRoute>}>
       <Route index element={<HomeDashboard />} /><Route path="decision-intelligence" element={<DecisionIntelligence />} /><Route path="ai-copilot" element={<AICopilot />} /><Route path="ai-copilot-history" element={<AICopilotHistory />} /><Route path="legal-chat" element={<LegalChat />} /><Route path="knowledge-base" element={<KnowledgeBase />} /><Route path="legal-memory" element={<LegalMemory />} /><Route path="legal-cases" element={<LegalCases />} /><Route path="live-dossier" element={<LiveDossier />} /><Route path="office-intelligence" element={<OfficeIntelligence />} /><Route path="notifications" element={<NotificationCenter />} /><Route path="onboarding" element={<Onboarding />} /><Route path="process-check" element={<ProcessCheck />} /><Route path="predictive" element={<PredictiveAI />} /><Route path="jurisprudence" element={<Jurisprudence />} /><Route path="red-team" element={<RedTeam />} /><Route path="reports" element={<StrategicReport />} /><Route path="history" element={<History />} /><Route path="red-team-simulator" element={<RedTeamSimulator />} /><Route path="draft-generator" element={<DraftGenerator />} /><Route path="draft-history" element={<DraftHistory />} /><Route path="judge-simulator" element={<JudgeSimulator />} /><Route path="judge-history" element={<JudgeHistory />} /><Route path="process-portfolio" element={<ProcessPortfolio />} /><Route path="enterprise-command-center" element={<EnterpriseCommandCenter />} /><Route path="chief-legal-officer" element={<ChiefLegalOfficer />} /><Route path="jurisprudence-library" element={<JurisprudenceLibrary />} /><Route path="precedents" element={<Precedents />} /><Route path="precedent-intelligence" element={<PrecedentIntelligence />} /><Route path="cnj-processes" element={<CNJProcesses />} />

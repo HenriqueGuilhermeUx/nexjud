@@ -103,6 +103,27 @@ jobs:
             echo "P12_PASSWORD=$P12_PASSWORD"
           } >> "$GITHUB_ENV"
 
+      - name: Free known stale Apple Distribution slots
+        run: |
+          set -euo pipefail
+          ruby <<'RUBY'
+          require 'spaceship'
+          token = Spaceship::ConnectAPI::Token.create(
+            key_id: ENV.fetch('ASC_KEY_ID'),
+            issuer_id: ENV.fetch('ASC_ISSUER_ID'),
+            filepath: ENV.fetch('ASC_KEY_PATH'),
+            duration: 1200,
+            in_house: false
+          )
+          Spaceship::ConnectAPI.token = token
+          %w[B9MLK33CS4 CQV5AUGFS3].each do |id|
+            cert = Spaceship::ConnectAPI::Certificate.all.find { |item| item.id == id }
+            next unless cert
+            cert.delete!
+            puts "Revoked known stale certificate #{id}."
+          end
+          RUBY
+
       - name: Generate new NexJud distribution identity once
         env:
           IOS_SIGNING_BACKUP_PASSPHRASE: ${{ secrets.IOS_SIGNING_BACKUP_PASSPHRASE }}

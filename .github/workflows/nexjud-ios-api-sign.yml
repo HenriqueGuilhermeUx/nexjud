@@ -68,6 +68,16 @@ jobs:
           echo "EXPO_APPLE_TEAM_ID=$APPLE_TEAM_ID" >> "$GITHUB_ENV"
           echo "EXPO_APPLE_TEAM_TYPE=INDIVIDUAL" >> "$GITHUB_ENV"
 
+      - name: Require persistent encrypted signing backup
+        env:
+          IOS_SIGNING_BACKUP_PASSPHRASE: ${{ secrets.IOS_SIGNING_BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${IOS_SIGNING_BACKUP_PASSPHRASE:-}" || ${#IOS_SIGNING_BACKUP_PASSPHRASE} -lt 24 ]]; then
+            echo "::error::Set IOS_SIGNING_BACKUP_PASSPHRASE (24+ random characters) as a NexJud Actions repository secret before generating a new Apple certificate. This prevents losing the new private key."
+            exit 1
+          fi
+
       - name: Prepare isolated signing keychain
         run: |
           set -euo pipefail
@@ -88,29 +98,71 @@ jobs:
             echo "P12_PASSWORD=$P12_PASSWORD"
           } >> "$GITHUB_ENV"
 
-      - name: Reuse existing Apple distribution identity
+      - name: Generate new NexJud distribution identity once
         env:
-          IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
-          IOS_DISTRIBUTION_P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
-          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          IOS_SIGNING_BACKUP_PASSPHRASE: ${{ secrets.IOS_SIGNING_BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
-          if [[ -z "${IOS_DISTRIBUTION_P12_BASE64:-}" || -z "${IOS_DISTRIBUTION_P12_PASSWORD:-}" || -z "${IOS_PROVISIONING_PROFILE_BASE64:-}" ]]; then
-            echo "::error::Existing Apple distribution certificate limit reached. Reuse an existing signing identity via repository secrets IOS_DISTRIBUTION_P12_BASE64, IOS_DISTRIBUTION_P12_PASSWORD and IOS_PROVISIONING_PROFILE_BASE64. No new certificates will be created or revoked."
-            exit 1
-          fi
-          printf '%s' "$IOS_DISTRIBUTION_P12_BASE64" | base64 --decode > "$CERT_DIR/existing.p12"
-          printf '%s' "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$CERT_DIR/profile.mobileprovision"
-          security import "$CERT_DIR/existing.p12" -k "$KEYCHAIN_PATH" -P "$IOS_DISTRIBUTION_P12_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          mkdir -p fastlane
+          cat > fastlane/Fastfile <<'RUBY'
+          default_platform(:ios)
+          platform :ios do
+            lane :bootstrap_signing do
+              api_key = app_store_connect_api_key(
+                key_id: ENV.fetch("ASC_KEY_ID"),
+                issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+                key_filepath: ENV.fetch("ASC_KEY_PATH"),
+                duration: 1200,
+                in_house: false
+              )
+              cert(
+                api_key: api_key,
+                team_id: ENV.fetch("APPLE_TEAM_ID"),
+                development: false,
+                generate_apple_certs: true,
+                output_path: ENV.fetch("CERT_DIR"),
+                keychain_path: ENV.fetch("KEYCHAIN_PATH"),
+                keychain_password: ENV.fetch("KEYCHAIN_PASSWORD")
+              )
+              cert_id = lane_context[SharedValues::CERT_CERTIFICATE_ID]
+              UI.user_error!("Distribution certificate ID unavailable") if cert_id.to_s.empty?
+              sigh(
+                api_key: api_key,
+                app_identifier: ENV.fetch("BUNDLE_ID"),
+                team_id: ENV.fetch("APPLE_TEAM_ID"),
+                force: true,
+                filename: "profile.mobileprovision",
+                output_path: ENV.fetch("CERT_DIR"),
+                cert_id: cert_id
+              )
+            end
+          end
+          RUBY
+          fastlane ios bootstrap_signing
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
           test -s "$CERT_DIR/profile.mobileprovision"
-          echo "P12_PASSWORD=$IOS_DISTRIBUTION_P12_PASSWORD" >> "$GITHUB_ENV"
+          security export -k "$KEYCHAIN_PATH" -t identities -f pkcs12 -P "$P12_PASSWORD" -o "$CERT_DIR/dist.p12"
+          test -s "$CERT_DIR/dist.p12"
+          mkdir -p "$RUNNER_TEMP/nexjud-backup"
+          cp "$CERT_DIR/dist.p12" "$RUNNER_TEMP/nexjud-backup/dist.p12"
+          cp "$CERT_DIR/profile.mobileprovision" "$RUNNER_TEMP/nexjud-backup/profile.mobileprovision"
+          printf '%s' "$P12_PASSWORD" > "$RUNNER_TEMP/nexjud-backup/p12-password.txt"
+          tar -C "$RUNNER_TEMP/nexjud-backup" -czf "$RUNNER_TEMP/nexjud-signing.tar.gz" .
+          openssl enc -aes-256-cbc -pbkdf2 -salt -in "$RUNNER_TEMP/nexjud-signing.tar.gz" -out "$GITHUB_WORKSPACE/nexjud-signing-backup.enc" -pass env:IOS_SIGNING_BACKUP_PASSPHRASE
+          test -s "$GITHUB_WORKSPACE/nexjud-signing-backup.enc"
+
+      - name: Preserve encrypted Apple signing backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: NexJud-Encrypted-Apple-Signing-Backup
+          path: nexjud-signing-backup.enc
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Export signing identity for local EAS build
         run: |
           set -euo pipefail
-          cp "$CERT_DIR/existing.p12" "$GITHUB_WORKSPACE/mobile/ios/certs/dist.p12"
+          cp "$CERT_DIR/dist.p12" "$GITHUB_WORKSPACE/mobile/ios/certs/dist.p12"
           cp "$CERT_DIR/profile.mobileprovision" "$GITHUB_WORKSPACE/mobile/ios/certs/profile.mobileprovision"
           test -s "$GITHUB_WORKSPACE/mobile/ios/certs/dist.p12"
           test -s "$GITHUB_WORKSPACE/mobile/ios/certs/profile.mobileprovision"

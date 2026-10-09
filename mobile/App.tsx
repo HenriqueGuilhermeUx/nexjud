@@ -23,6 +23,7 @@ import { DarkTheme, NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
+import { SafeAreaProvider, SafeAreaView as SafeAreaFrame } from "react-native-safe-area-context"
 import {
   ArrowRight, Bell, Brain, Briefcase, CalendarDays, Camera, CheckCircle2,
   ChevronRight, CircleAlert, Clock3, FilePlus2, FileSearch, FileText, Gavel,
@@ -181,7 +182,7 @@ function HomeScreen({ navigation }: any) {
       </View>
 
       <View style={styles.statusCard}>
-        <View style={styles.inline}><Scale color={colors.primary} size={21} /><Text style={styles.cardTitle}>Como este juízo costuma decidir casos como o seu?</Text></View>
+        <View style={styles.inline}><Scale color={colors.primary} size={21} /><Text style={[styles.cardTitle, { flex: 1 }]}>Como este juízo costuma decidir casos como o seu?</Text></View>
         <Text style={styles.body}>Compare seu processo com decisões públicas encontradas e veja evidências, pontos de atenção e caminhos para fortalecer sua estratégia.</Text>
         <TextInput style={styles.input} placeholder="Digite ou cole o número CNJ" placeholderTextColor={colors.muted} value={processNumber} onChangeText={setProcessNumber} autoCapitalize="none" />
         <Button label="ANALISAR PROCESSO" onPress={analyzeCourt} icon={<Search color="#fff" size={18} />} />
@@ -271,7 +272,7 @@ function ChatScreen() {
     <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={styles.pageFlex}>
         <ScreenTitle eyebrow="LEGAL BRAIN" title="Pergunte. Analise. Decida." subtitle="Use o contexto do caso, seus documentos e as fontes jurídicas do NexJud." />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalChips}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={styles.horizontalChips}>
           <Pressable style={[styles.selectorChip, !caseId && styles.selectorChipActive]} onPress={() => setCaseId(null)}><Text style={styles.selectorText}>Sem caso</Text></Pressable>
           {cases.map(c => <Pressable key={c.id} style={[styles.selectorChip, caseId === c.id && styles.selectorChipActive]} onPress={() => setCaseId(c.id)}><Text style={styles.selectorText} numberOfLines={1}>{c.title || c.client_name || c.process_number || "Caso"}</Text></Pressable>)}
         </ScrollView>
@@ -638,20 +639,24 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer theme={theme}>
-        <StatusBar style="light" />
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {session ? <>
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="CourtAnalysis" component={CourtAnalysisScreen} />
-            <Stack.Screen name="CaseDetail" component={CaseDetailScreen} />
-            <Stack.Screen name="HearingPicker" component={HearingPickerScreen} />
-            <Stack.Screen name="Hearing" component={HearingScreen} />
-            <Stack.Screen name="Studio" component={StudioScreen} />
-            <Stack.Screen name="MeetingNote" component={MeetingNoteScreen} />
-          </> : <Stack.Screen name="Login" component={LoginScreen} />}
-        </Stack.Navigator>
-      </NavigationContainer>
+      <SafeAreaProvider>
+        <SafeAreaFrame style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
+          <NavigationContainer theme={theme}>
+            <StatusBar style="light" />
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              {session ? <>
+                <Stack.Screen name="Main" component={MainTabs} />
+                <Stack.Screen name="CourtAnalysis" component={CourtAnalysisScreen} />
+                <Stack.Screen name="CaseDetail" component={CaseDetailScreen} />
+                <Stack.Screen name="HearingPicker" component={HearingPickerScreen} />
+                <Stack.Screen name="Hearing" component={HearingScreen} />
+                <Stack.Screen name="Studio" component={StudioScreen} />
+                <Stack.Screen name="MeetingNote" component={MeetingNoteScreen} />
+              </> : <Stack.Screen name="Login" component={LoginScreen} />}
+            </Stack.Navigator>
+          </NavigationContainer>
+        </SafeAreaFrame>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   )
 }
@@ -701,10 +706,10 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", justifyContent: "center", gap: 8, padding: 26, borderRadius: 18, borderWidth: 1, borderColor: colors.border, borderStyle: "dashed" },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   chip: { color: colors.muted, fontSize: 11, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 99, backgroundColor: colors.cardAlt },
-  horizontalChips: { gap: 8, paddingVertical: 3 },
-  selectorChip: { maxWidth: 190, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 99, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+  horizontalChips: { gap: 8, paddingVertical: 4, alignItems: "center", minHeight: 44 },
+  selectorChip: { maxWidth: 190, minHeight: 38, justifyContent: "center", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
   selectorChipActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
-  selectorText: { color: colors.text, fontSize: 13, fontWeight: "700" },
+  selectorText: { color: colors.text, fontSize: 13, lineHeight: 18, fontWeight: "700" },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   promptCard: { flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 13 },
   message: { maxWidth: "90%", borderRadius: 17, padding: 13 },

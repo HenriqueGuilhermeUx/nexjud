@@ -35,7 +35,7 @@
         "NSMicrophoneUsageDescription": "O NexJud usa o microfone para registrar reuniões e perguntas por voz.",
         "NSPhotoLibraryUsageDescription": "O NexJud acessa apenas os arquivos escolhidos pelo usuário para importar documentos jurídicos."
       },
-      "buildNumber": "1"
+      "buildNumber": "2"
     },
     "plugins": [
       "expo-secure-store",

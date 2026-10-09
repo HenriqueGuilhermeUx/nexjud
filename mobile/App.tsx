@@ -534,7 +534,7 @@ function ProfileScreen() {
       <Text style={styles.hero}>{profile?.name || profile?.full_name || "Minha conta"}</Text><Text style={styles.subtitle}>{email}</Text>
       <View style={styles.statusCard}><CheckCircle2 color={colors.success} size={21} /><View style={{ flex: 1 }}><Text style={styles.cardTitle}>NexJud sincronizado</Text><Text style={styles.helper}>Workspace e Companion compartilham conta e dados.</Text></View></View>
       <Menu label="Abrir Workspace" onPress={() => Linking.openURL(WEB_URL)} />
-      <Menu label="Gerenciar assinatura" onPress={() => open("/pricing")} />
+      {Platform.OS !== "ios" ? <Menu label="Gerenciar assinatura" onPress={() => open("/pricing")} /> : null}
       <Menu label="Política de Privacidade" onPress={() => open("/privacy")} />
       <Menu label="Termos de Uso" onPress={() => open("/terms")} />
       <Menu label="Excluir conta e dados" onPress={() => open("/account-deletion")} danger />

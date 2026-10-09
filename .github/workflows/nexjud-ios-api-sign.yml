@@ -323,7 +323,7 @@ jobs:
           print(f"Embedded NexJud version={version} build={build} bundle={bundle}")
           if version != "1.0.1":
               raise SystemExit(f"Unexpected version: {version}")
-          if build != "2":
+          if build != "3":
               raise SystemExit(f"Unexpected build: {build}")
           if bundle != "com.nexjud.companion":
               raise SystemExit(f"Unexpected bundle: {bundle}")

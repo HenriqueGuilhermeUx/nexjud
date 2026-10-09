@@ -1,4 +1,6 @@
-Build NexJud 1.0.1 iOS build 2.
-Hide the external subscription purchase CTA on iOS while keeping the web commercial flow unchanged.
+Build NexJud 1.0.1 iOS build 3.
+Fix latest-iOS safe-area layout so the status bar / Dynamic Island never overlaps NexJud content.
+Refine Home title wrapping and Legal Brain case selector rendering.
+Keep the iOS external subscription purchase CTA hidden.
 Use the validated PNG assets and reusable Apple signing backup.
 Validate the final IPA, then upload the exact local IPA directly to TestFlight with the App Store Connect API key.

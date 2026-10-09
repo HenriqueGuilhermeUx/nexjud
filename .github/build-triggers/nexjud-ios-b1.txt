@@ -1,3 +1,4 @@
-Build NexJud 1.0.1 iOS build 1.
+Build NexJud 1.0.1 iOS build 2.
+Hide the external subscription purchase CTA on iOS while keeping the web commercial flow unchanged.
 Use the validated PNG assets and reusable Apple signing backup.
 Validate the final IPA, then upload the exact local IPA directly to TestFlight with the App Store Connect API key.

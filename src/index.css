@@ -118,3 +118,49 @@
 .skeleton-heading {
   @apply h-8 skeleton mb-4;
 }
+
+/* NexJud Companion PWA: mirrors the native app shell and iOS safe areas. */
+html, body, #root {
+  min-height: 100%;
+  background: #080A10;
+}
+
+body {
+  margin: 0;
+  overscroll-behavior-y: none;
+}
+
+.nexjud-pwa-screen {
+  background: #080A10;
+  color: #F8FAFC;
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nexjud-pwa-main {
+  padding-top: max(18px, env(safe-area-inset-top));
+}
+
+.nexjud-pwa-tabbar {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nexjud-pwa-install {
+  bottom: calc(78px + env(safe-area-inset-bottom));
+}
+
+.nexjud-pwa-input {
+  font-size: 16px;
+}
+
+@media (display-mode: standalone) {
+  .nexjud-pwa-screen {
+    min-height: 100dvh;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  .nexjud-pwa-screen {
+    min-height: -webkit-fill-available;
+  }
+}

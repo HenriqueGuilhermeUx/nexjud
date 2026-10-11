@@ -8,6 +8,7 @@ import Tutorial from "@/pages/Tutorial"
 import PricingPage from "@/pages/PricingPage"
 import UpgradePage from "@/pages/UpgradePage"
 import Companion from "@/pages/Companion"
+import CompanionPWA from "@/pages/CompanionPWA"
 import PrivacyPolicy from "@/pages/PrivacyPolicy"
 import TermsOfUse from "@/pages/TermsOfUse"
 import AccountDeletion from "@/pages/AccountDeletion"
@@ -67,6 +68,7 @@ export default function App() {
   return <AuthProvider><BrowserRouter><Routes>
     <Route path="/" element={<Landing />} />
     <Route path="/companion" element={<Companion />} />
+    <Route path="/app/*" element={<CompanionPWA />} />
     <Route path="/privacy" element={<PrivacyPolicy />} /><Route path="/terms" element={<TermsOfUse />} /><Route path="/support" element={<Support />} /><Route path="/account-deletion" element={<AccountDeletion />} /><Route path="/data-deletion" element={<DataDeletion />} />
     <Route path="/login" element={<Login />} /><Route path="/welcome" element={<Welcome />} /><Route path="/tutorial" element={<Tutorial />} /><Route path="/pricing" element={<PricingPage />} /><Route path="/upgrade" element={<UpgradePage />} /><Route path="onboarding" element={<Onboarding />} /><Route path="setup-oab" element={<SetupOAB />} />
     <Route path="/dashboard" element={<ProtectedRoute><SubscriptionGate><Dashboard /></SubscriptionGate></ProtectedRoute>}>

@@ -49,7 +49,14 @@ Deno.serve(async (req) => {
     const classe = String(body.classe || "").trim()
     const assunto = String(body.assunto || "").trim()
 
+    if (!classe && !assunto) {
+      return Response.json({ error: "Informe classe ou assunto para restringir a pesquisa." }, { status: 400, headers: corsHeaders })
+    }
+
     const alias = tribunalAlias || detectAlias(cnj)
+    if (!/^(tj[a-z]{2,4}|trf[1-6]|trt(?:[1-9]|1[0-9]|2[0-4]))$/.test(alias)) {
+      return Response.json({ error: "Tribunal não suportado." }, { status: 400, headers: corsHeaders })
+    }
     const url = `https://api-publica.datajud.cnj.jus.br/api_publica_${alias}/_search`
 
     const must: any[] = []
@@ -74,7 +81,7 @@ Deno.serve(async (req) => {
       size: 50,
       query: {
         bool: {
-          must: must.length ? must : [{ match_all: {} }],
+          must,
         },
       },
     }
@@ -106,7 +113,7 @@ Deno.serve(async (req) => {
     const hits = data?.hits?.hits || []
     const cases = hits.map((h: any) => h._source).filter(Boolean)
 
-    const total = data?.hits?.total?.value || cases.length
+    const total = data?.hits?.total?.value ?? cases.length
 
     const withMovements = cases.filter((c: any) =>
       Array.isArray(c.movimentos)
@@ -140,7 +147,7 @@ Deno.serve(async (req) => {
           : "Base amostral limitada",
       source: "DataJud/CNJ",
       warning:
-        "Jurimetria baseada em amostra pública DataJud. Não representa garantia de resultado.",
+        "Sinais de movimentações em registros processuais públicos do DataJud. Não há inferência de resultado nem probabilidade de êxito.",
     }
 
     return Response.json(

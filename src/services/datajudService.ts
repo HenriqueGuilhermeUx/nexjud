@@ -116,7 +116,7 @@ export function detectTribunalAliasFromCnj(value: string) {
     "515": "trt15",
   }
 
-  return map[code] || "tjsp"
+  return map[code] || ""
 }
 
 export function buildCaseTextFromDatajud(process: DatajudProcess) {

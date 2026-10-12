@@ -16,10 +16,8 @@ export async function createPixCheckout({
 }) {
   const { data, error } = await supabase.functions.invoke("create-pix-checkout", {
     body: {
-      userId,
       plan,
       customerName,
-      customerEmail,
       taxId,
     },
   })
@@ -32,8 +30,6 @@ export async function createPixCheckout({
 if (data?.error) {
   console.error("Erro Woovi:", data)
   throw new Error(
-    data.raw?.error ||
-    data.raw?.message ||
     data.error ||
     JSON.stringify(data)
   )

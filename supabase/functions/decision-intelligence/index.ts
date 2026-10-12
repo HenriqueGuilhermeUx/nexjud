@@ -10,7 +10,7 @@ const onlyNumbers = (value: string) => String(value || "").replace(/\D/g, "")
 function detectAlias(cnj: string, fallback = "tjsp") {
   const code = onlyNumbers(cnj).slice(13, 16)
   const map: Record<string,string> = {"826":"tjsp","821":"tjrs","819":"tjrj","813":"tjmg","815":"tjpb","804":"tjam","401":"trf1","402":"trf2","403":"trf3","404":"trf4","405":"trf5","406":"trf6","502":"trt2","515":"trt15"}
-  return map[code] || fallback
+  return map[code] || ""
 }
 const names=(v:any)=>Array.isArray(v)?v.map((x:any)=>x?.nome||x?.descricao).filter(Boolean):[]
 function normalize(source:any, alias:string, index:number) {
@@ -48,8 +48,9 @@ Deno.serve(async req=>{
     if(!key) return Response.json({error:"DATAJUD_API_KEY não configurada."},{status:500,headers:corsHeaders})
     const body=await req.json().catch(()=>({}))
     const cnj=String(body.cnj||"").trim()
-    if(!cnj) return Response.json({error:"Número CNJ obrigatório."},{status:400,headers:corsHeaders})
+    if(onlyNumbers(cnj).length !== 20) return Response.json({error:"Informe um número CNJ de 20 dígitos."},{status:400,headers:corsHeaders})
     const alias=String(body.tribunalAlias||"").trim()||detectAlias(cnj)
+    if (!/^(tj[a-z]{2,4}|trf[1-6]|trt(?:[1-9]|1[0-9]|2[0-4]))$/.test(alias)) return Response.json({error:"Tribunal não identificado. Informe um alias válido."},{status:400,headers:corsHeaders})
     const exact=await datajud(alias,key,{match:{numeroProcesso:onlyNumbers(cnj)}},1)
     const source=exact?.hits?.hits?.[0]?._source
     if(!source) return Response.json({success:true,found:false,alias,warning:"Processo não localizado no DataJud para este tribunal."},{headers:corsHeaders})
@@ -58,15 +59,15 @@ Deno.serve(async req=>{
     const must:any[]=[]
     if(classe) must.push({match:{"classe.nome":classe}})
     if(assuntos[0]) must.push({match:{"assuntos.nome":assuntos[0]}})
-    const similar=await datajud(alias,key,{bool:{must:must.length?must:[{match_all:{}}]}},50)
+    const similar=must.length ? await datajud(alias,key,{bool:{must}},50) : {hits:{hits:[],total:{value:0}}}
     const raw=(similar?.hits?.hits||[]).map((h:any)=>h._source).filter(Boolean)
     const evidence=raw.map((x:any,i:number)=>normalize(x,alias,i))
     const argument=String(body.argument||"").trim()
     return Response.json({
       success:true, found:true, alias,
       process:{number:source.numeroProcesso,court:source.tribunal||alias.toUpperCase(),courtUnit:source?.orgaoJulgador?.nome||"-",className:classe||"-",subject:assuntos.join(", ")||"-"},
-      decisionsAnalyzed:evidence.length,
-      decisionsFound:similar?.hits?.total?.value||evidence.length,
+      decisionsAnalyzed:0,
+      decisionsFound:similar?.hits?.total?.value ?? evidence.length,
       period:period(evidence),
       source:"DataJud/CNJ",
       adherences:[],
@@ -74,7 +75,7 @@ Deno.serve(async req=>{
       risks:[],
       opportunities:argument?["Use as decisões encontradas para conferir onde sua tese encontra apoio e onde precisa ser delimitada."]:["Acrescente sua tese ou argumento para aprofundar a comparação estratégica."],
       evidence,
-      warning:"A NexJud analisa padrões observados em decisões públicas. Não prevê nem garante o resultado do processo."
+      warning:"Estes são registros processuais e sinais de movimentação do DataJud, não decisões com inteiro teor analisado. Não há previsão de resultado."
     },{headers:corsHeaders})
   } catch(error) {
     return Response.json({error:error instanceof Error?error.message:"Não foi possível concluir a análise."},{status:500,headers:corsHeaders})

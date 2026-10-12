@@ -24,7 +24,7 @@ function detectAlias(cnj: string, fallback = "tjsp") {
     "515": "trt15",
   }
 
-  return map[code] || fallback
+  return map[code] || ""
 }
 
 Deno.serve(async (req) => {
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
 
     const alias = tribunalAlias || detectAlias(cnj)
     if (!/^(tj[a-z]{2,4}|trf[1-6]|trt(?:[1-9]|1[0-9]|2[0-4]))$/.test(alias)) {
-      return Response.json({ error: "Tribunal não suportado." }, { status: 400, headers: corsHeaders })
+      return Response.json({ error: "Tribunal não identificado ou não suportado. Informe um alias válido." }, { status: 400, headers: corsHeaders })
     }
     const url = `https://api-publica.datajud.cnj.jus.br/api_publica_${alias}/_search`
 

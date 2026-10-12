@@ -47,7 +47,7 @@ export default function Login() {
         setPassword("")
       } else {
         const normalizedEmail = email.trim().toLowerCase()
-        const data = await signInWithEmail(normalizedEmail, password)
+        await signInWithEmail(normalizedEmail, password)
 
         const tutorialDone = localStorage.getItem("nexjud_onboarding")
 
@@ -103,6 +103,7 @@ export default function Login() {
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
+                autoComplete="email"
                 className="bg-input border-border text-foreground text-base"
               />
             </div>
@@ -116,6 +117,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                autoComplete={isSignUp ? "new-password" : "current-password"}
                 className="bg-input border-border text-foreground text-base"
               />
             </div>

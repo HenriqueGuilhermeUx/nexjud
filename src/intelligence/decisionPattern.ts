@@ -23,16 +23,21 @@ function count(values: string[]) {
 export function buildObservedDecisionPattern(items: JudicialDecisionEvidence[]): ObservedDecisionPattern | null {
   const qualified = items.filter((item) => assessEvidenceQuality(item).usableForPattern && hasTraceableSource(item))
   if (!qualified.length) return null
-  const dates = qualified.map((item) => item.decisionDate).filter(Boolean).sort() as string[]
+  // Never mix courts or judging bodies into a purported single-venue pattern.
+  const court = qualified[0].court
+  const judgingBody = qualified[0].judgingBody
+  const comparable = qualified.filter((item) => item.court === court && item.judgingBody === judgingBody)
+  if (!comparable.length) return null
+  const dates = comparable.map((item) => item.decisionDate).filter(Boolean).sort() as string[]
   return {
-    court: qualified[0].court,
-    judgingBody: qualified[0].judgingBody,
-decisionsAnalyzed: qualified.length,
+    court,
+    judgingBody,
+decisionsAnalyzed: comparable.length,
     period: dates.length ? `${dates[0]} a ${dates[dates.length - 1]}` : undefined,
-    recurringTheses: count(qualified.flatMap((item) => item.legalTheses)),
+    recurringTheses: count(comparable.flatMap((item) => item.legalTheses)),
     recurringPrecedents: count(qualified.flatMap((item) => item.citedPrecedents)),
-    observedOutcomes: count(qualified.map((item) => item.observedOutcome || "")),
-    evidenceIds: qualified.map((item) => item.id),
+    observedOutcomes: count(comparable.map((item) => item.observedOutcome || "")),
+    evidenceIds: comparable.map((item) => item.id),
     warning: "Padrões observados em decisões públicas não representam previsão nem garantia de resultado.",
   }
 }

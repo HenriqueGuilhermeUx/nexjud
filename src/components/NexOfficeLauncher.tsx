@@ -4,7 +4,9 @@ import { getSupabaseClient } from "@/lib/supabase"
 import { useNexOfficeLegalSync } from "@/hooks/useNexOfficeLegalSync"
 
 function bridgeError(status: number, code?: string) {
-  if (status === 401 || code === "unauthorized") return "Sua sessão expirou. Entre novamente no NexJud e tente de novo."
+  if (code === "bridge_auth_configuration_missing") return "A conexão NexOffice está sem a configuração de autenticação no servidor. Contate o suporte (bridge_auth_configuration_missing)."
+  if (code === "bridge_token_rejected") return "O servidor não reconheceu a autenticação do NexJud (bridge_token_rejected)."
+  if (status === 401 || code === "unauthorized") return "Não foi possível autenticar a conexão com o NexOffice. Entre novamente se necessário (401)."
   if (status === 503 || code === "nexoffice_not_configured" || code === "platform_bridge_not_configured") return "O NexOffice ainda não está configurado neste ambiente."
   if (code === "workspace_access_revoked") return "Seu acesso ao workspace NexOffice foi revogado."
   if (code === "onboarding_required") return "Seu acesso ao escritório ainda precisa ser concluído."
@@ -65,7 +67,7 @@ export default function NexOfficeLauncher() {
   }
 
   return (
-    <div className="fixed bottom-5 left-5 z-[70] flex max-w-[calc(100vw-2.5rem)] flex-col items-start gap-2">
+    <div className="fixed bottom-5 right-5 z-[70] flex max-w-[calc(100vw-2.5rem)] flex-col items-start gap-2">
       {error ? <div className="max-w-xs rounded-lg border border-red-500/30 bg-[#17131a] px-3 py-2 text-xs text-red-300 shadow-xl">{error}</div> : null}
       <button
         type="button"

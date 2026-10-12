@@ -1,14 +1,8 @@
 import { supabase } from "@/lib/supabase"
+import { getUserProcesses as getCnjUserProcesses } from "@/services/processIntelligenceService"
 
 export async function getUserProcesses(userId: string) {
-  const { data, error } = await supabase
-    .from("process_intelligence")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-
-  if (error) throw error
-  return data || []
+  return getCnjUserProcesses(userId)
 }
 
 export async function calculateTribunalDna(userId: string, tribunal: string) {

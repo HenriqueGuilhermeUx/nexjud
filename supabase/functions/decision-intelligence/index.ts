@@ -1,4 +1,15 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { createClient } from "jsr:@supabase/supabase-js@2"
+
+async function authenticated(req: Request): Promise<boolean> {
+  const url = Deno.env.get("SUPABASE_URL")
+  const anon = Deno.env.get("SUPABASE_ANON_KEY")
+  const authorization = req.headers.get("authorization") || ""
+  if (!url || !anon || !/^Bearer\\s+\\S+$/i.test(authorization)) return false
+  const client = createClient(url, anon, { auth: { persistSession: false } })
+  const { data, error } = await client.auth.getUser(authorization.replace(/^Bearer\\s+/i, ""))
+  return !error && Boolean(data.user)
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +54,9 @@ function period(items:any[]) {
 }
 Deno.serve(async req=>{
   if(req.method==="OPTIONS") return new Response("ok",{headers:corsHeaders})
+  if (req.method !== "POST") return Response.json({ error: "Método não permitido." }, { status: 405, headers: corsHeaders })
+  if (!(await authenticated(req))) return Response.json({ error: "Sessão inválida ou ausente." }, { status: 401, headers: corsHeaders })
+
   try {
     const key=Deno.env.get("DATAJUD_API_KEY")
     if(!key) return Response.json({error:"DATAJUD_API_KEY não configurada."},{status:500,headers:corsHeaders})

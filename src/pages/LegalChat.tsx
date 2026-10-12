@@ -3,7 +3,6 @@ import {
   Brain,
   Copy,
   Check,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Database,

@@ -721,10 +721,6 @@ description="Consulte análises anteriores da IA."
   )}
 </main>
       </div>
-
-          </div>
-        </div>
-      )}
     </div>
   )
 }

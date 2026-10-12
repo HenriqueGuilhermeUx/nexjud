@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "corepack pnpm install --no-frozen-lockfile && corepack pnpm exec tsc -b && corepack pnpm exec vite build"
   publish = "dist"
 
 [functions]
@@ -8,6 +8,7 @@
 [build.environment]
   NODE_VERSION = "20"
   PNPM_FLAGS = "--no-frozen-lockfile"
+  NPM_FLAGS = "--ignore-scripts"
 
 [[redirects]]
   from = "/*"

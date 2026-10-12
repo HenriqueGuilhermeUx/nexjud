@@ -130,7 +130,7 @@ function CompanionLogin() {
       <input className="nexjud-pwa-input w-full rounded-[15px] border px-4 py-3.5" style={{ background: colors.card, borderColor: colors.border, color: colors.text }} placeholder="Senha" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
       {error ? <p className="text-sm" style={{ color: colors.danger }}>{error}</p> : null}
       <button disabled={busy} className="min-h-[50px] w-full rounded-[15px] font-extrabold disabled:opacity-50" style={{ background: colors.primary, color: "#fff" }}>{busy ? "Entrando..." : "Entrar"}</button>
-      <Link to="/login" className="block py-2 text-center text-sm font-bold" style={{ color: colors.primary }}>Criar conta ou recuperar senha</Link>
+      <Link to="/login" className="block py-2 text-center text-sm font-bold" style={{ color: colors.primary }}>Criar conta</Link>
       <div className="flex items-center gap-2 text-sm" style={{ color: colors.muted }}><ShieldCheck size={18} style={{ color: colors.success }} /> Mesma conta, casos, documentos e análises da NexJud.</div>
     </form>
   </div>
@@ -204,7 +204,7 @@ function InstallHint() {
       <img src="/icons/icon-512.png" alt="" className="h-12 w-12 rounded-[14px]" />
       <div className="min-w-0 flex-1">
         <p className="font-extrabold">Instalar NexJud Companion</p>
-        <p className="mt-1 text-sm leading-5" style={{ color: colors.muted }}>{ios ? "No Safari: Compartilhar → Adicionar à Tela de Início." : "Use o NexJud como app, em tela cheia, direto da sua tela inicial."}</p>
+        <p className="mt-1 text-sm leading-5" style={{ color: colors.muted }}>{ios ? "No Safari: Compartilhar → Adicionar à Tela de Início. Na primeira abertura do app, entre novamente se o Safari solicitar." : "Use o NexJud como app, em tela cheia, direto da sua tela inicial."}</p>
         {!ios && deferred ? <button onClick={install} className="mt-3 rounded-xl px-4 py-2 text-sm font-extrabold" style={{ background: colors.primary, color: "#fff" }}>Instalar agora</button> : null}
       </div>
       <button onClick={dismiss} aria-label="Fechar" className="h-9 w-9 flex items-center justify-center" style={{ color: colors.muted }}><X size={19} /></button>

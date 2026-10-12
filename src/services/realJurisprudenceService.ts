@@ -55,21 +55,21 @@ export async function searchSimilarCasesDatajud({
 
 export function buildRealJurisprudenceText(prediction: RealJurisprudencePrediction) {
   return `
-PADRÕES OBSERVADOS EM DECISÕES — DATAJUD/CNJ
+SINAIS PROCESSUAIS OBSERVADOS — DATAJUD/CNJ
 
 Fonte: ${prediction.source}
 Tribunal/Alias: ${prediction.alias}
 Classe: ${prediction.className}
 Assunto: ${prediction.subject}
 
-Decisões encontradas: ${prediction.totalFound}
-Decisões analisadas: ${prediction.sampledCases}
+Registros processuais encontrados: ${prediction.totalFound}
+Registros processuais amostrados: ${prediction.sampledCases}
 
 Sinais de sentença: ${prediction.sentenceSignals}
 Sinais de recurso: ${prediction.appealSignals}
 
-Consistência da base observada: ${prediction.historicalStrength}
+Volume da amostra: ${prediction.historicalStrength}
 
-Aviso: ${prediction.warning}
+Aviso: Movimentações com termos como sentença ou recurso não demonstram o teor, a fundamentação ou o resultado da decisão. Não são estimativas de êxito. ${prediction.warning}
 `.trim()
 }

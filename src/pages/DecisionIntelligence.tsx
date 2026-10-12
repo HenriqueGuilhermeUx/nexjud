@@ -52,7 +52,7 @@ export default function DecisionIntelligence() {
       <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-indigo-500/10 to-[#05050a] p-8 lg:p-10">
         <div className="inline-flex items-center gap-2 text-primary text-sm mb-4"><Brain size={17}/> ANÁLISE DO JUÍZO</div>
         <h1 className="text-4xl lg:text-5xl font-bold">Como este juízo costuma decidir casos como o seu?</h1>
-        <p className="text-gray-400 text-lg mt-4 max-w-4xl">Informe o processo e, se quiser, acrescente os pontos principais da sua tese. A NexJud compara fatos, pedidos e argumentos com decisões públicas encontradas para este juízo e mostra o que merece sua atenção — sem prever ou garantir o resultado.</p>
+        <p className="text-gray-400 text-lg mt-4 max-w-4xl">Informe o processo e, se quiser, acrescente os pontos principais da sua tese. A NexJud consulta registros processuais públicos para contextualizar o caso. A comparação de fundamentações e resultados dependerá de decisões com inteiro teor verificável; não há previsão de êxito.</p>
       </section>
 
       <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6 space-y-4">
@@ -69,7 +69,7 @@ export default function DecisionIntelligence() {
       {!evidence ? <section className="rounded-2xl border border-dashed border-[#343442] p-8 text-center">
         <Database className="mx-auto text-gray-500 mb-3"/>
         <h2 className="font-bold text-xl">Vamos começar pelo processo</h2>
-        <p className="text-gray-500 mt-2">Informe o número do processo. Quando localizarmos decisões relacionadas, você verá quantas foram analisadas, de qual período são e quais decisões sustentam a análise.</p>
+        <p className="text-gray-500 mt-2">Informe o número do processo. Quando localizarmos registros relacionados, mostraremos a quantidade recuperada e se há decisões com fundamentação suficiente para análise.</p>
       </section> : <>
         <section className="grid md:grid-cols-4 gap-4">
           <Box label="Decisões com evidência suficiente" value={String(sample)} />
@@ -80,7 +80,7 @@ export default function DecisionIntelligence() {
         <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
           <h2 className="font-bold text-xl flex items-center gap-2"><Scale className="text-primary"/> O que encontramos</h2>
           <p className="text-gray-400 mt-2">Classe: {process?.className || "-"} · Assunto: {process?.subject || "-"} · Unidade: {process?.courtUnit || "-"}</p>
-          <p className="text-sm text-gray-500 mt-3">{observedPattern?.warning || p?.warning || "As decisões encontradas servem de apoio à estratégia. Esta análise não representa probabilidade de êxito nem garantia de resultado."}</p>
+          <p className="text-sm text-gray-500 mt-3">{observedPattern?.warning || p?.warning || "Os registros encontrados servem como contexto, não como prova de tendência decisória ou probabilidade de êxito."}</p>
           {!observedPattern && <p role="status" className="text-sm text-amber-300 mt-3">Dados insuficientes para identificar padrões decisórios verificáveis. Registros processuais não equivalem a decisões fundamentadas; não é possível estimar êxito, perfil do magistrado ou tendência com esta amostra.</p>}
           {observedPattern && <p className="text-sm text-gray-400 mt-3">Base estruturada: {observedPattern.decisionsAnalyzed} decisões públicas normalizadas{observedPattern.period ? ` · ${observedPattern.period}` : ""}. Cada padrão mantém vínculo com as decisões que o sustentam.</p>}
         </section>

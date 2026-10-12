@@ -9,7 +9,7 @@ function bridgeError(status: number, code?: string) {
   if (code === "workspace_access_revoked") return "Seu acesso ao workspace NexOffice foi revogado."
   if (code === "onboarding_required") return "Seu acesso ao escritório ainda precisa ser concluído."
   if (status >= 500) return "O NexOffice está temporariamente indisponível. Tente novamente em instantes."
-  return "Não foi possível abrir o NexOffice."
+  return `Não foi possível abrir o NexOffice${code ? ` (código: ${code})` : ""}.`
 }
 
 export default function NexOfficeLauncher() {
@@ -43,10 +43,14 @@ export default function NexOfficeLauncher() {
     setBusy(true)
     setError("")
     try {
+      const client = getSupabaseClient()
+      if (!client) throw Object.assign(new Error("supabase_not_configured"), { status: 503 })
+      const { data: refreshed, error: refreshError } = await client.auth.getSession()
+      if (refreshError || !refreshed.session?.access_token) throw Object.assign(new Error("unauthorized"), { status: 401 })
       const response = await fetch("/api/nexoffice/handoff", {
         method: "POST",
         headers: {
-          authorization: `Bearer ${session.access_token}`,
+          authorization: `Bearer ${refreshed.session.access_token}`,
           "content-type": "application/json",
         },
         body: JSON.stringify({}),

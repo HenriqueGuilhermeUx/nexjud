@@ -251,6 +251,7 @@ export default function LegalChat() {
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [loadingSessions, setLoadingSessions] = useState(true)
+  const [chatError, setChatError] = useState("")
 
   useEffect(() => {
     loadSessions()
@@ -315,8 +316,9 @@ export default function LegalChat() {
 
     const text = input.trim()
 
-    if (!text) return
+    if (!text || loading) return
 
+    setChatError("")
     setLoading(true)
     setInput("")
 
@@ -367,7 +369,8 @@ export default function LegalChat() {
       await loadSessions()
     } catch (error: any) {
       console.error(error)
-      alert(error.message || "Erro ao enviar mensagem.")
+      setChatError(error?.message || "Não foi possível concluir a resposta. Sua pergunta foi preservada para tentar novamente.")
+      setInput((current) => current.trim() ? current : text)
     } finally {
       setLoading(false)
     }
@@ -513,10 +516,12 @@ export default function LegalChat() {
             </div>
 
             <div className="border-t border-border p-3 sm:p-5 bg-background/30">
+              {chatError && <p role="alert" className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-foreground">{chatError}</p>}
               <div className="flex gap-3">
                 <textarea
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => { setInput(e.target.value); if (chatError) setChatError("") }}
+                  aria-label="Sua pergunta jurídica"
                   placeholder="Digite sua pergunta jurídica..."
                   className="min-w-0 flex-1 min-h-[82px] rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary resize-y"
                   onKeyDown={(e) => {

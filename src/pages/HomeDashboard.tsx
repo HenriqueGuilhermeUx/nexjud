@@ -313,6 +313,26 @@ Assunto: ${datajudProcess.subject}`
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-8">
         
+        <section aria-labelledby="welcome-heading" className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-background p-5 sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary">Seu espaço de trabalho</p>
+          <h1 id="welcome-heading" className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight">O que vamos resolver hoje?</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Escolha o que precisa fazer. Você pode explorar as ferramentas avançadas quando quiser.</p>
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {[
+              { label: "Conversar com a IA", detail: "Tire dúvidas e pesquise", path: "/dashboard/legal-chat", icon: Brain },
+              { label: "Analisar processo", detail: "Entenda riscos e estratégias", path: "/dashboard/ai-copilot", icon: Scale },
+              { label: "Criar documento", detail: "Peças, contratos e minutas", path: "/dashboard/draft-generator", icon: FileText },
+              { label: "Meus processos", detail: "Organize e acompanhe casos", path: "/dashboard/legal-cases", icon: Database },
+            ].map(({ label, detail, path, icon: Icon }) => (
+              <button key={path} type="button" onClick={() => navigate(path)} className="group rounded-2xl border border-border bg-card/80 p-4 text-left transition hover:border-primary/60 hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                <Icon className="h-6 w-6 text-primary" />
+                <span className="mt-3 block font-semibold">{label}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">{detail}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
         <DashboardTrialHeader />
 
         <MorningBriefCard />

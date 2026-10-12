@@ -5,9 +5,9 @@ async function authenticated(req: Request): Promise<boolean> {
   const url = Deno.env.get("SUPABASE_URL")
   const anon = Deno.env.get("SUPABASE_ANON_KEY")
   const authorization = req.headers.get("authorization") || ""
-  if (!url || !anon || !/^Bearer\\s+\\S+$/i.test(authorization)) return false
+  if (!url || !anon || !/^Bearer\s+\S+$/i.test(authorization)) return false
   const client = createClient(url, anon, { auth: { persistSession: false } })
-  const { data, error } = await client.auth.getUser(authorization.replace(/^Bearer\\s+/i, ""))
+  const { data, error } = await client.auth.getUser(authorization.replace(/^Bearer\s+/i, ""))
   return !error && Boolean(data.user)
 }
 

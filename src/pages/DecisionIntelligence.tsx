@@ -44,7 +44,8 @@ export default function DecisionIntelligence() {
   }
 
   const p = evidence?.prediction
-  const sample = Number(p?.sampledCases || evidence?.cases?.length || 0)
+  const sample = observedPattern?.decisionsAnalyzed ?? 0
+  const recordsFound = evidence?.cases?.length ?? 0
 
   return <div className="min-h-screen bg-background text-foreground">
     <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-7">
@@ -71,22 +72,23 @@ export default function DecisionIntelligence() {
         <p className="text-gray-500 mt-2">Informe o número do processo. Quando localizarmos decisões relacionadas, você verá quantas foram analisadas, de qual período são e quais decisões sustentam a análise.</p>
       </section> : <>
         <section className="grid md:grid-cols-4 gap-4">
-          <Box label="Decisões analisadas" value={String(sample)} />
-          <Box label="Decisões encontradas" value={String(p?.totalFound || evidence.cases.length || 0)} />
-          <Box label="Período" value={p?.period || "Conforme dados retornados"} />
-          <Box label="Fonte" value={p?.source || "DataJud/CNJ"} />
+          <Box label="Decisões com evidência suficiente" value={String(sample)} />
+          <Box label="Registros encontrados" value={String(recordsFound)} />
+          <Box label="Período das decisões qualificadas" value={observedPattern?.period || "Não disponível"} />
+          <Box label="Origem dos registros" value="DataJud/CNJ" />
         </section>
         <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
           <h2 className="font-bold text-xl flex items-center gap-2"><Scale className="text-primary"/> O que encontramos</h2>
           <p className="text-gray-400 mt-2">Classe: {process?.className || "-"} · Assunto: {process?.subject || "-"} · Unidade: {process?.courtUnit || "-"}</p>
           <p className="text-sm text-gray-500 mt-3">{observedPattern?.warning || p?.warning || "As decisões encontradas servem de apoio à estratégia. Esta análise não representa probabilidade de êxito nem garantia de resultado."}</p>
+          {!observedPattern && <p role="status" className="text-sm text-amber-300 mt-3">Dados insuficientes para identificar padrões decisórios verificáveis. Registros processuais não equivalem a decisões fundamentadas; não é possível estimar êxito, perfil do magistrado ou tendência com esta amostra.</p>}
           {observedPattern && <p className="text-sm text-gray-400 mt-3">Base estruturada: {observedPattern.decisionsAnalyzed} decisões públicas normalizadas{observedPattern.period ? ` · ${observedPattern.period}` : ""}. Cada padrão mantém vínculo com as decisões que o sustentam.</p>}
         </section>
-        <section className="grid lg:grid-cols-3 gap-4">
+        {observedPattern && <section className="grid lg:grid-cols-3 gap-4">
           <Insight icon={<Target/>} title="O que favorece sua tese" text="Veja quais fatos, pedidos e fundamentos do seu caso também aparecem nas decisões encontradas. Confira sempre as decisões que sustentam a análise."/>
           <Insight icon={<AlertTriangle/>} title="Pontos de atenção" text="Veja diferenças relevantes, fundamentos que não costumam ser acolhidos e pontos do seu caso que merecem reforço."/>
           <Insight icon={<Brain/>} title="Como fortalecer o caso" text={lawyerArgument ? "Sua tese foi incluída na análise. Use as decisões encontradas para reforçar, ajustar ou delimitar o argumento." : "Acrescente uma tese ou argumento para tornar a análise mais útil à sua estratégia."}/>
-        </section>
+        </section>}
       </>}
 
       <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6">

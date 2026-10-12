@@ -16,5 +16,5 @@ export function assessEvidenceQuality(item: JudicialDecisionEvidence): EvidenceQ
   ]
   const score = checks.reduce((sum,[,ok,w]) => sum + (ok ? w : 0), 0)
   const missing = checks.filter(([,ok]) => !ok).map(([name]) => name)
-  return { score, level: score >= 80 ? "alta" : score >= 50 ? "media" : "baixa", missing, usableForPattern: score >= 50 }
+  return { score, level: score >= 80 ? "alta" : score >= 50 ? "media" : "baixa", missing, usableForPattern: score >= 80 && Boolean(item.decisionDate && item.reasoning.length > 0 && item.observedOutcome) }
 }

@@ -171,7 +171,6 @@ Deno.serve(async (req) => {
         {
           error: "Erro ao consultar DataJud.",
           status: response.status,
-          body: text,
           alias,
         },
         { status: response.status, headers: corsHeaders }
@@ -196,10 +195,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     return Response.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Erro interno ao consultar DataJud.",
+        error: "Não foi possível concluir a consulta DataJud.",
       },
       { status: 500, headers: corsHeaders }
     )

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react"
 import { User, Session } from "@supabase/supabase-js"
-import { createClient, SupabaseClient } from "@supabase/supabase-js"
+import { SupabaseClient } from "@supabase/supabase-js"
+import { getSupabaseClient } from "@/lib/supabase"
 
 interface AuthContextType {
   user: User | null
@@ -26,7 +27,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
     if (supabaseUrl && supabaseAnonKey) {
-      const client = createClient(supabaseUrl, supabaseAnonKey)
+      const client = getSupabaseClient()
+      if (!client) { setLoading(false); return }
       setSupabase(client)
       setIsConfigured(true)
 

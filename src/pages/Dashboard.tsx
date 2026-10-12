@@ -54,8 +54,9 @@ import CNJProcesses from "./CNJProcesses"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [enterpriseOpen, setEnterpriseOpen] = useState(true)
-  const [analysisOpen, setAnalysisOpen] = useState(true)
+  const [showAllTools, setShowAllTools] = useState(false)
+  const [enterpriseOpen, setEnterpriseOpen] = useState(false)
+  const [analysisOpen, setAnalysisOpen] = useState(false)
 const [productionOpen, setProductionOpen] = useState(false)
 const [managementOpen, setManagementOpen] = useState(false)
 const [morningBriefUnread, setMorningBriefUnread] = useState(false)
@@ -310,15 +311,23 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
           </div>
 </div>
 
-<nav className="flex-1 overflow-y-auto p-4 space-y-2 pb-6">
+<nav aria-label="Navegação principal" className="flex-1 overflow-y-auto p-3 space-y-1 pb-6">
+  <p className="px-4 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Seu trabalho</p>
   <NavItem
     to="/dashboard"
   icon={Brain}
   label="Início"
-  description="Escolha o que deseja fazer."
+  description="Comece por aqui."
   active={isHomeActive}
 />
 
+<NavItem to="/dashboard/legal-chat" icon={Brain} label="Assistente IA" description="Pergunte, pesquise e avance." active={isLegalChatActive} />
+<NavItem to="/dashboard/legal-cases" icon={Database} label="Processos" description="Seus casos em um só lugar." active={isLegalCasesActive} />
+<NavItem to="/dashboard/draft-generator" icon={Wand2} label="Documentos" description="Crie peças e contratos." active={isDraftGeneratorActive} />
+<NavItem to="/dashboard/decision-intelligence" icon={Target} label="Inteligência" description="Análise de decisões e riscos." active={isDecisionIntelligenceActive} />
+<NavItem to="/dashboard/notifications" icon={Bell} label="Alertas" description="O que precisa da sua atenção." active={isNotificationsActive} badge={notificationUnreadCount > 0 ? String(notificationUnreadCount) : undefined} />
+<button type="button" aria-expanded={showAllTools} onClick={() => setShowAllTools(v => !v)} className="w-full flex items-center justify-between rounded-lg border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted"><span>{showAllTools ? "Ocultar ferramentas" : "Todas as ferramentas"}</span>{showAllTools ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
+{showAllTools && <div className="space-y-2 border-l border-border/60 pl-1">
 <NavGroup
   label="Analisar"
   open={analysisOpen}
@@ -569,6 +578,7 @@ description="Consulte análises anteriores da IA."
     active={isOneClickActionsActive}
   />
 </NavGroup>
+</div>}
 
 <NavItem
   to="/pricing"
@@ -587,7 +597,7 @@ description="Consulte análises anteriores da IA."
 />
         </nav>
 
-        <div className="mx-4 p-3 bg-muted rounded-lg border border-border">
+        <div className="mx-4 mb-2 p-3 bg-muted rounded-lg border border-border">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-green-600 text-xs font-bold">
               <span className="relative flex h-2 w-2">

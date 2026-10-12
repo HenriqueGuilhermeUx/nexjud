@@ -21,9 +21,8 @@ ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
-import { wooviApi } from "@/lib/api"
 import { supabase } from "@/lib/supabase"
-import { Input } from "@/components/ui/input"
+import { usePlan } from "@/hooks/usePlan"
 import StrategicReport from "./StrategicReport"
 import HomeDashboard from "./HomeDashboard"
 import History from "./History"
@@ -65,14 +64,9 @@ const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
   const location = useLocation()
   const navigate = useNavigate()
 
-  const [isPremium, setIsPremium] = useState(false)
-const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null)
-const [isPaywallOpen, setIsPaywallOpen] = useState(false)
-  const [cpf, setCpf] = useState("")
-  const [loadingPayment, setLoadingPayment] = useState(false)
-  const [pixData, setPixData] = useState<{ qrcode: string; brCode: string } | null>(null)
-
-  const WOOVI_PLAN_ID = "SEU_ID_DE_PLANO_WOOVI_AQUI"
+  const { subscription, trialDaysLeft } = usePlan()
+  const isTrial = subscription?.status === "trialing"
+  const hasActiveAccess = Boolean(subscription?.active)
 
   const isHomeActive = location.pathname === "/dashboard"
   const isDecisionIntelligenceActive = location.pathname.includes("decision-intelligence")
@@ -158,89 +152,26 @@ const isNotificationsActive = location.pathname.includes("notifications")
   }, [user, location.pathname])
 
   useEffect(() => {
-  async function checkUserSubscription() {
-    if (!user) return
+    async function checkOnboarding() {
+      if (!user?.id) return
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("subscription_plan, subscription_status, trial_ends_at, premium_until, onboarding_completed")
-      .eq("id", user.id)
-      .maybeSingle()
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("onboarding_completed")
+        .eq("id", user.id)
+        .maybeSingle()
 
-    if (data && !error) {
       if (
-        data.onboarding_completed === false &&
+        !error &&
+        data?.onboarding_completed === false &&
         !location.pathname.includes("onboarding")
       ) {
         navigate("/dashboard/onboarding")
-        return
-      }
-
-      const now = new Date()
-
-      const trialEnds = data.trial_ends_at
-        ? new Date(data.trial_ends_at)
-        : null
-
-      const premiumUntil = data.premium_until
-        ? new Date(data.premium_until)
-        : null
-
-      const daysLeft = trialEnds
-        ? Math.max(
-            0,
-            Math.ceil(
-              (trialEnds.getTime() - now.getTime()) /
-                (1000 * 60 * 60 * 24)
-            )
-          )
-        : 0
-
-      const hasActivePremium =
-        data.subscription_status === "active" ||
-        data.subscription_plan === "enterprise" ||
-        Boolean(premiumUntil && premiumUntil > now)
-
-      const hasActiveTrial = daysLeft > 0
-
-      setTrialDaysLeft(daysLeft)
-      setIsPremium(hasActivePremium || hasActiveTrial)
-
-      if (!hasActivePremium && !hasActiveTrial) {
-        setIsPaywallOpen(true)
       }
     }
-  }
 
-  checkUserSubscription()
-}, [user, location.pathname, navigate])
-  const handleGerarPixAssinatura = async () => {
-    if (!cpf || cpf.replace(/\D/g, "").length < 11) {
-      alert("Por favor, informe um CPF ou CNPJ válido.")
-      return
-    }
-
-    setLoadingPayment(true)
-
-    try {
-      const response = await wooviApi.createSubscription(WOOVI_PLAN_ID, {
-        name: user?.user_metadata?.full_name || "Advogado NexJud",
-        email: user?.email || "",
-        taxID: cpf.replace(/\D/g, ""),
-      })
-
-      if (response.success) {
-        setPixData({
-          qrcode: response.qrcode,
-          brCode: response.brCode,
-        })
-      }
-    } catch (error: any) {
-      alert("Erro ao conectar à Woovi: " + error.message)
-    } finally {
-      setLoadingPayment(false)
-    }
-  }
+    checkOnboarding()
+  }, [user, location.pathname, navigate])
 
   const NavItem = ({ to, icon: Icon, label, description, active, badge }: any) => (
   <Link
@@ -680,33 +611,23 @@ description="Consulte análises anteriores da IA."
         </nav>
 
         <div className="mx-4 p-3 bg-muted rounded-lg border border-border">
-  {isPremium ? (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2 text-green-600 text-xs font-bold">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-        </span>
-        TRIAL PREMIUM ATIVO
-      </div>
-
-      <p className="text-[11px] text-muted-foreground">
-        {trialDaysLeft !== null
-          ? `Restam ${trialDaysLeft} dia(s) de acesso completo.`
-          : "Acesso completo liberado."}
-      </p>
-    </div>
-  ) : (
-    <div className="space-y-2">
-      <p className="text-xs font-bold text-destructive">
-        Trial expirado
-      </p>
-      <p className="text-[11px] text-muted-foreground">
-        Assine o Premium para continuar usando todos os recursos.
-      </p>
-    </div>
-  )}
-</div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-green-600 text-xs font-bold">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+              </span>
+              {isTrial ? "TRIAL PREMIUM ATIVO" : "PLANO ATIVO"}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {isTrial
+                ? `Restam ${trialDaysLeft} dia(s) de acesso completo.`
+                : hasActiveAccess
+                  ? "Acesso liberado pelo seu plano."
+                  : "Verificando acesso..."}
+            </p>
+          </div>
+        </div>
         <div className="shrink-0 p-4 border-t border-border bg-card">
           <div className="flex items-center gap-3 mb-4 px-4">
             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
@@ -801,35 +722,6 @@ description="Consulte análises anteriores da IA."
 </main>
       </div>
 
-      {isPaywallOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card w-full max-w-md border border-border p-6 rounded-xl shadow-2xl space-y-6 text-center">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
-              <CreditCard className="w-6 h-6" />
-            </div>
-
-            <div className="space-y-2">
-              <h2 className="text-xl font-bold text-foreground">Limite gratuito atingido!</h2>
-              <p className="text-sm text-muted-foreground">
-                Suas 3 análises de cortesia acabaram. Assine o <strong>Plano Premium da NexJud</strong> por{" "}
-                <strong>R$ 179,90/mês</strong>.
-              </p>
-            </div>
-
-            {!pixData ? (
-              <div className="space-y-4 text-left">
-                <Input placeholder="CPF/CNPJ" value={cpf} onChange={(e) => setCpf(e.target.value)} />
-                <Button className="w-full h-11" onClick={handleGerarPixAssinatura} disabled={loadingPayment}>
-                  {loadingPayment ? "Gerando Pix..." : "Ativar Premium"}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4 flex flex-col items-center">
-                <img src={pixData.qrcode} alt="QR Code" className="w-44 h-44 border p-2 rounded bg-white" />
-                <Input readOnly value={pixData.brCode} className="font-mono text-xs" />
-                <Button onClick={() => navigator.clipboard.writeText(pixData.brCode)}>Copiar Pix</Button>
-              </div>
-            )}
           </div>
         </div>
       )}

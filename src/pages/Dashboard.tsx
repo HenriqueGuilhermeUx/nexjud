@@ -151,8 +151,8 @@ const isNotificationsActive = location.pathname.includes("notifications")
   }, [user, location.pathname])
 
   const NavItem = ({ to, icon: Icon, label, description, active, badge }: any) => (
-  <Link
-    to={to}
+  <a
+    href={to}
     className={`flex items-start gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
       active
         ? "bg-primary/10 text-primary border-l-2 border-primary"
@@ -172,7 +172,7 @@ const isNotificationsActive = location.pathname.includes("notifications")
         </span>
       )}
     </div>
-  </Link>
+  </a>
 )
 
 const NavGroup = ({ label, open, onClick, children }: any) => (
@@ -616,7 +616,7 @@ description="Consulte análises anteriores da IA."
             </div>
           </div>
 
-          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive" onClick={signOut}>
+          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive" onClick={async () => { try { await signOut(); window.location.assign("/login") } catch (error) { console.error("Falha ao sair", error); window.alert("Não foi possível encerrar a sessão. Tente novamente.") } }}>
             <LogOut className="w-4 h-4" />
             Sair
           </Button>

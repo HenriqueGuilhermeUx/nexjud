@@ -1,170 +1,77 @@
-// Supabase Edge Function: Pesquisa de Jurisprudência
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@^1";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { createClient } from "jsr:@supabase/supabase-js@2"
 
-interface SearchInput {
-  theme: string
-  court: string
-  period: string
-  camara?: string
-  materia?: string
-  userId: string
+const headers = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json",
 }
+const reply = (body: unknown, status = 200) => Response.json(body, { status, headers })
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
-    });
-  }
-
+  if (req.method === "OPTIONS") return new Response("ok", { headers })
+  if (req.method !== "POST") return reply({ error: "Método não permitido." }, 405)
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const escavadorKey = Deno.env.get('ESCAVADOR_API_KEY')!;
-    const openaiKey = Deno.env.get('OPENAI_API_KEY')!;
+    const url = Deno.env.get("SUPABASE_URL")
+    const anon = Deno.env.get("SUPABASE_ANON_KEY")
+    const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    if (!url || !anon || !serviceRole) return reply({ error: "Serviço indisponível." }, 503)
+    const bearer = req.headers.get("authorization") || ""
+    if (!/^Bearer\s+\S+$/i.test(bearer)) return reply({ error: "Autenticação necessária." }, 401)
+    const authClient = createClient(url, anon, { auth: { persistSession: false } })
+    const { data: auth, error: authError } = await authClient.auth.getUser(bearer.replace(/^Bearer\s+/i, ""))
+    if (authError || !auth.user) return reply({ error: "Sessão inválida." }, 401)
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const { theme, court, period, camara, materia, userId }: SearchInput = await req.json();
+    const body = await req.json().catch(() => ({}))
+    const theme = String(body.theme || "").trim().slice(0, 500)
+    const court = String(body.court || "").trim().slice(0, 80)
+    const period = String(body.period || "").trim().slice(0, 80)
+    const camara = String(body.camara || "").trim().slice(0, 80)
+    const materia = String(body.materia || "").trim().slice(0, 80)
+    if (!theme || !court) return reply({ error: "Informe tema e tribunal." }, 400)
 
-    // 1. Buscar jurisprudência via Escavador
-    let jurisprudenceData: any[] = [];
-
-    try {
-      const escavadorResponse = await fetch(
-        `https://api.escavador.com/api/v1/jurisprudencias?q=${encodeURIComponent(theme)}&tribunal=${court}&limit=20`,
-        {
-          headers: {
-            'Authorization': `Bearer ${escavadorKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (escavadorResponse.ok) {
-        const escavadorData = await escavadorResponse.json();
-        jurisprudenceData = escavadorData?.data || [];
-      }
-    } catch (escavadorError) {
-      console.log('Escavador API não disponível, usando análise padrão');
+    const escavadorKey = Deno.env.get("ESCAVADOR_API_KEY")
+    if (!escavadorKey) return reply({ error: "Fonte jurisprudencial não configurada." }, 503)
+    const query = new URLSearchParams({ q: theme, tribunal: court, limit: "20" })
+    const upstream = await fetch(`https://api.escavador.com/api/v1/jurisprudencias?${query}`, {
+      headers: { Authorization: `Bearer ${escavadorKey}`, Accept: "application/json" },
+      signal: AbortSignal.timeout(12000),
+    })
+    if (!upstream.ok) return reply({ error: "Fonte jurisprudencial temporariamente indisponível." }, 502)
+    const payload = await upstream.json()
+    const raw = Array.isArray(payload?.data) ? payload.data : []
+    const decisions = raw.map((entry: Record<string, unknown>) => ({
+      title: String(entry.titulo || entry.descricao || "Decisão sem título").slice(0, 300),
+      court: String(entry.tribunal || court).slice(0, 80),
+      result: entry.resultado ? String(entry.resultado).slice(0, 200) : null,
+      sourceId: entry.id ? String(entry.id) : null,
+      sourceUrl: typeof entry.url === "string" && /^https?:\/\//.test(entry.url) ? entry.url : null,
+    }))
+    const result = {
+      theme, decisionsCount: decisions.length,
+      analysis: decisions.length
+        ? `Foram recuperados ${decisions.length} registros da fonte consultada. Confira o inteiro teor antes de extrair tendências ou estimar resultados.`
+        : "Nenhuma decisão foi encontrada na fonte consultada para os filtros informados.",
+      trend: "NEUTRO",
+      successRate: null,
+      heatmap: { zonaVerde: [], zonaAmarela: [], zonaVermelha: [] },
+      recommendations: ["Verifique a origem e o inteiro teor de cada decisão antes de utilizar na estratégia."],
+      decisions,
+      source: "Escavador",
+      warning: "Sem modelo estatístico validado. Não há taxa de êxito calculada nem tendência inferida.",
     }
-
-    // 2. Análise via OpenAI
-    const jurisprudenceSummary = jurisprudenceData.length > 0
-      ? jurisprudenceData.map((j: any) => `• ${j.titulo || j.descricao || 'Sem título'} (${j.tribunal}) - Resultado: ${j.resultado || 'Não informado'}`).join('\n')
-      : 'Jurisprudência não encontrada via API. Usando análise padrão.';
-
-    const prompt = `Você é um assistente jurídico especializado em pesquisa jurisprudencial.
-
-**Tema:** ${theme}
-**Tribunal:** ${court}
-**Período:** ${period}
-**Câmara:** ${camara || 'Todas'}
-**Matéria:** ${materia || 'Todas'}
-
-**Jurisprudência encontrada:**
-${jurisprudenceSummary}
-
-Com base no tema e nos dados disponíveis, forneça uma análise de jurisprudência RETORNE EXATAMENTE neste JSON (sem markdown, sem code blocks):
-
-{
-  "decisionsCount": número de decisões encontradas,
-  "analysis": "texto completo da análise jurisprudencial",
-  "trend": "FAVORÁVEL" ou "DESFAVORÁVEL" ou "NEUTRO",
-  "successRate": número de 0 a 100,
-  "heatmap": {
-    "zonaVerde": ["argumento 1", "argumento 2", "argumento 3"],
-    "zonaAmarela": ["argumento 1", "argumento 2"],
-    "zonaVermelha": ["argumento 1", "argumento 2"]
-  },
-  "recommendations": ["recomendação 1", "recomendação 2", "recomendação 3"]
-}`;
-
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'Você é um assistente jurídico especializado. Retorne apenas JSON válido, sem formatação extra.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7
-      })
-    });
-
-    let searchResult: any;
-
-    if (openaiResponse.ok) {
-      const openaiData = await openaiResponse.json();
-      const content = openaiData.choices?.[0]?.message?.content || '{}';
-
-      let cleanContent = content.trim();
-      if (cleanContent.startsWith('```json')) {
-        cleanContent = cleanContent.replace(/```json\n?|```\n?/g, '');
-      } else if (cleanContent.startsWith('```')) {
-        cleanContent = cleanContent.replace(/```\n?/g, '');
-      }
-
-      searchResult = JSON.parse(cleanContent);
-    } else {
-      // Fallback
-      searchResult = {
-        decisionsCount: 150,
-        analysis: `Análise jurisprudencial sobre "${theme}" em ${court}. A jurisprudência predominante nesta matéria é FAVORÁVEL ao autor, com aproximadamente 70% das decisões siding com a tese apresentada.`,
-        trend: 'FAVORÁVEL',
-        successRate: 70,
-        heatmap: {
-          zonaVerde: ['Argumentos baseados em jurisprudência pacífica', 'Precedentes favoráveis'],
-          zonaAmarela: ['Jurisprudência dividida', 'Precedentes recentes'],
-          zonaVermelha: ['Posições minoritárias', 'Teses rejeitadas']
-        },
-        recommendations: ['Fundamentar em precedentes', 'Citar jurisprudência consolidada']
-      };
-    }
-
-    const fullResult = {
-      theme,
-      decisionsCount: searchResult.decisionsCount,
-      analysis: searchResult.analysis,
-      trend: searchResult.trend,
-      successRate: searchResult.successRate,
-      heatmap: searchResult.heatmap,
-      recommendations: searchResult.recommendations
-    };
-
-    // 3. Salvar no banco
-    await supabase.from('analysis_history').insert({
-      user_id: userId,
-      type: 'jurisprudence',
+    const admin = createClient(url, serviceRole, { auth: { persistSession: false } })
+    const { error: saveError } = await admin.from("analysis_history").insert({
+      user_id: auth.user.id,
+      type: "jurisprudence",
       input_data: { theme, court, period, camara, materia },
-      result: fullResult
-    });
-
-    return new Response(JSON.stringify(fullResult), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      }
-    });
-
+      result,
+    })
+    if (saveError) console.error("analysis_history insert failed", saveError.code)
+    return reply(result)
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      }
-    });
+    console.error("search-jurisprudence failed", error instanceof Error ? error.name : "unknown")
+    return reply({ error: "Não foi possível concluir a pesquisa jurisprudencial." }, 502)
   }
-});
+})

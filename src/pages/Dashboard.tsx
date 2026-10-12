@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
+import { Link, Outlet, useLocation } from "react-router-dom"
 import {
   Brain,
   Menu,
@@ -62,7 +62,6 @@ const [morningBriefUnread, setMorningBriefUnread] = useState(false)
 const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
   const { user, signOut } = useAuth()
   const location = useLocation()
-  const navigate = useNavigate()
 
   const { subscription, trialDaysLeft } = usePlan()
   const isTrial = subscription?.status === "trialing"
@@ -150,28 +149,6 @@ const isNotificationsActive = location.pathname.includes("notifications")
     }
     checkMorningBriefUnread()
   }, [user, location.pathname])
-
-  useEffect(() => {
-    async function checkOnboarding() {
-      if (!user?.id) return
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("id", user.id)
-        .maybeSingle()
-
-      if (
-        !error &&
-        data?.onboarding_completed === false &&
-        !location.pathname.includes("onboarding")
-      ) {
-        navigate("/dashboard/onboarding")
-      }
-    }
-
-    checkOnboarding()
-  }, [user, location.pathname, navigate])
 
   const NavItem = ({ to, icon: Icon, label, description, active, badge }: any) => (
   <Link
@@ -646,7 +623,7 @@ description="Consulte análises anteriores da IA."
         </div>
       </aside>
 
-      <div className="flex-1 lg:ml-64">
+      <div className="flex-1 min-w-0 lg:ml-64">
         <header className="sticky top-0 z-30 bg-card border-b border-border p-4 lg:hidden">
           <div className="flex items-center gap-4">
             <button onClick={() => setSidebarOpen(true)} className="p-2 hover:bg-muted rounded-lg">
@@ -656,70 +633,7 @@ description="Consulte análises anteriores da IA."
           </div>
         </header>
 
-        <main>
-  {isAICopilotActive ? (
-    <AICopilot />
-) : isLegalChatActive ? (
-    <LegalChat />
-      ) : isKnowledgeBaseActive ? (
-  <KnowledgeBase />
-) : isLegalMemoryActive ? (
-  <LegalMemory />
-) : isLegalCasesActive ? (
-  <LegalCases />
-      ) : isAICopilotHistoryActive ? (
-  <AICopilotHistory />
-  ) : isHomeActive ? (
-  <>
-    <TaskLauncher />
-    <HomeDashboard />
-  </>
-  ) : isRedTeamSimulatorActive ? (
-    <RedTeamSimulator />
-  ) : isJudgeSimulatorActive ? (
-    <JudgeSimulator />
-  ) : isJudgeHistoryActive ? (
-    <JudgeHistory />
-  ) : isProcessPortfolioActive ? (
-    <ProcessPortfolio />
-  ) : isLegalIntelligenceEngineActive ? (
-    <LegalIntelligenceEngine />
-  ) : isLegalIntelligenceHistoryActive ? (
-    <LegalIntelligenceHistory />
-      ) : isPrecedentsActive ? (
-  <Precedents />
-  ) : isCnjProcessesActive ? (
-  <CNJProcesses />    
-  ) : isLitigationStrategyActive ? (
-    <LitigationStrategyCenter />
-      ) : isJurisprudenceLibraryActive ? (
-  <JurisprudenceLibrary />
-  ) : isChiefLegalOfficerActive ? (
-    <ChiefLegalOfficer />
-  ) : isEnterpriseCommandCenterActive ? (
-    <EnterpriseCommandCenter />
-  ) : isWarRoomCenterActive ? (
-    <WarRoomCenter />
-  ) : isPartnerCouncilActive ? (
-    <PartnerCouncilCenter />
-  ) : isOneClickActionsActive ? (
-    <OneClickActionsCenter />
-  ) : isOpponentDatabaseActive ? (
-    <OpponentDatabaseCenter />
-  ) : isTribunalHeatmapActive ? (
-    <TribunalHeatmapCenter />
-  ) : isDraftGeneratorActive ? (
-    <DraftGenerator />
-  ) : isDraftHistoryActive ? (
-    <DraftHistory />
-  ) : isReportsActive ? (
-    <StrategicReport />
-  ) : isHistoryActive ? (
-    <History />
-  ) : (
-    <HomeDashboard />
-  )}
-</main>
+        <main className="min-w-0 w-full"><Outlet /></main>
       </div>
     </div>
   )

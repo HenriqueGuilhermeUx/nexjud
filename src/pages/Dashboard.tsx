@@ -605,7 +605,7 @@ description="Consulte análises anteriores da IA."
             </p>
           </div>
         </div>
-        <div className="shrink-0 p-4 border-t border-border bg-card">
+        <div className="shrink-0 p-3 border-t border-border bg-card relative z-[40]">
           <div className="flex items-center gap-3 mb-4 px-4">
             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
               <User className="w-4 h-4 text-primary" />
@@ -616,7 +616,7 @@ description="Consulte análises anteriores da IA."
             </div>
           </div>
 
-          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive" onClick={async () => { try { await signOut(); window.location.assign("/login") } catch (error) { console.error("Falha ao sair", error); window.alert("Não foi possível encerrar a sessão. Tente novamente.") } }}>
+          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive border border-border" onClick={async () => { try { await signOut(); window.location.assign("/login") } catch (error) { console.error("Falha ao sair", error); window.alert("Não foi possível encerrar a sessão. Tente novamente.") } }}>
             <LogOut className="w-4 h-4" />
             Sair
           </Button>

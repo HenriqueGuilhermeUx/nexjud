@@ -119,14 +119,17 @@ Deno.serve(async (req) => {
     const cnj = String(body.cnj || "").trim()
     const tribunalAlias = String(body.tribunalAlias || "").trim()
 
-    if (!cnj) {
+    if (onlyNumbers(cnj).length !== 20) {
       return Response.json(
-        { error: "Número CNJ obrigatório." },
+        { error: "Informe um número CNJ de 20 dígitos." },
         { status: 400, headers: corsHeaders }
       )
     }
 
     const alias = tribunalAlias || detectAlias(cnj)
+    if (!/^(tj[a-z]{2,4}|trf[1-6]|trt(?:[1-9]|1[0-9]|2[0-4]))$/.test(alias)) {
+      return Response.json({ error: "Tribunal não suportado." }, { status: 400, headers: corsHeaders })
+    }
     const url = `https://api-publica.datajud.cnj.jus.br/api_publica_${alias}/_search`
 
     const query = {

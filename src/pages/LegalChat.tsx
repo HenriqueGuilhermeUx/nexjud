@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   Brain,
-  CheckCircle2,
+  Copy,
+  Check,
   ChevronDown,
   ChevronUp,
   Database,
@@ -155,6 +156,7 @@ function modeClass(mode: string) {
 
 function AssistantMessage({ message }: { message: any }) {
   const [sourcesOpen, setSourcesOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
   const mode = useMemo(() => inferResponseMode(message.content || ""), [message.content])
   const sources = useMemo(
     () => buildSourceItems(message.context_used || message.contextUsed),
@@ -179,23 +181,24 @@ function AssistantMessage({ message }: { message: any }) {
         </span>
       </div>
 
-      <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-gray-200 leading-7 text-[15px]">
+      <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-foreground/90 leading-8 text-[15px] sm:text-base max-w-[80ch]">
         {message.content}
       </div>
 
-      <div className="mt-5 pt-4 border-t border-white/5">
+      <div className="mt-5 flex justify-end"><button type="button" onClick={async () => { try { await navigator.clipboard.writeText(String(message.content || "")); setCopied(true); window.setTimeout(() => setCopied(false), 1800) } catch { setCopied(false) } }} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" aria-label="Copiar resposta">{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? "Copiado" : "Copiar resposta"}</button></div>
+      <div className="mt-4 pt-4 border-t border-white/5">
         <button
           type="button"
           onClick={() => setSourcesOpen((value) => !value)}
           className="w-full flex items-center justify-between gap-3 text-left"
         >
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-400" />
+            <FileSearch size={16} className="text-muted-foreground" />
             <span className="text-sm font-semibold text-foreground">
-              Evidências e fontes consideradas
+              Contexto consultado
             </span>
             <span className="text-xs text-muted-foreground">
-              {sources.length > 0 ? `${sources.length} fontes` : "contexto não informado"}
+              {sources.length > 0 ? `${sources.length} categorias` : "contexto não informado"}
             </span>
           </div>
 
@@ -210,7 +213,7 @@ function AssistantMessage({ message }: { message: any }) {
           <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-2 mt-4">
             {sources.length === 0 ? (
               <div className="sm:col-span-2 xl:col-span-4 rounded-xl border border-border bg-background/40 p-3 text-xs text-muted-foreground">
-                Esta mensagem foi salva antes do registro visual das fontes ou a Edge Function não retornou o objeto contextUsed.
+                Não há informações sobre as fontes consultadas nesta resposta. Confira referências e documentos antes de utilizar o conteúdo.
               </div>
             ) : (
               sources.map((source) => {
@@ -225,7 +228,7 @@ function AssistantMessage({ message }: { message: any }) {
                     <div className="min-w-0">
                       <p className="text-xs font-semibold truncate">{source.label}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        {source.count} item(ns) considerado(s)
+                        {source.count} item(ns) registrado(s)
                       </p>
                     </div>
                   </div>
@@ -379,19 +382,18 @@ export default function LegalChat() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="w-full max-w-7xl min-w-0 mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-indigo-500/10 to-[#05050a] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-border bg-card/70 p-5 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
-            <Brain className="text-primary" size={44} />
+            <Brain className="text-primary" size={30} />
             <div>
-              <h1 className="text-4xl font-bold">Chat Jurídico Contextual™</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">Assistente jurídico</h1>
               <p className="text-muted-foreground mt-1">
-                Converse com o Legal Brain usando documentos, casos, jurisprudência,
-                precedentes, CNJ e memória jurídica.
+                Faça perguntas, explore estratégias e trabalhe com o contexto disponível no NexJud.
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 mt-5">
+          <div className="hidden flex-wrap gap-2 mt-5">
             {["Document Review", "Consulta Jurídica", "Pesquisa Jurídica", "Estratégia Processual"].map(
               (mode) => (
                 <span
@@ -466,7 +468,7 @@ export default function LegalChat() {
               </button>
             </div>
 
-            <div className="p-5 min-h-[520px] max-h-[680px] overflow-y-auto space-y-4">
+            <div className="p-3 sm:p-5 min-h-[380px] max-h-[65vh] overflow-y-auto space-y-4">
               {messages.length === 0 ? (
                 <div className="h-[480px] flex items-center justify-center text-center text-muted-foreground">
                   <div>
@@ -510,7 +512,7 @@ export default function LegalChat() {
               )}
             </div>
 
-            <div className="border-t border-border p-5 bg-background/30">
+            <div className="border-t border-border p-3 sm:p-5 bg-background/30">
               <div className="flex gap-3">
                 <textarea
                   value={input}

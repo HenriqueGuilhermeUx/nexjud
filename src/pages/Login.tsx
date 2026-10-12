@@ -25,17 +25,29 @@ export default function Login() {
 
     try {
       if (isSignUp) {
-        await signUpWithEmail(email, password, {
-          data: { name },
+        const normalizedEmail = email.trim().toLowerCase()
+        const normalizedName = name.trim()
+        const data = await signUpWithEmail(normalizedEmail, password, {
+          data: { name: normalizedName, full_name: normalizedName },
         })
 
-        setSuccessMessage("Cadastro realizado com sucesso! Agora você já pode fazer login.")
+        // Supabase can either create an authenticated session immediately
+        // or require email confirmation, depending on the production auth config.
+        // Handle both paths explicitly so Safari users never get stuck on the form.
+        if (data?.session) {
+          localStorage.removeItem("nexjud_onboarding")
+          navigate("/welcome")
+          return
+        }
+
+        setSuccessMessage("Cadastro realizado. Confira seu e-mail para confirmar a conta e depois faça login.")
         setIsSignUp(false)
         setName("")
-        setEmail("")
+        setEmail(normalizedEmail)
         setPassword("")
       } else {
-        await signInWithEmail(email, password)
+        const normalizedEmail = email.trim().toLowerCase()
+        const data = await signInWithEmail(normalizedEmail, password)
 
         const tutorialDone = localStorage.getItem("nexjud_onboarding")
 
@@ -74,7 +86,8 @@ export default function Login() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required={isSignUp}
-                  className="bg-input border-border text-foreground"
+                  autoComplete="name"
+                  className="bg-input border-border text-foreground text-base"
                 />
               </div>
             )}
@@ -87,7 +100,10 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-input border-border text-foreground"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                className="bg-input border-border text-foreground text-base"
               />
             </div>
 
@@ -100,7 +116,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="bg-input border-border text-foreground"
+                className="bg-input border-border text-foreground text-base"
               />
             </div>
 

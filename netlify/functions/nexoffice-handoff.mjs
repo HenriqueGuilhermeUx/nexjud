@@ -11,22 +11,22 @@ function json(status, body) {
 
 async function authenticatedUser(req) {
   const authorization = req.headers.get('authorization') || '';
-  if (!authorization.startsWith('Bearer ')) return null;
+  if (!authorization.startsWith('Bearer ')) return { error: 'unauthorized' };
   const token = authorization.slice(7).trim();
-  if (!token) return null;
+  if (!token) return { error: 'unauthorized' };
   const supabaseUrl = env('VITE_SUPABASE_URL');
   const anonKey = env('VITE_SUPABASE_ANON_KEY');
-  if (!supabaseUrl || !anonKey) return null;
+  if (!supabaseUrl || !anonKey) return { error: 'bridge_auth_configuration_missing' };
   try {
     const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
       headers: { apikey: anonKey, authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(8_000),
     });
-    if (!response.ok) return null;
+    if (!response.ok) return { error: response.status === 401 || response.status === 403 ? 'bridge_token_rejected' : 'bridge_auth_unavailable' };
     const user = await response.json();
-    return user?.id && user?.email ? user : null;
+    return user?.id && user?.email ? { user } : { error: 'bridge_token_rejected' };
   } catch {
-    return null;
+    return { error: 'bridge_auth_unavailable' };
   }
 }
 
@@ -122,8 +122,9 @@ function businessName(user, identity) {
 export default async (req) => {
   if (req.method !== 'POST') return json(405, { ok: false, error: 'method_not_allowed' });
 
-  const user = await authenticatedUser(req);
-  if (!user) return json(401, { ok: false, error: 'unauthorized' });
+  const auth = await authenticatedUser(req);
+  if (auth.error) return json(auth.error === 'bridge_auth_configuration_missing' || auth.error === 'bridge_auth_unavailable' ? 503 : 401, { ok: false, error: auth.error });
+  const user = auth.user;
 
   const identity = resolveNexOfficeIdentity(user);
   if (!identity.externalWorkspaceRef || !identity.externalUserSubject) return json(422, { ok: false, error: 'invalid_federated_identity' });

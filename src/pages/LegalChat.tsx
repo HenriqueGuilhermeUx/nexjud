@@ -162,7 +162,7 @@ function AssistantMessage({ message }: { message: any }) {
   )
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-black/20 p-5 mr-0 lg:mr-10 shadow-sm">
+    <div className="min-w-0 w-full rounded-2xl border border-white/5 bg-black/20 p-4 sm:p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -179,7 +179,7 @@ function AssistantMessage({ message }: { message: any }) {
         </span>
       </div>
 
-      <div className="whitespace-pre-wrap text-gray-200 leading-7 text-[15px]">
+      <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-gray-200 leading-7 text-[15px]">
         {message.content}
       </div>
 
@@ -378,7 +378,7 @@ export default function LegalChat() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-8">
+      <div className="w-full max-w-7xl min-w-0 mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-indigo-500/10 to-[#05050a] p-8 shadow-2xl">
           <div className="flex items-center gap-3 mb-4">
             <Brain className="text-primary" size={44} />
@@ -405,7 +405,7 @@ export default function LegalChat() {
           </div>
         </section>
 
-        <section className="grid lg:grid-cols-[300px_1fr] gap-6">
+        <section className="grid min-w-0 lg:grid-cols-[minmax(220px,280px)_minmax(0,1fr)] gap-5">
           <aside className="rounded-2xl border border-border bg-card p-4 h-fit lg:sticky lg:top-6">
             <button
               onClick={newChat}
@@ -446,7 +446,7 @@ export default function LegalChat() {
             </div>
           </aside>
 
-          <main className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+          <main className="min-w-0 rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
             <div className="border-b border-border p-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="font-bold text-xl">
@@ -483,10 +483,10 @@ export default function LegalChat() {
                   msg.role === "user" ? (
                     <div
                       key={msg.id}
-                      className="rounded-2xl p-4 border bg-primary/10 border-primary/20 ml-6 lg:ml-16"
+                      className="min-w-0 rounded-2xl p-4 border bg-primary/10 border-primary/20 ml-2 sm:ml-8"
                     >
                       <p className="text-xs font-bold text-muted-foreground mb-2">Você</p>
-                      <p className="whitespace-pre-wrap text-gray-200 leading-7">{msg.content}</p>
+                      <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-gray-200 leading-7">{msg.content}</p>
                     </div>
                   ) : (
                     <AssistantMessage key={msg.id} message={msg} />
@@ -495,7 +495,7 @@ export default function LegalChat() {
               )}
 
               {loading && (
-                <div className="rounded-2xl p-5 border bg-black/20 border-white/5 mr-0 lg:mr-10">
+                <div className="rounded-2xl p-5 border bg-black/20 border-white/5">
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <Loader2 className="animate-spin text-primary" size={20} />
                     <div>
@@ -516,7 +516,7 @@ export default function LegalChat() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Digite sua pergunta jurídica..."
-                  className="flex-1 min-h-[82px] rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary resize-y"
+                  className="min-w-0 flex-1 min-h-[82px] rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary resize-y"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault()

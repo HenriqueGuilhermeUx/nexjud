@@ -6,7 +6,7 @@ import { useNexOfficeLegalSync } from "@/hooks/useNexOfficeLegalSync"
 function bridgeError(status: number, code?: string) {
   if (code === "bridge_auth_configuration_missing") return "A conexão NexOffice está sem a configuração de autenticação no servidor. Contate o suporte (bridge_auth_configuration_missing)."
   if (code === "bridge_token_rejected") return "O servidor não reconheceu a autenticação do NexJud (bridge_token_rejected)."
-  if (status === 401 || code === "unauthorized") return "Não foi possível autenticar a conexão com o NexOffice. Entre novamente se necessário (401)."
+  if (status === 401 || code === "unauthorized") return "A integração NexOffice recusou a autenticação (401). Sua sessão NexJud pode estar válida; não é necessário sair da conta repetidamente. A configuração de acesso entre os servidores precisa ser verificada."
   if (status === 503 || code === "nexoffice_not_configured" || code === "platform_bridge_not_configured") return "O NexOffice ainda não está configurado neste ambiente."
   if (code === "workspace_access_revoked") return "Seu acesso ao workspace NexOffice foi revogado."
   if (code === "onboarding_required") return "Seu acesso ao escritório ainda precisa ser concluído."
@@ -21,9 +21,23 @@ export default function NexOfficeLauncher() {
   const [showIntro, setShowIntro] = useState(false)
   const [error, setError] = useState("")
   const enabled = import.meta.env.VITE_NEXOFFICE_ENABLED === "true"
+  const [webOnly, setWebOnly] = useState(false)
 
   useEffect(() => {
-    if (!enabled) return
+    const update = () => {
+      const path = window.location.pathname
+      const isAppRoute = path === "/app" || path.startsWith("/app/") || path === "/companion" || path.startsWith("/companion/")
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
+      setWebOnly(!isAppRoute && !isStandalone && window.matchMedia("(min-width: 768px)").matches)
+    }
+    update()
+    window.addEventListener("resize", update)
+    window.addEventListener("popstate", update)
+    return () => { window.removeEventListener("resize", update); window.removeEventListener("popstate", update) }
+  }, [])
+
+  useEffect(() => {
+    if (!enabled || !webOnly) return
     const client = getSupabaseClient()
     if (!client) return
     client.auth.getSession().then(({ data }) => {
@@ -35,11 +49,11 @@ export default function NexOfficeLauncher() {
       setUser(nextSession?.user ?? null)
     })
     return () => subscription.unsubscribe()
-  }, [enabled])
+  }, [enabled, webOnly])
 
-  useNexOfficeLegalSync(session)
+  useNexOfficeLegalSync(webOnly ? session : null)
 
-  if (!enabled || !user || !session?.access_token) return null
+  if (!enabled || !webOnly || !user || !session?.access_token) return null
 
   const openNexOffice = async () => {
     if (busy) return

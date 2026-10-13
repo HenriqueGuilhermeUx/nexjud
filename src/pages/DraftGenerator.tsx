@@ -20,6 +20,8 @@ export default function DraftGenerator() {
   const [focus, setFocus] = useState("")
   const [draftType, setDraftType] = useState("peticao_inicial")
   const [loading, setLoading] = useState(false)
+  const [draftError, setDraftError] = useState("")
+  const [draftNotice, setDraftNotice] = useState("")
   const [result, setResult] = useState<any>(null)
   const [linkedCaseId, setLinkedCaseId] = useState<string | null>(null)
   const [contextSource, setContextSource] = useState<string | null>(null)
@@ -55,23 +57,26 @@ export default function DraftGenerator() {
   }
 
   async function handleGenerate() {
+    if (loading) return
     if (!caseText.trim()) {
-      alert("Cole o caso primeiro.")
+      setDraftError("Descreva o caso antes de gerar a minuta.")
       return
     }
 
     setLoading(true)
+    setDraftError("")
+    setDraftNotice("")
 
     try {
-      const data = await generateDraft({
-        caseText,
-        draftType,
-        focus,
-      })
-
+      const data = await generateDraft({ caseText, draftType, focus })
       setResult(data)
 
-      if (user?.id) {
+      if (!user?.id) {
+        setDraftError("Minuta gerada, mas não salva. Entre na sua conta para manter o histórico; copie ou exporte antes de sair.")
+        return
+      }
+
+      try {
         await saveDraft({
           userId: user.id,
           title: data.title || "Minuta NexJud",
@@ -81,10 +86,14 @@ export default function DraftGenerator() {
           result: data,
           caseId: linkedCaseId,
         })
+        setDraftNotice("Minuta gerada e salva no histórico.")
+      } catch (saveError) {
+        console.error(saveError)
+        setDraftError("A minuta foi gerada, mas não foi salva no histórico. Copie ou exporte o resultado antes de sair.")
       }
     } catch (error) {
       console.error(error)
-      alert("Erro ao gerar/salvar minuta.")
+      setDraftError("Não foi possível gerar a minuta. Confira os dados e tente novamente.")
     } finally {
       setLoading(false)
     }
@@ -140,6 +149,8 @@ ${result.finalNote || "-"}
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-8">
+        {draftError && <p role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm">{draftError}</p>}
+        {draftNotice && <p role="status" className="rounded-xl border border-primary/30 p-4 text-sm">{draftNotice}</p>}
         <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-[#111118] to-[#0c0c12] p-8 shadow-2xl">
           <div className="flex items-center gap-3 mb-4">
             <FileText className="text-primary" size={38} />

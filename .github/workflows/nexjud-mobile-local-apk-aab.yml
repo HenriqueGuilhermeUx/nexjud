@@ -81,6 +81,12 @@ jobs:
             echo "PLAY_SIGNED=false" >> "$GITHUB_ENV"
           fi
 
+      - name: Require Play upload signing for release artifact
+        if: env.PLAY_SIGNED != 'true'
+        run: |
+          echo "ERRO: AAB para Google Play exige a chave de upload configurada nos quatro secrets do GitHub."
+          exit 1
+
       - name: Verify merged Android manifest before release build
         working-directory: mobile/android
         shell: bash

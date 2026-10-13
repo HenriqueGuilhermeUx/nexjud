@@ -171,6 +171,7 @@ function HomeScreen({ navigation }: any) {
     { title: "Treinar argumentos", subtitle: "Prepare audiência e sustentação", icon: Gavel, parent: "HearingPicker" },
     { title: "Perguntar à IA", subtitle: "Legal Brain contextual", icon: Brain, route: "IA" },
     { title: "Consultar casos", subtitle: "Dossiês e estratégia", icon: Briefcase, route: "Casos" },
+    { title: "Preparar minuta", subtitle: "Peças e documentos com IA", icon: WandSparkles, parent: "Studio" },
   ]
 
   return (

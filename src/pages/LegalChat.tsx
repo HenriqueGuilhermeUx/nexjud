@@ -252,6 +252,7 @@ export default function LegalChat() {
   const [loading, setLoading] = useState(false)
   const [loadingSessions, setLoadingSessions] = useState(true)
   const [chatError, setChatError] = useState("")
+  const [sessionError, setSessionError] = useState("")
 
   useEffect(() => {
     loadSessions()
@@ -265,12 +266,12 @@ export default function LegalChat() {
     try {
       const data = await getChatSessions(user.id)
       setSessions(data || [])
-      if (data?.length && !activeSession) {
-        await openSession(data[0])
+      if (data?.length) {
+        setActiveSession((current: any) => current || data[0])
       }
     } catch (error) {
       console.error(error)
-      alert("Erro ao carregar chats.")
+      setSessionError("Não foi possível carregar suas conversas. Tente novamente.")
     } finally {
       setLoadingSessions(false)
     }
@@ -279,6 +280,7 @@ export default function LegalChat() {
   async function openSession(session: any) {
     if (!user?.id) return
 
+    setSessionError("")
     setActiveSession(session)
 
     try {
@@ -286,7 +288,7 @@ export default function LegalChat() {
       setMessages(data || [])
     } catch (error) {
       console.error(error)
-      alert("Erro ao carregar mensagens.")
+      setSessionError("Não foi possível abrir esta conversa. Tente novamente.")
     }
   }
 
@@ -304,7 +306,7 @@ export default function LegalChat() {
       setMessages([])
     } catch (error) {
       console.error(error)
-      alert("Erro ao criar chat.")
+      setSessionError("Não foi possível criar uma conversa. Tente novamente.")
     }
   }
 
@@ -321,6 +323,7 @@ export default function LegalChat() {
     setChatError("")
     setLoading(true)
     setInput("")
+    let userMessageSaved = false
 
     try {
       let session = activeSession
@@ -342,6 +345,7 @@ export default function LegalChat() {
         content: text,
       })
 
+      userMessageSaved = true
       setMessages((prev) => [...prev, userMessage])
 
       const ai = await runLegalChatAi({
@@ -369,8 +373,10 @@ export default function LegalChat() {
       await loadSessions()
     } catch (error: any) {
       console.error(error)
-      setChatError(error?.message || "Não foi possível concluir a resposta. Sua pergunta foi preservada para tentar novamente.")
-      setInput((current) => current.trim() ? current : text)
+      setChatError(userMessageSaved
+        ? "Sua pergunta foi registrada, mas a resposta não foi concluída. Evite reenviar a mesma pergunta; abra a conversa novamente para conferir o histórico."
+        : (error?.message || "Não foi possível enviar. Sua pergunta foi preservada para tentar novamente."))
+      if (!userMessageSaved) setInput((current) => current.trim() ? current : text)
     } finally {
       setLoading(false)
     }
@@ -420,6 +426,7 @@ export default function LegalChat() {
               Novo chat
             </button>
 
+            {sessionError && <p role="alert" className="mt-3 rounded-lg border border-destructive/40 p-3 text-xs">{sessionError}</p>}
             <div className="mt-5 space-y-3 max-h-[650px] overflow-y-auto pr-1">
               {loadingSessions ? (
                 <p className="text-muted-foreground text-sm">Carregando chats...</p>

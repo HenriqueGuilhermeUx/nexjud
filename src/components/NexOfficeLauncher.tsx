@@ -6,6 +6,8 @@ import { useNexOfficeLegalSync } from "@/hooks/useNexOfficeLegalSync"
 function bridgeError(status: number, code?: string) {
   if (code === "bridge_auth_configuration_missing") return "A conexão NexOffice está sem a configuração de autenticação no servidor. Contate o suporte (bridge_auth_configuration_missing)."
   if (code === "bridge_token_rejected") return "O servidor não reconheceu a autenticação do NexJud (bridge_token_rejected)."
+  if (code === "nexjud_session_refresh_failed") return "Sua sessão do NexJud expirou e não pôde ser renovada. Entre novamente e tente de novo."
+  if (code === "nexjud_session_verify_failed") return "Sua sessão do NexJud não pôde ser validada antes de abrir o NexOffice. Entre novamente e tente de novo."
   if (status === 401 || code === "unauthorized") return "Não foi possível autenticar a conexão com o NexOffice. Entre novamente se necessário (401)."
   if (status === 503 || code === "nexoffice_not_configured" || code === "platform_bridge_not_configured") return "O NexOffice ainda não está configurado neste ambiente."
   if (code === "workspace_access_revoked") return "Seu acesso ao workspace NexOffice foi revogado."
@@ -48,12 +50,25 @@ export default function NexOfficeLauncher() {
     try {
       const client = getSupabaseClient()
       if (!client) throw Object.assign(new Error("supabase_not_configured"), { status: 503 })
-      const { data: refreshed, error: refreshError } = await client.auth.getSession()
-      if (refreshError || !refreshed.session?.access_token) throw Object.assign(new Error("unauthorized"), { status: 401 })
+
+      // Do not reuse a possibly stale cached JWT for the federated handoff.
+      // Force a Supabase refresh first, then verify the fresh token against
+      // the same project the NexJud frontend is currently using.
+      const { data: refreshed, error: refreshError } = await client.auth.refreshSession()
+      if (refreshError || !refreshed.session?.access_token) {
+        throw Object.assign(new Error("unauthorized"), { status: 401, code: "nexjud_session_refresh_failed" })
+      }
+
+      const accessToken = refreshed.session.access_token
+      const { data: verified, error: verifyError } = await client.auth.getUser(accessToken)
+      if (verifyError || !verified.user?.id || !verified.user?.email) {
+        throw Object.assign(new Error("unauthorized"), { status: 401, code: "nexjud_session_verify_failed" })
+      }
+
       const response = await fetch("/api/nexoffice/handoff", {
         method: "POST",
         headers: {
-          authorization: `Bearer ${refreshed.session.access_token}`,
+          authorization: `Bearer ${accessToken}`,
           "content-type": "application/json",
         },
         body: JSON.stringify({}),

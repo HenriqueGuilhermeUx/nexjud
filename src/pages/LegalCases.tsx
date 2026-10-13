@@ -21,7 +21,7 @@ export default function LegalCases() {
   const [opponentName, setOpponentName] = useState("")
   const [court, setCourt] = useState("")
   const [riskLevel, setRiskLevel] = useState("MÉDIO")
-  const [successProbability, setSuccessProbability] = useState(50)
+  const [successProbability, setSuccessProbability] = useState<number | "">("")
   const [summary, setSummary] = useState("")
   const [tags, setTags] = useState("")
 
@@ -81,7 +81,7 @@ export default function LegalCases() {
         opponent_name: opponentName || null,
         court: court || null,
         risk_level: riskLevel,
-        success_probability: successProbability,
+        success_probability: successProbability === "" ? null : successProbability,
         summary,
         tags: tags
           .split(",")
@@ -96,7 +96,7 @@ export default function LegalCases() {
       setOpponentName("")
       setCourt("")
       setRiskLevel("MÉDIO")
-      setSuccessProbability(50)
+      setSuccessProbability("")
       setSummary("")
       setTags("")
 
@@ -134,7 +134,7 @@ export default function LegalCases() {
     setOpponentName("Banco Exemplo S.A.")
     setCourt("TJSP")
     setRiskLevel("MÉDIO")
-    setSuccessProbability(72)
+    setSuccessProbability("")
     setTags("banco, consumidor, dano moral")
     setSummary(
       "Cliente possui extratos e protocolos demonstrando descontos não reconhecidos. Estratégia recomendada: organizar documentos, pedir cessação dos descontos, repetição de indébito e avaliar dano moral conforme prova disponível."
@@ -217,11 +217,14 @@ export default function LegalCases() {
                 type="number"
                 min={0}
                 max={100}
+                aria-label="Estimativa manual de chance de êxito, opcional"
                 value={successProbability}
-                onChange={(e) => setSuccessProbability(Number(e.target.value))}
-                placeholder="Chance de êxito"
+                onChange={(e) => setSuccessProbability(e.target.value === "" ? "" : Math.min(100, Math.max(0, Number(e.target.value))))}
+                placeholder="Estimativa manual de êxito (opcional, %)"
                 className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary"
               />
+
+              <p className="text-xs text-muted-foreground">Não há percentual calculado automaticamente neste cadastro. Preencha somente se possuir uma avaliação própria fundamentada; deixar em branco significa que não há estimativa.</p>
 
               <input
                 value={tags}

@@ -8,6 +8,9 @@ export default function DraftHistory() {
   const { user } = useAuth()
   const [drafts, setDrafts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [notice, setNotice] = useState("")
+  const [busyId, setBusyId] = useState<string | null>(null)
 
   useEffect(() => {
     load()
@@ -17,18 +20,35 @@ export default function DraftHistory() {
     if (!user?.id) return
 
     setLoading(true)
-    const data = await getUserDrafts(user.id)
-    setDrafts(data)
-    setLoading(false)
+    setError("")
+    try {
+      const data = await getUserDrafts(user.id)
+      setDrafts(data || [])
+    } catch (cause) {
+      console.error(cause)
+      setError("Não foi possível carregar suas minutas. Tente novamente.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function remove(id: string) {
     if (!confirm("Excluir esta minuta?")) return
-    await deleteDraft(id)
-    setDrafts((prev) => prev.filter((x) => x.id !== id))
+    setBusyId(id)
+    setError("")
+    try {
+      await deleteDraft(id)
+      setDrafts((prev) => prev.filter((x) => x.id !== id))
+      setNotice("Minuta excluída.")
+    } catch (cause) {
+      console.error(cause)
+      setError("Não foi possível excluir a minuta. Ela continua na sua lista.")
+    } finally {
+      setBusyId(null)
+    }
   }
 
-  function copyDraft(item: any) {
+  async function copyDraft(item: any) {
     const r = item.result || {}
 
     const text = `
@@ -51,8 +71,13 @@ ${s.content}
   .join("\n")}
 `
 
-    navigator.clipboard.writeText(text)
-    alert("Minuta copiada.")
+    try {
+      await navigator.clipboard.writeText(text)
+      setNotice("Minuta copiada.")
+    } catch (cause) {
+      console.error(cause)
+      setError("Não foi possível copiar automaticamente. Verifique as permissões do navegador.")
+    }
   }
 
   if (loading) return <div className="p-6">Carregando minutas...</div>
@@ -67,7 +92,9 @@ ${s.content}
           </p>
         </div>
 
-        {drafts.length === 0 ? (
+        {error && <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm">{error} <button type="button" onClick={load} className="ml-2 underline font-semibold">Tentar novamente</button></div>}
+        {notice && <p role="status" className="text-sm text-primary">{notice}</p>}
+        {drafts.length === 0 && !error ? (
           <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">
             Nenhuma minuta salva ainda.
           </div>
@@ -110,11 +137,12 @@ ${s.content}
 </button>
 
                     <button
+                      disabled={busyId === item.id}
                       onClick={() => remove(item.id)}
                       className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 font-semibold flex items-center gap-2"
                     >
                       <Trash2 size={16} />
-                      Excluir
+                      {busyId === item.id ? "Excluindo..." : "Excluir"}
                     </button>
                   </div>
                 </div>

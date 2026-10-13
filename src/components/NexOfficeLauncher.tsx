@@ -23,9 +23,23 @@ export default function NexOfficeLauncher() {
   const [showIntro, setShowIntro] = useState(false)
   const [error, setError] = useState("")
   const enabled = import.meta.env.VITE_NEXOFFICE_ENABLED === "true"
+  const [webOnly, setWebOnly] = useState(false)
 
   useEffect(() => {
-    if (!enabled) return
+    const update = () => {
+      const path = window.location.pathname
+      const isAppRoute = path === "/app" || path.startsWith("/app/") || path === "/companion" || path.startsWith("/companion/")
+      const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
+      setWebOnly(!isAppRoute && !standalone && window.matchMedia("(min-width: 768px)").matches)
+    }
+    update()
+    window.addEventListener("resize", update)
+    window.addEventListener("popstate", update)
+    return () => { window.removeEventListener("resize", update); window.removeEventListener("popstate", update) }
+  }, [])
+
+  useEffect(() => {
+    if (!enabled || !webOnly) return
     const client = getSupabaseClient()
     if (!client) return
     client.auth.getSession().then(({ data }) => {
@@ -37,11 +51,11 @@ export default function NexOfficeLauncher() {
       setUser(nextSession?.user ?? null)
     })
     return () => subscription.unsubscribe()
-  }, [enabled])
+  }, [enabled, webOnly])
 
-  useNexOfficeLegalSync(session)
+  useNexOfficeLegalSync(webOnly ? session : null)
 
-  if (!enabled || !user || !session?.access_token) return null
+  if (!enabled || !webOnly || !user || !session?.access_token) return null
 
   const openNexOffice = async () => {
     if (busy) return

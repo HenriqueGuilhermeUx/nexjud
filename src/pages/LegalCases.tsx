@@ -14,6 +14,10 @@ export default function LegalCases() {
   const [filtered, setFiltered] = useState<any[]>([])
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [notice, setNotice] = useState("")
 
   const [title, setTitle] = useState("")
   const [clientName, setClientName] = useState("")
@@ -48,6 +52,7 @@ export default function LegalCases() {
     if (!user?.id) return
 
     setLoading(true)
+    setErrorMessage("")
 
     try {
       const data = await getLegalCases(user.id)
@@ -55,7 +60,7 @@ export default function LegalCases() {
       setFiltered(data || [])
     } catch (error) {
       console.error(error)
-      alert("Erro ao carregar casos.")
+      setErrorMessage("Não foi possível carregar os casos. Tente novamente.")
     } finally {
       setLoading(false)
     }
@@ -72,6 +77,10 @@ export default function LegalCases() {
       return
     }
 
+    if (saving) return
+    setSaving(true)
+    setErrorMessage("")
+    setNotice("")
     try {
       await createLegalCase({
         user_id: user.id,
@@ -102,28 +111,38 @@ export default function LegalCases() {
 
       await load()
 
-      alert("Caso salvo.")
+      setNotice("Caso salvo com sucesso.")
     } catch (error) {
       console.error(error)
-      alert("Erro ao salvar caso.")
+      setErrorMessage("Não foi possível salvar o caso. Seus dados foram preservados.")
+    } finally {
+      setSaving(false)
     }
   }
 
   async function deleteCase(id: string) {
     if (!confirm("Excluir este caso jurídico?")) return
 
+    if (deletingId) return
+    setDeletingId(id)
+    setErrorMessage("")
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("legal_cases")
         .delete()
         .eq("id", id)
+        .eq("user_id", user!.id)
+        .select("id")
 
       if (error) throw error
-
-      await load()
+      if (!data?.length) throw new Error("Caso não encontrado ou sem permissão para excluir")
+      setCases((prev) => prev.filter((item) => item.id !== id))
+      setNotice("Caso excluído.")
     } catch (error) {
       console.error(error)
-      alert("Erro ao excluir caso.")
+      setErrorMessage("Não foi possível excluir o caso. Ele permanece na lista.")
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -160,6 +179,8 @@ export default function LegalCases() {
           </div>
         </section>
 
+        {errorMessage && <div role="alert" className="rounded-xl border border-red-500/40 p-4 text-sm">{errorMessage} <button type="button" onClick={load} className="underline ml-2">Atualizar lista</button></div>}
+        {notice && <p role="status" className="text-sm text-primary">{notice}</p>}
         <section className="grid lg:grid-cols-[420px_1fr] gap-6">
           <div className="rounded-2xl border border-border bg-card p-6 h-fit">
             <div className="flex items-center gap-2 mb-5">
@@ -243,9 +264,10 @@ export default function LegalCases() {
               <div className="flex gap-3">
                 <button
                   onClick={saveCase}
+                  disabled={saving}
                   className="flex-1 py-3 rounded-xl bg-primary text-white font-bold"
                 >
-                  Salvar caso
+                  {saving ? "Salvando..." : "Salvar caso"}
                 </button>
 
                 <button
@@ -295,6 +317,8 @@ export default function LegalCases() {
 
                       <button
                         onClick={() => deleteCase(item.id)}
+                        disabled={deletingId === item.id}
+                        aria-label={`Excluir caso ${item.title}`}
                         className="p-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20"
                       >
                         <Trash2 size={18} />
@@ -303,7 +327,7 @@ export default function LegalCases() {
 
                     <div className="grid md:grid-cols-3 gap-3 mt-4">
                       <MiniBox label="Risco" value={item.risk_level || "-"} />
-                      <MiniBox label="Chance" value={`${item.success_probability || 0}%`} />
+                      <MiniBox label="Chance" value={item.success_probability == null ? "Não estimada" : `${item.success_probability}%`} />
                       <MiniBox label="Status" value={item.status || "active"} />
                     </div>
 

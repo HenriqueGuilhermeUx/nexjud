@@ -35,7 +35,7 @@ export default function Landing() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[#1e293b] bg-[#0a0a0f]/80 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center">
-            <img src="/nexjud-logo.svg" alt="NexJud" className="h-14 md:h-16 w-auto object-contain" />
+            <span className="inline-flex items-center gap-2 text-2xl md:text-3xl font-extrabold tracking-tight" aria-label="NexJud"><Gavel aria-hidden="true" className="h-7 w-7 md:h-8 md:w-8 text-[#818cf8]" /><span>Nex<span className="text-[#818cf8]">Jud</span></span></span>
           </Link>
 
           <div className="flex items-center gap-2">

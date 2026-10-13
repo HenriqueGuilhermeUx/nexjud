@@ -266,8 +266,8 @@ export default function LegalChat() {
     try {
       const data = await getChatSessions(user.id)
       setSessions(data || [])
-      if (data?.length) {
-        setActiveSession((current: any) => current || data[0])
+      if (data?.length && !activeSession) {
+        await openSession(data[0])
       }
     } catch (error) {
       console.error(error)

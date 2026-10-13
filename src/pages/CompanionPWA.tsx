@@ -252,6 +252,7 @@ function HomeScreenPWA({ userId, navigate }: { userId: string; navigate: (path: 
     ["Treinar argumentos", "Prepare audiência e sustentação", Gavel, "/app/audiencia"],
     ["Perguntar à IA", "Legal Brain contextual", Brain, "/app/ia"],
     ["Consultar casos", "Dossiês e estratégia", Briefcase, "/app/casos"],
+    ["Preparar minuta", "Peças e documentos com IA", WandSparkles, "/app/studio"],
   ] as const
 
   return <div className="space-y-5">
@@ -271,7 +272,7 @@ function HomeScreenPWA({ userId, navigate }: { userId: string; navigate: (path: 
     <div>
       <div className="flex items-center justify-between"><h2 className="text-lg font-extrabold" style={{ color: colors.text }}>O que você quer fazer agora?</h2><button onClick={load} className="text-xs font-bold" style={{ color: colors.primary }}>{refreshing ? "Atualizando..." : "Atualizar"}</button></div>
       <div className="mt-3 grid grid-cols-2 gap-2.5">
-        {actions.map(([title, subtitle, Icon, path]) => <button key={title} onClick={() => navigate(path)} className="min-h-[145px] rounded-[20px] border p-4 text-left" style={{ background: colors.card, borderColor: colors.border }}>
+        {actions.map(([title, subtitle, Icon, path]) => <button key={title} onClick={() => navigate(path)} className="min-h-[145px] rounded-[20px] border p-4 text-left active:scale-[0.98] transition-transform" style={{ background: colors.card, borderColor: colors.border }}>
           <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-[14px]" style={{ background: colors.primarySoft, color: colors.primary }}><Icon size={24} /></span>
           <span className="block font-bold" style={{ color: colors.text }}>{title}</span>
           <span className="mt-1 block text-xs leading-5" style={{ color: colors.muted }}>{subtitle}</span>

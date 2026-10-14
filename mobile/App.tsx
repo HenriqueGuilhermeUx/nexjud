@@ -542,7 +542,7 @@ function StudioScreen({ navigation }: any) {
       {notice ? <Text style={styles.helper}>{notice}</Text> : null}
       {result ? <View style={styles.card}><Text style={styles.cardTitle}>{result.title || "Minuta gerada"}</Text><Text selectable style={styles.body}>{JSON.stringify(result, null, 2)}</Text></View> : null}
       <Text style={styles.sectionTitle}>Minutas salvas</Text>
-      {drafts.map(item => <Pressable key={item.id} style={styles.rowCard} onPress={() => { setResult(item.result); setNotice("Minuta recuperada do histórico.") }}><FileText color={colors.primary} size={20} /><Text style={[styles.body, {flex:1}]}>{item.title || "Minuta"}</Text><ChevronRight color={colors.muted} size={18} /></Pressable>)
+      {drafts.map(item => <Pressable key={item.id} style={styles.rowCard} onPress={() => { setResult(item.result); setNotice("Minuta recuperada do histórico.") }}><FileText color={colors.primary} size={20} /><Text style={[styles.body, {flex:1}]}>{item.title || "Minuta"}</Text><ChevronRight color={colors.muted} size={18} /></Pressable>)}
       <Text style={styles.disclaimer}>O conteúdo gerado é um rascunho de apoio e deve ser revisado pelo profissional responsável.</Text>
     </ScrollView>
   )

@@ -1,0 +1,32 @@
+name: Enterprise domain tests
+
+on:
+  pull_request:
+    paths:
+      - "src/enterprise/**"
+      - "package.json"
+      - ".github/workflows/enterprise-domain.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  enterprise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Temporary until pnpm-lock.yaml is generated and committed.
+      - name: Install
+        run: pnpm install --no-frozen-lockfile
+      - name: Run Enterprise tests
+        run: pnpm test:enterprise
+      - name: Typecheck
+        run: pnpm exec tsc -b

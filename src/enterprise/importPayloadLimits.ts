@@ -20,23 +20,9 @@ export function validateImportPayloadLimits(request: EnterpriseCaseImportRequest
       }
     }
     if (item.metadata !== undefined) {
-      // Metadata is not included in canonicalImportPayload yet.
-      // Reject it until the persisted payload and fingerprint cover the same fields.
+      // Metadata is excluded from the canonical fingerprint and persistence plan.
+      // Reject until both include it, avoiding inconsistent idempotent replays.
       errors.push(`Processo ${index + 1}: metadados ainda não suportados na importação.`)
-      if (!item.metadata || typeof item.metadata !== "object" || Array.isArray(item.metadata) ||
-          Object.keys(item.metadata).length > 20) {
-        errors.push(`Processo ${index + 1}: metadados inválidos.`)
-      } else {
-        for (const [key, value] of Object.entries(item.metadata)) {
-          if (key.length > 64 || !/^[a-zA-Z0-9_.-]+$/.test(key) ||
-              !(value === null || typeof value === "boolean" ||
-                (typeof value === "number" && Number.isFinite(value)) ||
-                (typeof value === "string" && value.length <= 2048))) {
-            errors.push(`Processo ${index + 1}: metadados fora dos limites.`)
-            break
-          }
-        }
-      }
     }
   }
   return errors

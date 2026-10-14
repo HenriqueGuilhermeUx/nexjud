@@ -696,11 +696,13 @@ export default function CompanionPWA() {
   else if (section === "caso" && segments[1]) view = <CaseDetailPWA caseId={segments[1]} navigate={navigate} />
   else if (section === "audiencia") view = <HearingPWA userId={user.id} caseId={segments[1]} navigate={navigate} />
   else if (section === "studio") view = <StudioPWA navigate={navigate} />
+  else if (section === "enterprise") view = <div className="space-y-4 pt-6"><Back /><ScreenTitle eyebrow="EMPRESAS" title="Carteiras empresariais" subtitle="Importação de processos com autorização e rastreabilidade." /><ShellCard><p className="text-sm" style={{ color: colors.muted }}>O envio exige uma organização habilitada e a API empresarial disponível.</p><PrimaryButton className="mt-4 w-full" onClick={() => navigate("/enterprise/import")}><Upload size={18} /> Abrir importação empresarial</PrimaryButton></ShellCard></div>
   else view = <HomeScreenPWA userId={user.id} navigate={navigate} />
 
   return <div className="nexjud-pwa-screen min-h-[100dvh]" style={{ background: colors.bg }}>
     <main className={"nexjud-pwa-main mx-auto w-full max-w-xl px-4 " + (primary ? "pb-28" : "pb-8")}>{view}</main>
     {primary ? <BottomNav section={section} navigate={navigate} /> : null}
+    {section === "home" ? <div className="mx-auto max-w-xl px-4 pb-4"><button type="button" onClick={() => navigate("/app/enterprise")} className="w-full rounded-xl border border-indigo-700 bg-indigo-950 p-3 text-left text-sm font-semibold text-indigo-100">Carteiras empresariais e importação →</button></div> : null}
     <InstallHint />
   </div>
 }

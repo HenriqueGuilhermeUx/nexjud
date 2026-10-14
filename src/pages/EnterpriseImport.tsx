@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { getSupabase } from "@/lib/supabase"
 import { MAX_IMPORT_BYTES, parseEnterpriseCsv, type EnterpriseCsvItem } from "@/enterprise/csvImport"
+import EnterpriseImportedCases from "@/components/EnterpriseImportedCases"
 
 type Organization = { id: string; name: string; role: "owner" | "admin" | "legal" }
 type AccessState = "loading" | "ready" | "empty" | "unavailable"
@@ -197,6 +198,7 @@ export default function EnterpriseImport({ mode = "web" }: { mode?: "web" | "pwa
       </div>}
       {result && <p role={completed ? "status" : "alert"} className="rounded-lg bg-slate-800 p-3 text-sm">{result}</p>}
       {completed && <Link to={casesTo} className="inline-block text-indigo-200 underline">Conferir meus casos jurídicos</Link>}
+      {accessState === "ready" && organizationId && <EnterpriseImportedCases organizationId={organizationId} mode={mode} refresh={completed} />}
     </div>
   </main>
 }

@@ -635,12 +635,39 @@ function StudioPWA({ navigate }: { navigate: (path: string) => void }) {
   const [piece, setPiece] = useState(pieceTypes[0])
   const [facts, setFacts] = useState("")
   const [objective, setObjective] = useState("")
-  function start() {
-    if (!facts.trim()) return
-    sessionStorage.setItem("nexjud-pwa-seed", "Elabore um rascunho de " + piece + ". Fatos: " + facts + ". Objetivo: " + (objective || "proteger os interesses do cliente") + ". Estruture com linguagem jurídica clara e indique pontos que exigem revisão profissional.")
-    navigate("/app/ia")
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<any>(null)
+  const [drafts, setDrafts] = useState<any[]>([])
+  const [notice, setNotice] = useState("")
+  const [error, setError] = useState("")
+  async function loadDrafts() {
+    const { data, error } = await getSupabase().from("drafts").select("*").order("created_at", { ascending: false }).limit(20)
+    if (!error) setDrafts(data || [])
   }
-  return <div className="space-y-4"><Back /><ScreenTitle eyebrow="ESTÚDIO JURÍDICO" title="Comece uma peça no celular" subtitle="Estruture o rascunho aqui e continue a revisão completa no Workspace." /><h2 className="font-extrabold" style={{ color: colors.text }}>Tipo de documento</h2><div className="flex flex-wrap gap-2">{pieceTypes.map(p => <button key={p} onClick={() => setPiece(p)} className="rounded-full border px-3 py-2 text-xs font-bold" style={{ borderColor: piece === p ? colors.primary : colors.border, background: piece === p ? colors.primarySoft : colors.card, color: colors.text }}>{p}</button>)}</div><textarea className="nexjud-pwa-input min-h-40 w-full rounded-[15px] border p-4" style={{ background: colors.card, borderColor: colors.border, color: colors.text }} placeholder="Resuma os fatos relevantes..." value={facts} onChange={e => setFacts(e.target.value)} /><textarea className="nexjud-pwa-input min-h-24 w-full rounded-[15px] border p-4" style={{ background: colors.card, borderColor: colors.border, color: colors.text }} placeholder="Qual é o objetivo principal?" value={objective} onChange={e => setObjective(e.target.value)} /><PrimaryButton className="w-full" onClick={start}><Sparkles size={18} /> Criar estrutura com IA</PrimaryButton><p className="text-center text-xs leading-5" style={{ color: colors.muted }}>O conteúdo gerado é um rascunho de apoio e deve ser revisado pelo profissional responsável.</p></div>
+  useEffect(() => { loadDrafts() }, [])
+  async function start() {
+    if (!facts.trim() || busy) return
+    setBusy(true); setError(""); setNotice("")
+    try {
+      const client = getSupabase()
+      const { data: auth } = await client.auth.getUser()
+      if (!auth.user) throw new Error("Entre novamente na sua conta.")
+      const draftType = ({ "Petição inicial": "peticao_inicial", "Contestação": "contestacao", "Réplica": "replica", "Recurso": "recurso", "Notificação": "notificacao", "Contrato": "contrato", "Parecer": "parecer" } as Record<string,string>)[piece] || "peticao_inicial"
+      const { data, error } = await client.functions.invoke("draft-generator", { body: { caseText: facts, draftType, focus: objective } })
+      if (error || data?.error) throw error || new Error(data.error)
+      setResult(data)
+      const saved = await client.from("drafts").insert({ user_id: auth.user.id, title: data?.title || piece, draft_type: draftType, case_text: facts, focus: objective, result: data }).select().single()
+      if (saved.error) setNotice("Minuta gerada, mas não salva. Copie antes de sair.")
+      else { setNotice("Minuta salva no histórico."); await loadDrafts() }
+    } catch (err: any) { setError(err?.message || "Falha ao gerar minuta.") }
+    finally { setBusy(false) }
+  }
+  return <div className="space-y-4"><Back /><ScreenTitle eyebrow="ESTÚDIO JURÍDICO" title="Comece uma peça no celular" subtitle="Estruture o rascunho aqui e continue a revisão completa no Workspace." /><h2 className="font-extrabold" style={{ color: colors.text }}>Tipo de documento</h2><div className="flex flex-wrap gap-2">{pieceTypes.map(p => <button key={p} onClick={() => setPiece(p)} className="rounded-full border px-3 py-2 text-xs font-bold" style={{ borderColor: piece === p ? colors.primary : colors.border, background: piece === p ? colors.primarySoft : colors.card, color: colors.text }}>{p}</button>)}</div><textarea className="nexjud-pwa-input min-h-40 w-full rounded-[15px] border p-4" style={{ background: colors.card, borderColor: colors.border, color: colors.text }} placeholder="Resuma os fatos relevantes..." value={facts} onChange={e => setFacts(e.target.value)} /><textarea className="nexjud-pwa-input min-h-24 w-full rounded-[15px] border p-4" style={{ background: colors.card, borderColor: colors.border, color: colors.text }} placeholder="Qual é o objetivo principal?" value={objective} onChange={e => setObjective(e.target.value)} /><PrimaryButton className="w-full" onClick={start} disabled={busy}><Sparkles size={18} /> {busy ? "Gerando..." : "Gerar e salvar minuta"}</PrimaryButton>
+    {error ? <p role="alert" style={{color:colors.danger}}>{error}</p> : null}
+    {notice ? <p role="status" style={{color:colors.muted}}>{notice}</p> : null}
+    {result ? <ShellCard><h3 className="font-bold" style={{color:colors.text}}>{result.title || "Minuta gerada"}</h3><pre className="mt-3 whitespace-pre-wrap text-sm" style={{color:colors.text}}>{JSON.stringify(result, null, 2)}</pre><PrimaryButton className="mt-3 w-full" onClick={() => navigator.clipboard.writeText(JSON.stringify(result, null, 2))}>Copiar minuta</PrimaryButton></ShellCard> : null}
+    <h3 className="font-bold" style={{color:colors.text}}>Minutas salvas</h3>
+    {drafts.map(item => <button key={item.id} onClick={() => { setResult(item.result); setNotice("Minuta recuperada do histórico.") }} className="w-full rounded-xl border p-3 text-left" style={{borderColor:colors.border,color:colors.text}}>{item.title || "Minuta"} · {new Date(item.created_at).toLocaleDateString("pt-BR")}</button>)<p className="text-center text-xs leading-5" style={{ color: colors.muted }}>O conteúdo gerado é um rascunho de apoio e deve ser revisado pelo profissional responsável.</p></div>
 }
 
 function Back({ label = "Voltar" }: { label?: string }) {

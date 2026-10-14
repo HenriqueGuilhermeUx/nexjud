@@ -15,12 +15,18 @@ export function validateWebhookDestination(rawUrl: string): URL {
   if (url.username || url.password) throw new Error("Credenciais na URL não são permitidas.")
   if (url.port && url.port !== "443") throw new Error("Porta de webhook não permitida.")
   if (url.hash) throw new Error("Fragmentos não são permitidos.")
+  if (url.search) throw new Error("Parâmetros de consulta não são permitidos em webhooks.")
   const host = url.hostname.toLowerCase().replace(/\.$/, "")
   if (
     host === "localhost" ||
     host.endsWith(".localhost") ||
     host.endsWith(".local") ||
     host.endsWith(".internal") ||
+    host.endsWith(".test") ||
+    host.endsWith(".invalid") ||
+    host.endsWith(".example") ||
+    host === "example.com" ||
+    host.endsWith(".example.com") ||
     host === "metadata.google.internal" ||
     /^\d+(?:\.\d+){3}$/.test(host) ||
     host.includes(":") ||

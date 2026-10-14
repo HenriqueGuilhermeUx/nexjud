@@ -243,6 +243,25 @@ function ChatScreen() {
   const [cases, setCases] = useState<any[]>([])
   const [caseId, setCaseId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [sessions, setSessions] = useState<any[]>([])
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [historyError, setHistoryError] = useState("")
+  async function loadSessions() {
+    const uid = await getUserId()
+    if (!uid) return
+    const { data, error } = await supabase.from("chat_sessions").select("*").eq("user_id", uid).order("updated_at", { ascending: false }).limit(30)
+    if (error) setHistoryError("Não foi possível carregar as conversas.")
+    else { setSessions(data || []); setHistoryError("") }
+  }
+  async function openSession(id: string) {
+    const uid = await getUserId()
+    if (!uid) return
+    const { data, error } = await supabase.from("chat_messages").select("*").eq("session_id", id).eq("user_id", uid).order("created_at", { ascending: true })
+    if (error) setHistoryError("Falha ao abrir a conversa.")
+    else { setSessionId(id); setMessages(data || []); setHistoryError("") }
+  }
+  useEffect(() => { loadSessions() }, [])
+
 
   useEffect(() => {
     getUserId().then(async uid => {
@@ -259,10 +278,26 @@ function ChatScreen() {
     setMessage("")
     setLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke("legal-chat-ai", { body: { message: prompt, caseId, source: "mobile" } })
-      if (error) throw error
-      const answer = data?.response || data?.answer || data?.message || "Resposta concluída. Consulte o Workspace para detalhes."
-      setMessages(prev => [...prev, { role: "assistant", content: answer, context: data?.context }])
+      const uid = await getUserId()
+      if (!uid) throw new Error("Entre novamente na sua conta.")
+      let id = sessionId
+      if (!id) {
+        const created = await supabase.from("chat_sessions").insert({ user_id: uid, title: prompt.slice(0, 60) }).select().single()
+        if (created.error) throw created.error
+        id = created.data.id
+        setSessionId(id)
+      }
+      const saved = await supabase.from("chat_messages").insert({ user_id: uid, session_id: id, role: "user", content: prompt })
+      if (saved.error) throw saved.error
+      const { data, error } = await supabase.functions.invoke("legal-chat-ai", { body: { userId: uid, sessionId: id, message: prompt, caseId } })
+      if (error || data?.error) throw error || new Error(data.error)
+      const answer = data?.answer || data?.response || data?.message
+      if (!answer) throw new Error("A IA não retornou uma resposta válida.")
+      const savedAnswer = await supabase.from("chat_messages").insert({ user_id: uid, session_id: id, role: "assistant", content: answer, context_used: data?.contextUsed || data?.context || {} }).select().single()
+      if (savedAnswer.error) throw savedAnswer.error
+      setMessages(prev => [...prev, savedAnswer.data])
+      await supabase.from("chat_sessions").update({ updated_at: new Date().toISOString(), summary: String(answer).slice(0, 240) }).eq("id", id).eq("user_id", uid)
+      await loadSessions()
     } catch (e: any) {
       Alert.alert("Falha no Legal Brain", e.message || "Tente novamente.")
     } finally { setLoading(false) }
@@ -271,6 +306,11 @@ function ChatScreen() {
   return (
     <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={styles.pageFlex}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalChips}>
+          <Pressable style={styles.selectorChip} onPress={() => { setSessionId(null); setMessages([]) }}><Text style={styles.selectorText}>+ Nova conversa</Text></Pressable>
+          {sessions.map(item => <Pressable key={item.id} style={[styles.selectorChip, sessionId === item.id && styles.selectorChipActive]} onPress={() => openSession(item.id)}><Text style={styles.selectorText} numberOfLines={1}>{item.title || "Conversa"}</Text></Pressable>)}
+        </ScrollView>
+        {historyError ? <Text style={{color:colors.danger}}>{historyError}</Text> : null}
         <ScreenTitle eyebrow="LEGAL BRAIN" title="Pergunte. Analise. Decida." subtitle="Use o contexto do caso, seus documentos e as fontes jurídicas do NexJud." />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalChips}>
           <Pressable style={[styles.selectorChip, !caseId && styles.selectorChipActive]} onPress={() => setCaseId(null)}><Text style={styles.selectorText}>Sem caso</Text></Pressable>

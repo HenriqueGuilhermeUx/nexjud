@@ -21,6 +21,12 @@ describe("Enterprise import contracts", () => {
   it("rejects duplicated external identifiers", () => {
     expect(validateImportRequest({ idempotencyKey: "batch", items: [item, item] })).not.toEqual([])
   })
+  it("rejects mixed-tenant batches", () => {
+    expect(validateImportRequest({ idempotencyKey: "batch", items: [item, { ...item, organizationId: "org-2", externalId: "ext-2" }] })).not.toEqual([])
+  })
+  it("rejects duplicates after identifier normalization", () => {
+    expect(validateImportRequest({ idempotencyKey: "batch", items: [item, { ...item, externalId: " ext-1 ", sourceSystem: "ERP" }] })).not.toEqual([])
+  })
   it("rejects invalid CNJ format", () => {
     expect(validateImportRequest({ idempotencyKey: "batch", items: [{ ...item, cnjNumber: "123" }] })).not.toEqual([])
   })

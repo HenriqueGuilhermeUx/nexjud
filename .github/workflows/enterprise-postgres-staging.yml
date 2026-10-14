@@ -12,6 +12,7 @@ on:
       - 'docs/enterprise/F14-org-read-rls-proposta.sql'
       - 'docs/enterprise/F15-auth-uid-local-fixture.sql'
       - 'docs/enterprise/F16-org-read-rls-tests.sql'
+      - 'docs/enterprise/F17-membership-revocation-tests.sql'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -60,3 +61,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F14-org-read-rls-proposta.sql
       - name: Verify tenant and non-member read isolation
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F16-org-read-rls-tests.sql
+      - name: Verify membership revocation and write denial
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F17-membership-revocation-tests.sql

@@ -22,6 +22,9 @@ describe("Enterprise import planning", () => {
       items: [item, { ...item, organizationId: "org-b", externalId: "case-2" }],
     })).toThrow("única organização")
   })
+  it("rejects metadata even when caller bypasses HTTP", () => {
+    expect(() => planEnterpriseImport({ idempotencyKey: "batch-1", items: [{ ...item, metadata: { category: "civil" } }] })).toThrow("Metadados")
+  })
   it("rejects invalid input", () => {
     expect(() => planEnterpriseImport({ idempotencyKey: "", items: [item] })).toThrow()
   })

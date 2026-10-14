@@ -6,6 +6,7 @@ import { publicImportError } from "./importError"
 import { validateImportRequest } from "./apiContracts"
 import { canPerformEnterpriseAction } from "./authorization"
 import { validateImportPayloadLimits } from "./importPayloadLimits"
+import { ImportIdempotencyConflict } from "./importIdempotencyConflict"
 
 export type VerifiedImportIdentity = { context: TenantContext }
 export type ImportHttpDependencies = ServerImportDependencies & {
@@ -45,7 +46,8 @@ export async function handleEnterpriseImport(
   try {
     const result = await commitEnterpriseImport(identity.context, body, now, dependencies)
     return { status: result.status === "created" ? 201 : 200, body: result }
-  } catch {
+  } catch (error) {
+    if (error instanceof ImportIdempotencyConflict) return publicImportError("IDEMPOTENCY_CONFLICT")
     // Never expose raw DB errors or stack traces to API consumers.
     return publicImportError("TEMPORARILY_UNAVAILABLE")
   }

@@ -1,6 +1,7 @@
 // NexJud Enterprise — staged only; do not deploy before production review.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
+import { validateImportPayload } from "./validation.ts"
 
 const MAX_BYTES = 512_000
 const headers = {
@@ -18,10 +19,6 @@ function response(status: number, data: unknown, origin: string | null): Respons
 }
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-function isUuid(value: unknown): value is string {
-  return typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 export async function handleImportRequest(req: Request): Promise<Response> {
   const allowedOrigins = (Deno.env.get("ENTERPRISE_ALLOWED_ORIGINS") || "")
@@ -64,16 +61,7 @@ export async function handleImportRequest(req: Request): Promise<Response> {
   } catch {
     return response(400, { error: "invalid_json" }, corsOrigin)
   }
-  if (!isRecord(payload) || Object.keys(payload).some((k) => !["organizationId", "idempotencyKey", "items"].includes(k)) ||
-    !isUuid(payload.organizationId) ||
-    typeof payload.idempotencyKey !== "string" ||
-    payload.idempotencyKey.trim().length < 1 || payload.idempotencyKey.length > 128 ||
-    !Array.isArray(payload.items) || payload.items.length < 1 || payload.items.length > 500 ||
-    !payload.items.every((item) => isRecord(item) &&
-      Object.keys(item).length === 3 &&
-      typeof item.externalId === "string" && item.externalId.trim().length > 0 && item.externalId.length <= 160 &&
-      typeof item.sourceSystem === "string" && item.sourceSystem.trim().length > 0 && item.sourceSystem.length <= 160 &&
-      typeof item.cnjDigits === "string" && /^\d{20}$/.test(item.cnjDigits))) {
+  if (!validateImportPayload(payload)) {
     return response(400, { error: "invalid_import" }, corsOrigin)
   }
   try {

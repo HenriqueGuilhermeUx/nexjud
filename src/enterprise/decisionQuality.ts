@@ -24,7 +24,7 @@ export function assessDecisionQuality(records: readonly EvidenceRecord[]): Decis
     item.verified === true &&
     Boolean(item.id?.trim()) &&
     Boolean(item.source?.trim()) &&
-    Boolean(item.documentHash?.trim()) &&
+    /^(?:sha256:)?[a-fA-F0-9]{64}$/.test(item.documentHash?.trim() ?? "") &&
     Number.isFinite(Date.parse(item.collectedAt))
   )
   if (records.length === 0) reasons.push("Nenhuma evidência disponível.")

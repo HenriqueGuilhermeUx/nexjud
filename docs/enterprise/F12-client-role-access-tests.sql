@@ -6,6 +6,7 @@ declare
   target text;
   client_role text;
   rejected boolean;
+  operation text;
 begin
   foreach client_role in array array['anon','authenticated'] loop
     foreach target in array array[
@@ -24,6 +25,26 @@ begin
       if not rejected then
         raise exception 'Role % unexpectedly read %',client_role,target;
       end if;
+
+      foreach operation in array array['INSERT','UPDATE','DELETE'] loop
+        rejected := false;
+        begin
+          execute format('set local role %I',client_role);
+          if operation = 'INSERT' then
+            execute format('insert into public.%I default values',target);
+          elsif operation = 'UPDATE' then
+            execute format('update public.%I set id = id where false',target);
+          else
+            execute format('delete from public.%I where false',target);
+          end if;
+        exception when insufficient_privilege then
+          rejected := true;
+        end;
+        reset role;
+        if not rejected then
+          raise exception 'Role % unexpectedly performed % on %',client_role,operation,target;
+        end if;
+      end loop;
     end loop;
   end loop;
 end $$;

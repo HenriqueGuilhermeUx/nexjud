@@ -11,7 +11,7 @@ const now = new Date("2026-10-14T12:00:00Z")
 
 describe("Enterprise import commit service", () => {
   it("passes consistent metadata to the transaction adapter", async () => {
-    const commit = vi.fn(async (input: { receipt: unknown }) => ({ status: "created" as const, receipt: input.receipt }))
+    const commit = vi.fn(async (input: Parameters<NonNullable<Parameters<typeof commitEnterpriseImport>[3]["persistence"]["commit"]>>[0]) => ({ status: "created" as const, receipt: input.receipt }))
     const result = await commitEnterpriseImport(context, request, now, {
       sha256: async () => "sha256:" + "a".repeat(64),
       persistence: { commit },

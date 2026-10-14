@@ -26,9 +26,9 @@ export function parseImportedCase(
   return {
     id: input.id,
     title: input.title,
-    processNumber: input.process_number,
+    processNumber: typeof input.process_number === "string" ? input.process_number : null,
     sourceSystem: info.sourceSystem,
     externalId: info.externalId,
-    createdAt: input.created_at,
+    createdAt: typeof input.created_at === "string" ? input.created_at : null,
   }
 }

@@ -1,7 +1,6 @@
 // NexJud Enterprise — staged only; do not deploy before production review.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
-import { handleImportRequest } from "./handler.ts"
 
 const MAX_BYTES = 512_000
 const headers = {

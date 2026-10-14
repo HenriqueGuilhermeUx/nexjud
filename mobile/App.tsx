@@ -504,9 +504,32 @@ function StudioScreen({ navigation }: any) {
   const [piece, setPiece] = useState(pieceTypes[0])
   const [facts, setFacts] = useState("")
   const [objective, setObjective] = useState("")
-  function start() {
-    if (!facts.trim()) return Alert.alert("Conte os fatos", "Inclua ao menos um resumo do caso.")
-    navigation.navigate("Main", { screen: "IA", params: { seed: `Elabore um rascunho de ${piece}. Fatos: ${facts}. Objetivo: ${objective || "proteger os interesses do cliente"}. Estruture com linguagem jurídica clara e indique pontos que exigem revisão profissional.` } })
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<any>(null)
+  const [drafts, setDrafts] = useState<any[]>([])
+  const [notice, setNotice] = useState("")
+  async function loadDrafts() {
+    const uid = await getUserId()
+    if (!uid) return
+    const { data } = await supabase.from("drafts").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(20)
+    setDrafts(data || [])
+  }
+  useEffect(() => { loadDrafts() }, [])
+  async function start() {
+    if (!facts.trim() || busy) return
+    setBusy(true); setNotice("")
+    try {
+      const uid = await getUserId()
+      if (!uid) throw new Error("Entre novamente na sua conta.")
+      const draftType = ({ "Petição inicial": "peticao_inicial", "Contestação": "contestacao", "Réplica": "replica", "Recurso": "recurso" } as Record<string,string>)[piece] || piece.toLowerCase().replace(/\s+/g, "_")
+      const { data, error } = await supabase.functions.invoke("draft-generator", { body: { caseText: facts, draftType, focus: objective } })
+      if (error || data?.error) throw error || new Error(data.error)
+      setResult(data)
+      const saved = await supabase.from("drafts").insert({ user_id: uid, title: data?.title || piece, draft_type: draftType, case_text: facts, focus: objective, result: data })
+      if (saved.error) setNotice("Minuta gerada, mas não salva. Copie o resultado.")
+      else { setNotice("Minuta salva no histórico."); await loadDrafts() }
+    } catch (err: any) { Alert.alert("Falha ao gerar minuta", err?.message || "Tente novamente.") }
+    finally { setBusy(false) }
   }
   return (
     <ScrollView style={styles.safe} contentContainerStyle={styles.page}>
@@ -515,7 +538,11 @@ function StudioScreen({ navigation }: any) {
       <View style={styles.wrap}>{pieceTypes.map(p => <Pressable key={p} style={[styles.selectorChip, piece === p && styles.selectorChipActive]} onPress={() => setPiece(p)}><Text style={styles.selectorText}>{p}</Text></Pressable>)}</View>
       <TextInput style={[styles.input, styles.textarea]} placeholder="Resuma os fatos relevantes..." placeholderTextColor={colors.muted} multiline value={facts} onChangeText={setFacts} />
       <TextInput style={[styles.input, styles.textareaSmall]} placeholder="Qual é o objetivo principal?" placeholderTextColor={colors.muted} multiline value={objective} onChangeText={setObjective} />
-      <Button label="Criar estrutura com IA" onPress={start} icon={<Sparkles color="#fff" size={18} />} />
+      <Button label={busy ? "Gerando..." : "Gerar e salvar minuta"} onPress={start} disabled={busy} icon={<Sparkles color="#fff" size={18} />} />
+      {notice ? <Text style={styles.helper}>{notice}</Text> : null}
+      {result ? <View style={styles.card}><Text style={styles.cardTitle}>{result.title || "Minuta gerada"}</Text><Text selectable style={styles.body}>{JSON.stringify(result, null, 2)}</Text></View> : null}
+      <Text style={styles.sectionTitle}>Minutas salvas</Text>
+      {drafts.map(item => <Pressable key={item.id} style={styles.rowCard} onPress={() => { setResult(item.result); setNotice("Minuta recuperada do histórico.") }}><FileText color={colors.primary} size={20} /><Text style={[styles.body, {flex:1}]}>{item.title || "Minuta"}</Text><ChevronRight color={colors.muted} size={18} /></Pressable>)
       <Text style={styles.disclaimer}>O conteúdo gerado é um rascunho de apoio e deve ser revisado pelo profissional responsável.</Text>
     </ScrollView>
   )

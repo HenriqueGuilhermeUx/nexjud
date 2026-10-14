@@ -53,6 +53,14 @@ describe("Enterprise import HTTP adapter", () => {
     expect(response.status).toBe(403)
     expect(commit).not.toHaveBeenCalled()
   })
+  it("returns 400 for metadata not covered by fingerprint", async () => {
+    const commit = vi.fn()
+    const response = await handleEnterpriseImport({ ...body, items: [{ ...body.items[0], metadata: { tag: "sensitive" } }] }, {
+      authenticate: async () => ({ context }), sha256, persistence: { commit },
+    }, now)
+    expect(response.status).toBe(400)
+    expect(commit).not.toHaveBeenCalled()
+  })
   it("hides unexpected persistence errors", async () => {
     const response = await handleEnterpriseImport(body, {
       authenticate: async () => ({ context }),

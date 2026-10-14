@@ -313,6 +313,22 @@ function ChatScreenPWA({ userId }: { userId: string }) {
   const [cases, setCases] = useState<any[]>([])
   const [caseId, setCaseId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [sessions, setSessions] = useState<any[]>([])
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [historyError, setHistoryError] = useState("")
+  async function loadSessions() {
+    const { data, error } = await getSupabase().from("chat_sessions").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).limit(30)
+    if (error) setHistoryError("Não foi possível recuperar suas conversas.")
+    else { setSessions(data || []); setHistoryError("") }
+  }
+  async function openSession(id: string) {
+    setSessionId(id)
+    const { data, error } = await getSupabase().from("chat_messages").select("*").eq("user_id", userId).eq("session_id", id).order("created_at", { ascending: true })
+    if (error) setHistoryError("Falha ao abrir a conversa.")
+    else { setMessages(data || []); setHistoryError("") }
+  }
+  useEffect(() => { loadSessions() }, [userId])
+
 
   useEffect(() => {
     getSupabase().from("legal_cases").select("id,title,client_name,process_number").eq("user_id", userId).order("updated_at", { ascending: false }).limit(20).then(({ data }) => setCases(data || []))
@@ -333,10 +349,25 @@ function ChatScreenPWA({ userId }: { userId: string }) {
     setMessage("")
     setLoading(true)
     try {
-      const { data, error } = await getSupabase().functions.invoke("legal-chat-ai", { body: { message: prompt, caseId, source: "pwa" } })
-      if (error) throw error
-      const answer = data?.response || data?.answer || data?.message || "Resposta concluída. Consulte o Workspace para detalhes."
-      setMessages(prev => [...prev, { role: "assistant", content: answer, context: data?.context }])
+      const client = getSupabase()
+      let id = sessionId
+      if (!id) {
+        const created = await client.from("chat_sessions").insert({ user_id: userId, title: prompt.slice(0, 60) }).select().single()
+        if (created.error) throw created.error
+        id = created.data.id
+        setSessionId(id)
+      }
+      const saved = await client.from("chat_messages").insert({ user_id: userId, session_id: id, role: "user", content: prompt })
+      if (saved.error) throw saved.error
+      const { data, error } = await client.functions.invoke("legal-chat-ai", { body: { userId, sessionId: id, message: prompt, caseId } })
+      if (error || data?.error) throw error || new Error(data.error)
+      const answer = data?.answer || data?.response || data?.message
+      if (!answer) throw new Error("A IA não retornou uma resposta válida.")
+      const savedAnswer = await client.from("chat_messages").insert({ user_id: userId, session_id: id, role: "assistant", content: answer, context_used: data?.contextUsed || data?.context || {} }).select().single()
+      if (savedAnswer.error) throw savedAnswer.error
+      setMessages(prev => [...prev, savedAnswer.data])
+      await client.from("chat_sessions").update({ updated_at: new Date().toISOString(), summary: String(answer).slice(0, 240) }).eq("id", id).eq("user_id", userId)
+      await loadSessions()
     } catch (err: any) {
       setMessages(prev => [...prev, { role: "assistant", content: "Não foi possível consultar o Legal Brain agora: " + (err?.message || "tente novamente.") }])
     } finally {
@@ -345,6 +376,11 @@ function ChatScreenPWA({ userId }: { userId: string }) {
   }
 
   return <div className="flex min-h-[calc(100dvh-150px)] flex-col gap-3">
+    <div className="flex gap-2 overflow-x-auto pb-2">
+      <button className="shrink-0 rounded-xl border px-3 py-2 text-sm font-bold" style={{borderColor:colors.primary,color:colors.text}} onClick={() => { setSessionId(null); setMessages([]) }}>+ Nova conversa</button>
+      {sessions.map(item => <button key={item.id} onClick={() => openSession(item.id)} className="max-w-[180px] truncate shrink-0 rounded-xl border px-3 py-2 text-xs" style={{borderColor:sessionId===item.id?colors.primary:colors.border,color:colors.text}}>{item.title || "Conversa"}</button>)}
+    </div>
+    {historyError ? <p role="alert" style={{color:colors.danger}}>{historyError}</p> : null}
     <ScreenTitle eyebrow="LEGAL BRAIN" title="Pergunte. Analise. Decida." subtitle="Use o contexto do caso, seus documentos e as fontes jurídicas do NexJud." />
     <div className="flex gap-2 overflow-x-auto pb-1">
       <button className="shrink-0 rounded-full border px-3 py-2 text-xs font-bold" onClick={() => setCaseId(null)} style={{ borderColor: !caseId ? colors.primary : colors.border, background: !caseId ? colors.primarySoft : colors.card, color: colors.text }}>Sem caso</button>
@@ -599,12 +635,39 @@ function StudioPWA({ navigate }: { navigate: (path: string) => void }) {
   const [piece, setPiece] = useState(pieceTypes[0])
   const [facts, setFacts] = useState("")
   const [objective, setObjective] = useState("")
-  function start() {
-    if (!facts.trim()) return
-    sessionStorage.setItem("nexjud-pwa-seed", "Elabore um rascunho de " + piece + ". Fatos: " + facts + ". Objetivo: " + (objective || "proteger os interesses do cliente") + ". Estruture com linguagem jurídica clara e indique pontos que exigem revisão profissional.")
-    navigate("/app/ia")
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<any>(null)
+  const [drafts, setDrafts] = useState<any[]>([])
+  const [notice, setNotice] = useState("")
+  const [error, setError] = useState("")
+  async function loadDrafts() {
+    const { data, error } = await getSupabase().from("drafts").select("*").order("created_at", { ascending: false }).limit(20)
+    if (!error) setDrafts(data || [])
   }
-  return <div className="space-y-4"><Back /><ScreenTitle eyebrow="ESTÚDIO JURÍDICO" title="Comece uma peça no celular" subtitle="Estruture o rascunho aqui e continue a revisão completa no Workspace." /><h2 className="font-extrabold" style={{ color: colors.text }}>Tipo de documento</h2><div className="flex flex-wrap gap-2">{pieceTypes.map(p => <button key={p} onClick={() => setPiece(p)} className="rounded-full border px-3 py-2 text-xs font-bold" style={{ borderColor: piece === p ? colors.primary : colors.border, background: piece === p ? colors.primarySoft : colors.card, color: colors.text }}>{p}</button>)}</div><textarea className="nexjud-pwa-input min-h-40 w-full rounded-[15px] border p-4" style={{ background: colors.card, borderColor: colors.border, color: colors.text }} placeholder="Resuma os fatos relevantes..." value={facts} onChange={e => setFacts(e.target.value)} /><textarea className="nexjud-pwa-input min-h-24 w-full rounded-[15px] border p-4" style={{ background: colors.card, borderColor: colors.border, color: colors.text }} placeholder="Qual é o objetivo principal?" value={objective} onChange={e => setObjective(e.target.value)} /><PrimaryButton className="w-full" onClick={start}><Sparkles size={18} /> Criar estrutura com IA</PrimaryButton><p className="text-center text-xs leading-5" style={{ color: colors.muted }}>O conteúdo gerado é um rascunho de apoio e deve ser revisado pelo profissional responsável.</p></div>
+  useEffect(() => { loadDrafts() }, [])
+  async function start() {
+    if (!facts.trim() || busy) return
+    setBusy(true); setError(""); setNotice("")
+    try {
+      const client = getSupabase()
+      const { data: auth } = await client.auth.getUser()
+      if (!auth.user) throw new Error("Entre novamente na sua conta.")
+      const draftType = ({ "Petição inicial": "peticao_inicial", "Contestação": "contestacao", "Réplica": "replica", "Recurso": "recurso", "Notificação": "notificacao", "Contrato": "contrato", "Parecer": "parecer" } as Record<string,string>)[piece] || "peticao_inicial"
+      const { data, error } = await client.functions.invoke("draft-generator", { body: { caseText: facts, draftType, focus: objective } })
+      if (error || data?.error) throw error || new Error(data.error)
+      setResult(data)
+      const saved = await client.from("drafts").insert({ user_id: auth.user.id, title: data?.title || piece, draft_type: draftType, case_text: facts, focus: objective, result: data }).select().single()
+      if (saved.error) setNotice("Minuta gerada, mas não salva. Copie antes de sair.")
+      else { setNotice("Minuta salva no histórico."); await loadDrafts() }
+    } catch (err: any) { setError(err?.message || "Falha ao gerar minuta.") }
+    finally { setBusy(false) }
+  }
+  return <div className="space-y-4"><Back /><ScreenTitle eyebrow="ESTÚDIO JURÍDICO" title="Comece uma peça no celular" subtitle="Estruture o rascunho aqui e continue a revisão completa no Workspace." /><h2 className="font-extrabold" style={{ color: colors.text }}>Tipo de documento</h2><div className="flex flex-wrap gap-2">{pieceTypes.map(p => <button key={p} onClick={() => setPiece(p)} className="rounded-full border px-3 py-2 text-xs font-bold" style={{ borderColor: piece === p ? colors.primary : colors.border, background: piece === p ? colors.primarySoft : colors.card, color: colors.text }}>{p}</button>)}</div><textarea className="nexjud-pwa-input min-h-40 w-full rounded-[15px] border p-4" style={{ background: colors.card, borderColor: colors.border, color: colors.text }} placeholder="Resuma os fatos relevantes..." value={facts} onChange={e => setFacts(e.target.value)} /><textarea className="nexjud-pwa-input min-h-24 w-full rounded-[15px] border p-4" style={{ background: colors.card, borderColor: colors.border, color: colors.text }} placeholder="Qual é o objetivo principal?" value={objective} onChange={e => setObjective(e.target.value)} /><PrimaryButton className="w-full" onClick={start} disabled={busy}><Sparkles size={18} /> {busy ? "Gerando..." : "Gerar e salvar minuta"}</PrimaryButton>
+    {error ? <p role="alert" style={{color:colors.danger}}>{error}</p> : null}
+    {notice ? <p role="status" style={{color:colors.muted}}>{notice}</p> : null}
+    {result ? <ShellCard><h3 className="font-bold" style={{color:colors.text}}>{result.title || "Minuta gerada"}</h3><pre className="mt-3 whitespace-pre-wrap text-sm" style={{color:colors.text}}>{JSON.stringify(result, null, 2)}</pre><PrimaryButton className="mt-3 w-full" onClick={() => navigator.clipboard.writeText(JSON.stringify(result, null, 2))}>Copiar minuta</PrimaryButton></ShellCard> : null}
+    <h3 className="font-bold" style={{color:colors.text}}>Minutas salvas</h3>
+    {drafts.map(item => <button key={item.id} onClick={() => { setResult(item.result); setNotice("Minuta recuperada do histórico.") }} className="w-full rounded-xl border p-3 text-left" style={{borderColor:colors.border,color:colors.text}}>{item.title || "Minuta"} · {new Date(item.created_at).toLocaleDateString("pt-BR")}</button>)}<p className="text-center text-xs leading-5" style={{ color: colors.muted }}>O conteúdo gerado é um rascunho de apoio e deve ser revisado pelo profissional responsável.</p></div>
 }
 
 function Back({ label = "Voltar" }: { label?: string }) {

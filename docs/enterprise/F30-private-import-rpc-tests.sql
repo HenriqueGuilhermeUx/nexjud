@@ -76,7 +76,7 @@ begin
  if not rejected then raise exception 'Cross-tenant import accepted'; end if;
 end $$;
 reset role;
-do $
+do $verify$
 begin
  if (select count(*) from public.enterprise_import_batches
      where organization_id='cccccccc-8888-4888-8888-888888888888') <> 1
@@ -87,5 +87,5 @@ begin
  if (select count(*) from public.enterprise_import_audit
      where organization_id='cccccccc-8888-4888-8888-888888888888') <> 1
  then raise exception 'Replay/conflict/invalid import altered audit count'; end if;
-end $;
+end $verify$;
 rollback;

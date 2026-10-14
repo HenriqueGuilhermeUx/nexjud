@@ -49,9 +49,8 @@ begin
  exception when invalid_parameter_value or check_violation then rejected := true;
  end;
  if not rejected then raise exception 'Invalid item accepted'; end if;
- if (select count(*) from public.enterprise_import_batches
-     where organization_id='cccccccc-8888-4888-8888-888888888888') <> 1
- then raise exception 'Invalid import left a batch'; end if;
+ -- Table-level checks are performed as postgres after RESET ROLE.
+ -- Authenticated users must not receive direct SELECT on import tables.
 end $$;
 reset role;
 
@@ -77,4 +76,16 @@ begin
  if not rejected then raise exception 'Cross-tenant import accepted'; end if;
 end $$;
 reset role;
+do $
+begin
+ if (select count(*) from public.enterprise_import_batches
+     where organization_id='cccccccc-8888-4888-8888-888888888888') <> 1
+ then raise exception 'Invalid import left a batch'; end if;
+ if (select count(*) from public.enterprise_import_items
+     where organization_id='cccccccc-8888-4888-8888-888888888888') <> 1
+ then raise exception 'Invalid import left an item'; end if;
+ if (select count(*) from public.enterprise_import_audit
+     where organization_id='cccccccc-8888-4888-8888-888888888888') <> 1
+ then raise exception 'Replay/conflict/invalid import altered audit count'; end if;
+end $;
 rollback;

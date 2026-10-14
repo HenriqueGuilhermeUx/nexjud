@@ -119,6 +119,6 @@ jobs:
         with:
           deno-version: v2.5.6
       - name: Validate deployable Edge Function imports under Deno
-        run: deno check supabase/functions/enterprise-case-import/index.ts
+        run: deno check --config supabase/functions/enterprise-case-import/deno.json supabase/functions/enterprise-case-import/index.ts
       - name: Smoke test real JWT and RPC over disposable PostgREST HTTP
         run: bash docs/enterprise/F41-postgrest-http-smoke.sh

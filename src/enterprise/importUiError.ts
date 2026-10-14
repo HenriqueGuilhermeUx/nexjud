@@ -24,7 +24,7 @@ export function enterpriseImportErrorMessage(error: unknown): string {
     case 429:
       return "Muitas solicitações. Tente novamente mais tarde, usando a mesma chave para evitar duplicações."
     case 503:
-      return "O serviço de importação está temporariamente indisponível. Evite reenviar com outra chave."
+      return "O serviço de importação está temporariamente indisponível. Use a mesma chave ao tentar novamente para evitar duplicações."
     default:
       return "A importação não foi confirmada. Preserve a chave atual e consulte a carteira antes de tentar novamente."
   }

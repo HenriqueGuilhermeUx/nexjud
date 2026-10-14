@@ -21,6 +21,8 @@ on:
       - 'docs/enterprise/F24-import-idempotency-tests.sql'
       - 'docs/enterprise/F25-import-concurrency-tests.sh'
       - 'docs/enterprise/F26-import-replay-decision-tests.sql'
+      - 'docs/enterprise/F29-private-import-rpc-proposta.sql'
+      - 'docs/enterprise/F30-private-import-rpc-tests.sql'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -87,3 +89,7 @@ jobs:
         run: bash docs/enterprise/F25-import-concurrency-tests.sh
       - name: Verify persisted replay receipt and fingerprint conflict decision
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F26-import-replay-decision-tests.sql
+      - name: Install private RPC on disposable database
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F29-private-import-rpc-proposta.sql
+      - name: Verify private RPC auth replay conflict and rollback
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F30-private-import-rpc-tests.sql

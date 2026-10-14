@@ -14,6 +14,7 @@ on:
       - 'docs/enterprise/F16-org-read-rls-tests.sql'
       - 'docs/enterprise/F17-membership-revocation-tests.sql'
       - 'docs/enterprise/F18-role-transition-tests.sql'
+      - 'docs/enterprise/F19-membership-helper-security-tests.sql'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -66,3 +67,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F17-membership-revocation-tests.sql
       - name: Verify role downgrade and subsequent revocation
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F18-role-transition-tests.sql
+      - name: Verify membership helper cannot probe other tenants
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F19-membership-helper-security-tests.sql

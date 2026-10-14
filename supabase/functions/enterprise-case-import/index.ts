@@ -1,6 +1,7 @@
 // NexJud Enterprise — staged only; do not deploy before production review.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
+import { handleImportRequest } from "./handler.ts"
 
 const MAX_BYTES = 512_000
 const headers = {
@@ -23,7 +24,7 @@ function isUuid(value: unknown): value is string {
   return typeof value === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
-Deno.serve(async (req) => {
+export async function handleImportRequest(req: Request): Promise<Response> {
   const allowedOrigins = (Deno.env.get("ENTERPRISE_ALLOWED_ORIGINS") || "")
     .split(",").map((s) => s.trim()).filter(Boolean)
   const origin = req.headers.get("origin")
@@ -100,4 +101,6 @@ Deno.serve(async (req) => {
   } catch {
     return response(503, { error: "unavailable" }, corsOrigin)
   }
-})
+}
+
+Deno.serve(handleImportRequest)

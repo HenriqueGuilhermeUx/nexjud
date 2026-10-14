@@ -6,6 +6,7 @@ on:
       - 'docs/enterprise/F7-migracao-sql-proposta.sql'
       - 'docs/enterprise/F8-staging-catalog-assertions.sql'
       - 'docs/enterprise/F9-local-auth-fixture.sql'
+      - 'docs/enterprise/F10-tenant-isolation-negative-tests.sql'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -42,3 +43,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F7-migracao-sql-proposta.sql
       - name: Assert deny-by-default catalog invariants
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F8-staging-catalog-assertions.sql
+      - name: Test client privilege denial and tenant idempotency boundaries
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F10-tenant-isolation-negative-tests.sql

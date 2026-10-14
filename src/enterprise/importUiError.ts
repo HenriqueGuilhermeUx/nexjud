@@ -1,7 +1,7 @@
 /** Map only HTTP status to a safe user message; never expose internal SQL or JWT errors. */
 export function enterpriseImportErrorMessage(error: unknown): string {
   if (typeof error !== "object" || error === null || !("context" in error)) {
-    return "Não foi possível confirmar a importação. Confira sua conexão antes de tentar novamente com a mesma chave."
+    return "Nenhum sucesso foi confirmado. Confira sua conexão e consulte a carteira antes de tentar novamente com a mesma chave."
   }
   const context = error.context
   if (typeof context !== "object" || context === null || !("status" in context) ||

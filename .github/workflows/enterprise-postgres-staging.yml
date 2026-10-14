@@ -19,6 +19,7 @@ on:
       - 'docs/enterprise/F21-import-permission-tests.sql'
       - 'docs/enterprise/F23-import-atomicity-tests.sql'
       - 'docs/enterprise/F24-import-idempotency-tests.sql'
+      - 'docs/enterprise/F25-import-concurrency-tests.sh'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -81,3 +82,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F23-import-atomicity-tests.sql
       - name: Verify tenant-scoped import idempotency constraints
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F24-import-idempotency-tests.sql
+      - name: Verify concurrent duplicate import requests
+        run: bash docs/enterprise/F25-import-concurrency-tests.sh

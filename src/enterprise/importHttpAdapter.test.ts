@@ -29,6 +29,14 @@ describe("Enterprise import HTTP adapter", () => {
     }, now)
     expect(response.status).toBe(200)
   })
+  it("returns 400 for invalid payload without persistence", async () => {
+    const commit = vi.fn()
+    const response = await handleEnterpriseImport({ ...body, items: [] }, {
+      authenticate: async () => ({ context }), sha256, persistence: { commit },
+    }, now)
+    expect(response.status).toBe(400)
+    expect(commit).not.toHaveBeenCalled()
+  })
   it("hides unexpected persistence errors", async () => {
     const response = await handleEnterpriseImport(body, {
       authenticate: async () => ({ context }),

@@ -90,3 +90,20 @@ begin
 end $verify$;
 SQL
 echo "JWT/HTTP/PostgREST/PostgreSQL isolated import contract PASS"
+# Run the ACTUAL TypeScript handler against this same disposable PostgREST
+# instance. Fake identity only; authorization is still enforced by SQL JWT.
+ADMIN_TOKEN="$ADMIN_TOKEN" READER_TOKEN="$READER_TOKEN" \
+ deno run --allow-net=127.0.0.1:3017 --allow-env=ADMIN_TOKEN,READER_TOKEN \
+ docs/enterprise/F42-edge-handler-postgrest-smoke.ts
+psql -v ON_ERROR_STOP=1 <<'SQL'
+do $verify$
+begin
+ if (select count(*) from public.legal_cases
+   where user_id='a7171717-1717-4717-8717-171717171717') <> 2
+ then raise exception 'handler HTTP gateway did not create exactly one more case'; end if;
+ if (select count(*) from public.enterprise_import_audit
+   where organization_id='c9191919-1919-4919-8919-191919191919') <> 2
+ then raise exception 'handler replay/conflict mutated import audit'; end if;
+end $verify$;
+SQL
+echo "Enterprise TypeScript handler + PostgREST + PostgreSQL smoke PASS"

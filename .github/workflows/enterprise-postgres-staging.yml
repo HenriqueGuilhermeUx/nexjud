@@ -30,6 +30,8 @@ on:
       - 'docs/enterprise/F36-linked-import-rpc-proposta.sql'
       - 'docs/enterprise/F37-linked-import-tests.sql'
       - 'docs/enterprise/F41-postgrest-http-smoke.sh'
+      - 'docs/enterprise/F42-edge-handler-postgrest-smoke.ts'
+      - 'supabase/functions/enterprise-case-import/**'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -112,5 +114,11 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F36-linked-import-rpc-proposta.sql
       - name: Verify case linking, legacy RLS, tenant isolation and rollback
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F37-linked-import-tests.sql
+      - name: Setup pinned Deno runtime for Edge Function
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.5.6
+      - name: Validate deployable Edge Function imports under Deno
+        run: deno check supabase/functions/enterprise-case-import/index.ts
       - name: Smoke test real JWT and RPC over disposable PostgREST HTTP
         run: bash docs/enterprise/F41-postgrest-http-smoke.sh

@@ -1,5 +1,5 @@
 // Framework-neutral NexJud Enterprise HTTP adapter. No privileged keys or database SDK here.
-import { validateImportPayload, type ImportPayload } from "./validation"
+import { validateImportPayload, type ImportPayload } from "./validation.ts"
 
 type RpcError = { code?: string } | null
 export type ImportHttpRuntime = {

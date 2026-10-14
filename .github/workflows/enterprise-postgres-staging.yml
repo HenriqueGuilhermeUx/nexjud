@@ -9,6 +9,9 @@ on:
       - 'docs/enterprise/F10-tenant-isolation-negative-tests.sql'
       - 'docs/enterprise/F11-tenant-fk-integrity-tests.sql'
       - 'docs/enterprise/F12-client-role-access-tests.sql'
+      - 'docs/enterprise/F14-org-read-rls-proposta.sql'
+      - 'docs/enterprise/F15-auth-uid-local-fixture.sql'
+      - 'docs/enterprise/F16-org-read-rls-tests.sql'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -51,3 +54,9 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F11-tenant-fk-integrity-tests.sql
       - name: Exercise denied SQL access under client roles
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F12-client-role-access-tests.sql
+      - name: Install disposable JWT identity fixture
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F15-auth-uid-local-fixture.sql
+      - name: Apply proposed read-only tenant policies to disposable database
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F14-org-read-rls-proposta.sql
+      - name: Verify tenant and non-member read isolation
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F16-org-read-rls-tests.sql

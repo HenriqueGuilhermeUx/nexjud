@@ -4,6 +4,7 @@ import type { ImportPersistence, ImportCommitResult } from "./importPersistenceC
 import { assertImportCommitInput } from "./importPersistenceContract"
 import { canonicalImportPayload, validateImportFingerprint } from "./importFingerprint"
 import { prepareEnterpriseImport } from "./prepareImport"
+import { assertImportCommitResult } from "./importCommitResponse"
 
 export type ServerImportDependencies = {
   /** Must be backed by a cryptographically secure server-side SHA-256 implementation. */
@@ -28,5 +29,7 @@ export async function commitEnterpriseImport(
   validateImportFingerprint(requestFingerprint)
   const input = { plan, audit, receipt, requestFingerprint }
   assertImportCommitInput(input)
-  return dependencies.persistence.commit(input)
+  const result = await dependencies.persistence.commit(input)
+  assertImportCommitResult(receipt, result)
+  return result
 }

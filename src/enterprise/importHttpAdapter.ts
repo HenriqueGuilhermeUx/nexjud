@@ -4,6 +4,7 @@ import type { ServerImportDependencies } from "./importCommitService"
 import { commitEnterpriseImport } from "./importCommitService"
 import { publicImportError } from "./importError"
 import { validateImportRequest } from "./apiContracts"
+import { canPerformEnterpriseAction } from "./authorization"
 
 export type VerifiedImportIdentity = { context: TenantContext }
 export type ImportHttpDependencies = ServerImportDependencies & {
@@ -33,6 +34,12 @@ export async function handleEnterpriseImport(
     }
   } catch {
     return publicImportError("INVALID_REQUEST")
+  }
+  if (!identity.context.organizationId?.trim() || !canPerformEnterpriseAction(identity.context, { organizationId: identity.context.organizationId }, "case.import")) {
+    return publicImportError("FORBIDDEN")
+  }
+  if (body.items.some((item) => item.organizationId !== identity.context.organizationId)) {
+    return publicImportError("FORBIDDEN")
   }
   try {
     const result = await commitEnterpriseImport(identity.context, body, now, dependencies)

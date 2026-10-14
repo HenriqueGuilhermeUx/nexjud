@@ -15,10 +15,13 @@ export function planAuthorizedEnterpriseImport(
     throw new Error("Sessão autenticada obrigatória.")
   }
   // Check every supplied item before invoking any further import logic.
-  if (!Array.isArray(request.items) || request.items.length === 0) {
+  if (!request || !Array.isArray(request.items) || request.items.length === 0) {
     throw new Error("Lote vazio.")
   }
   for (const item of request.items) {
+    if (!item || typeof item !== "object") {
+      throw new Error("Processo inválido no lote.")
+    }
     requireEnterprisePermission(context, { organizationId: item.organizationId }, "case:import")
   }
   return planEnterpriseImport(request)

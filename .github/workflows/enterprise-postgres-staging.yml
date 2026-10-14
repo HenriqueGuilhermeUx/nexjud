@@ -15,6 +15,8 @@ on:
       - 'docs/enterprise/F17-membership-revocation-tests.sql'
       - 'docs/enterprise/F18-role-transition-tests.sql'
       - 'docs/enterprise/F19-membership-helper-security-tests.sql'
+      - 'docs/enterprise/F20-import-permission-helper-proposta.sql'
+      - 'docs/enterprise/F21-import-permission-tests.sql'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -69,3 +71,7 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F18-role-transition-tests.sql
       - name: Verify membership helper cannot probe other tenants
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F19-membership-helper-security-tests.sql
+      - name: Apply import authorization helper to disposable database
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F20-import-permission-helper-proposta.sql
+      - name: Verify import permissions by role and organization
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F21-import-permission-tests.sql

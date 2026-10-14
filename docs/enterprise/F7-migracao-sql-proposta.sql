@@ -62,6 +62,16 @@ alter table public.enterprise_import_batches enable row level security;
 alter table public.enterprise_import_items enable row level security;
 alter table public.enterprise_import_audit enable row level security;
 
+-- Explicitly revoke client privileges: project-wide default privileges may
+-- otherwise grant Data API access to newly created public-schema tables.
+revoke all privileges on table
+  public.enterprise_organizations,
+  public.enterprise_memberships,
+  public.enterprise_import_batches,
+  public.enterprise_import_items,
+  public.enterprise_import_audit
+from public, anon, authenticated;
+
 -- Intentionally NO policies and NO GRANT to anon/authenticated.
 -- Deny by default. A future verified server-side transaction must enforce
 -- organization membership, permission, idempotency, and audit atomically.

@@ -313,6 +313,22 @@ function ChatScreenPWA({ userId }: { userId: string }) {
   const [cases, setCases] = useState<any[]>([])
   const [caseId, setCaseId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [sessions, setSessions] = useState<any[]>([])
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [historyError, setHistoryError] = useState("")
+  async function loadSessions() {
+    const { data, error } = await getSupabase().from("chat_sessions").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).limit(30)
+    if (error) setHistoryError("Não foi possível recuperar suas conversas.")
+    else { setSessions(data || []); setHistoryError("") }
+  }
+  async function openSession(id: string) {
+    setSessionId(id)
+    const { data, error } = await getSupabase().from("chat_messages").select("*").eq("user_id", userId).eq("session_id", id).order("created_at", { ascending: true })
+    if (error) setHistoryError("Falha ao abrir a conversa.")
+    else { setMessages(data || []); setHistoryError("") }
+  }
+  useEffect(() => { loadSessions() }, [userId])
+
 
   useEffect(() => {
     getSupabase().from("legal_cases").select("id,title,client_name,process_number").eq("user_id", userId).order("updated_at", { ascending: false }).limit(20).then(({ data }) => setCases(data || []))
@@ -333,10 +349,25 @@ function ChatScreenPWA({ userId }: { userId: string }) {
     setMessage("")
     setLoading(true)
     try {
-      const { data, error } = await getSupabase().functions.invoke("legal-chat-ai", { body: { message: prompt, caseId, source: "pwa" } })
-      if (error) throw error
-      const answer = data?.response || data?.answer || data?.message || "Resposta concluída. Consulte o Workspace para detalhes."
-      setMessages(prev => [...prev, { role: "assistant", content: answer, context: data?.context }])
+      const client = getSupabase()
+      let id = sessionId
+      if (!id) {
+        const created = await client.from("chat_sessions").insert({ user_id: userId, title: prompt.slice(0, 60) }).select().single()
+        if (created.error) throw created.error
+        id = created.data.id
+        setSessionId(id)
+      }
+      const saved = await client.from("chat_messages").insert({ user_id: userId, session_id: id, role: "user", content: prompt })
+      if (saved.error) throw saved.error
+      const { data, error } = await client.functions.invoke("legal-chat-ai", { body: { userId, sessionId: id, message: prompt, caseId } })
+      if (error || data?.error) throw error || new Error(data.error)
+      const answer = data?.answer || data?.response || data?.message
+      if (!answer) throw new Error("A IA não retornou uma resposta válida.")
+      const savedAnswer = await client.from("chat_messages").insert({ user_id: userId, session_id: id, role: "assistant", content: answer, context_used: data?.contextUsed || data?.context || {} }).select().single()
+      if (savedAnswer.error) throw savedAnswer.error
+      setMessages(prev => [...prev, savedAnswer.data])
+      await client.from("chat_sessions").update({ updated_at: new Date().toISOString(), summary: String(answer).slice(0, 240) }).eq("id", id).eq("user_id", userId)
+      await loadSessions()
     } catch (err: any) {
       setMessages(prev => [...prev, { role: "assistant", content: "Não foi possível consultar o Legal Brain agora: " + (err?.message || "tente novamente.") }])
     } finally {
@@ -345,6 +376,11 @@ function ChatScreenPWA({ userId }: { userId: string }) {
   }
 
   return <div className="flex min-h-[calc(100dvh-150px)] flex-col gap-3">
+    <div className="flex gap-2 overflow-x-auto pb-2">
+      <button className="shrink-0 rounded-xl border px-3 py-2 text-sm font-bold" style={{borderColor:colors.primary,color:colors.text}} onClick={() => { setSessionId(null); setMessages([]) }}>+ Nova conversa</button>
+      {sessions.map(item => <button key={item.id} onClick={() => openSession(item.id)} className="max-w-[180px] truncate shrink-0 rounded-xl border px-3 py-2 text-xs" style={{borderColor:sessionId===item.id?colors.primary:colors.border,color:colors.text}}>{item.title || "Conversa"}</button>)}
+    </div>
+    {historyError ? <p role="alert" style={{color:colors.danger}}>{historyError}</p> : null}
     <ScreenTitle eyebrow="LEGAL BRAIN" title="Pergunte. Analise. Decida." subtitle="Use o contexto do caso, seus documentos e as fontes jurídicas do NexJud." />
     <div className="flex gap-2 overflow-x-auto pb-1">
       <button className="shrink-0 rounded-full border px-3 py-2 text-xs font-bold" onClick={() => setCaseId(null)} style={{ borderColor: !caseId ? colors.primary : colors.border, background: !caseId ? colors.primarySoft : colors.card, color: colors.text }}>Sem caso</button>

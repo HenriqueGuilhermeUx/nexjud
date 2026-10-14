@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { getSupabase } from "@/lib/supabase"
 import { MAX_IMPORT_BYTES, parseEnterpriseCsv, type EnterpriseCsvItem } from "@/enterprise/csvImport"
 import EnterpriseImportedCases from "@/components/EnterpriseImportedCases"
+import { enterpriseImportErrorMessage } from "@/enterprise/importUiError"
 
 type Organization = { id: string; name: string; role: "owner" | "admin" | "legal" }
 type AccessState = "loading" | "ready" | "empty" | "unavailable"
@@ -131,7 +132,7 @@ export default function EnterpriseImport({ mode = "web" }: { mode?: "web" | "pwa
       const { data: session, error: sessionError } = await client.auth.getSession()
       if (sessionError || !session.session?.access_token) throw new Error("Faça login novamente.")
       const { data, error } = await client.functions.invoke("enterprise-case-import", { body: payload })
-      if (error) throw new Error("Importação indisponível ou não autorizada. Nenhum sucesso foi confirmado.")
+      if (error) throw new Error(enterpriseImportErrorMessage(error))
       if (!data || !["created", "already_processed"].includes(data.status)) {
         throw new Error("Resposta inesperada da importação.")
       }
@@ -161,7 +162,7 @@ export default function EnterpriseImport({ mode = "web" }: { mode?: "web" | "pwa
       {accessState === "empty" && <p role="status" className="text-sm text-amber-300">Sua conta não possui organização com permissão de importação.</p>}
       {accessState === "unavailable" && <p role="alert" className="text-sm text-amber-300">Ambiente empresarial ainda indisponível. Nenhum dado foi enviado.</p>}
       <label className="block text-sm">Chave única da importação
-        <input value={key} onChange={event => { setKey(event.target.value); invalidate() }} maxLength={128}
+        <input value={key} onChange={event => { setKey(event.target.value); invalidate() }} maxLength={128} disabled={busy || reading}
           className="mt-1 w-full rounded-lg bg-slate-800 p-3" placeholder="ex.: carteira-outubro-2026" />
       </label>
       <label className="block text-sm">Escolha um arquivo CSV
@@ -172,7 +173,7 @@ export default function EnterpriseImport({ mode = "web" }: { mode?: "web" | "pwa
       {fileName && <p className="text-xs text-slate-300">Arquivo selecionado: {fileName}</p>}
       <label className="block text-sm">Ou cole o CSV simples
         <textarea value={text} onChange={event => { setText(event.target.value); setFileName(""); invalidate() }}
-          rows={7} className="mt-1 w-full rounded-lg bg-slate-800 p-3 font-mono text-xs"
+          rows={7} disabled={busy || reading} className="mt-1 w-full rounded-lg bg-slate-800 p-3 font-mono text-xs disabled:opacity-50"
           placeholder={"externalId,sourceSystem,cnjDigits\nprocesso-1,crm,00000000002026826000"} />
       </label>
       <p className="text-xs text-slate-400">Cabeçalho obrigatório: externalId,sourceSystem,cnjDigits. Não suporta campos com vírgulas internas.</p>

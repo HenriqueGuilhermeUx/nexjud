@@ -5,6 +5,7 @@ import { commitEnterpriseImport } from "./importCommitService"
 import { publicImportError } from "./importError"
 import { validateImportRequest } from "./apiContracts"
 import { canPerformEnterpriseAction } from "./authorization"
+import { validateImportPayloadLimits } from "./importPayloadLimits"
 
 export type VerifiedImportIdentity = { context: TenantContext }
 export type ImportHttpDependencies = ServerImportDependencies & {
@@ -29,7 +30,7 @@ export async function handleEnterpriseImport(
   }
   if (!identity?.context?.userId?.trim()) return publicImportError("UNAUTHENTICATED")
   try {
-    if (!body || validateImportRequest(body).length > 0) {
+    if (!body || (validateImportPayloadLimits(body).length > 0 || validateImportRequest(body).length > 0)) {
       return publicImportError("INVALID_REQUEST")
     }
   } catch {

@@ -23,6 +23,8 @@ on:
       - 'docs/enterprise/F26-import-replay-decision-tests.sql'
       - 'docs/enterprise/F29-private-import-rpc-proposta.sql'
       - 'docs/enterprise/F30-private-import-rpc-tests.sql'
+      - 'docs/enterprise/F32-import-gateway-proposta.sql'
+      - 'docs/enterprise/F33-import-gateway-tests.sql'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -93,3 +95,7 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F29-private-import-rpc-proposta.sql
       - name: Verify private RPC auth replay conflict and rollback
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F30-private-import-rpc-tests.sql
+      - name: Install authenticated gateway on disposable database
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F32-import-gateway-proposta.sql
+      - name: Verify gateway fingerprint and authorization
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F33-import-gateway-tests.sql

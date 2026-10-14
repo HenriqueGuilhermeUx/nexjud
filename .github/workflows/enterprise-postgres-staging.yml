@@ -18,6 +18,7 @@ on:
       - 'docs/enterprise/F20-import-permission-helper-proposta.sql'
       - 'docs/enterprise/F21-import-permission-tests.sql'
       - 'docs/enterprise/F23-import-atomicity-tests.sql'
+      - 'docs/enterprise/F24-import-idempotency-tests.sql'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -78,3 +79,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F21-import-permission-tests.sql
       - name: Verify atomic import rollback and audit integrity
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F23-import-atomicity-tests.sql
+      - name: Verify tenant-scoped import idempotency constraints
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F24-import-idempotency-tests.sql

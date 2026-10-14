@@ -35,7 +35,7 @@ export async function handleEnterpriseImport(
   } catch {
     return publicImportError("INVALID_REQUEST")
   }
-  if (!identity.context.organizationId?.trim() || !canPerformEnterpriseAction(identity.context, { organizationId: identity.context.organizationId }, "case.import")) {
+  if (!identity.context.organizationId?.trim() || !canPerformEnterpriseAction(identity.context, { organizationId: identity.context.organizationId }, "case:import")) {
     return publicImportError("FORBIDDEN")
   }
   if (body.items.some((item) => item.organizationId !== identity.context.organizationId)) {

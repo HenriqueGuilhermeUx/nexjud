@@ -1,6 +1,7 @@
 import type { ImportPlan } from "./importPlanner"
 import type { ImportAuditRecord } from "./importAudit"
 import type { ImportReceipt } from "./importReceipt"
+import { validateImportFingerprint } from "./importFingerprint"
 
 export type ImportCommitResult =
   | { status: "created"; receipt: ImportReceipt }
@@ -34,6 +35,7 @@ export function assertImportCommitInput(input: {
   if (!plan.organizationId || !plan.idempotencyKey || !audit.actorId || !requestFingerprint.trim()) {
     throw new Error("Persistência requer contexto e fingerprint.")
   }
+  validateImportFingerprint(requestFingerprint)
   if (plan.organizationId !== audit.organizationId || plan.organizationId !== receipt.organizationId ||
       plan.idempotencyKey !== audit.idempotencyKey || plan.idempotencyKey !== receipt.idempotencyKey ||
       plan.uniqueCases.length !== audit.itemCount || audit.itemCount !== receipt.itemCount ||

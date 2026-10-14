@@ -28,7 +28,9 @@ export async function handleEnterpriseImport(
   }
   if (!identity?.context?.userId?.trim()) return publicImportError("UNAUTHENTICATED")
   try {
-    validateImportRequest(body)
+    if (!body || validateImportRequest(body).length > 0) {
+      return publicImportError("INVALID_REQUEST")
+    }
   } catch {
     return publicImportError("INVALID_REQUEST")
   }

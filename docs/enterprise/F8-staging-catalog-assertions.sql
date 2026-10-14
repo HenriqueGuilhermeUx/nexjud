@@ -25,13 +25,17 @@ BEGIN
       RAISE EXCEPTION 'Expected deny-by-default with zero policies on %, got %',target_table,policy_count;
     END IF;
 
+    -- Check effective grants on this exact table, including privileges inherited
+    -- through PUBLIC. Catalog filters such as target_table=target_table are unsafe.
     SELECT count(*) INTO public_grants
-    FROM information_schema.role_table_grants
-    WHERE table_schema='public' AND target_table=target_table
-      AND grantee IN ('anon','authenticated')
-      AND privilege_type IN ('SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER');
+    FROM (VALUES ('anon'), ('authenticated')) AS roles(role_name)
+    WHERE pg_catalog.has_table_privilege(
+      roles.role_name,
+      pg_catalog.format('%I.%I', 'public', target_table),
+      'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'
+    );
     IF public_grants <> 0 THEN
-      RAISE EXCEPTION 'Unexpected client role grants on %',target_table;
+      RAISE EXCEPTION 'Unexpected effective client privileges on %',target_table;
     END IF;
   END LOOP;
 

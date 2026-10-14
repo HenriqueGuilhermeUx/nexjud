@@ -5,6 +5,7 @@ on:
     paths:
       - 'docs/enterprise/F7-migracao-sql-proposta.sql'
       - 'docs/enterprise/F8-staging-catalog-assertions.sql'
+      - 'docs/enterprise/F8-client-grant-regression.sh'
       - 'docs/enterprise/F9-local-auth-fixture.sql'
       - 'docs/enterprise/F10-tenant-isolation-negative-tests.sql'
       - 'docs/enterprise/F11-tenant-fk-integrity-tests.sql'
@@ -64,6 +65,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F7-migracao-sql-proposta.sql
       - name: Assert deny-by-default catalog invariants
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F8-staging-catalog-assertions.sql
+      - name: Verify F8 detects PUBLIC and client grants per table
+        run: bash docs/enterprise/F8-client-grant-regression.sh
       - name: Test client privilege denial and tenant idempotency boundaries
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F10-tenant-isolation-negative-tests.sql
       - name: Test cross-organization foreign key integrity

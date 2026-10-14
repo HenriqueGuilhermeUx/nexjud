@@ -95,4 +95,39 @@ begin
        or l.actor_id <> b.actor_id
   ) then raise exception 'cross-tenant link or owner mismatch'; end if;
 end $verify$;
+-- The user's existing legal_cases DELETE flow must remain functional.
+-- Removing a case removes only its private link; immutable batch and audit
+-- evidence stay stored for idempotency and compliance.
+set local role authenticated;
+select set_config('request.jwt.claim.sub','a1111111-1111-4111-8111-111111111111',true);
+do $delete_check$
+declare deleted_count integer;
+begin
+  delete from public.legal_cases
+  where user_id='a1111111-1111-4111-8111-111111111111'
+    and process_number='00000000002026826000';
+  get diagnostics deleted_count = row_count;
+  if deleted_count <> 1 then raise exception 'legacy case owner delete was blocked'; end if;
+end $delete_check$;
+reset role;
+do $delete_check$
+begin
+  if (select count(*) from public.enterprise_case_links) <> 1
+  then raise exception 'private case link was not safely removed'; end if;
+  if (select count(*) from public.legal_cases
+      where user_id='b2222222-2222-4222-8222-222222222222') <> 1
+  then raise exception 'case deletion crossed tenant boundary'; end if;
+  if (select count(*) from public.enterprise_import_batches
+      where organization_id in (
+        'd1111111-1111-4111-8111-111111111111',
+        'd2222222-2222-4222-8222-222222222222'
+      )) <> 2
+  then raise exception 'case deletion removed import evidence'; end if;
+  if (select count(*) from public.enterprise_import_audit
+      where organization_id in (
+        'd1111111-1111-4111-8111-111111111111',
+        'd2222222-2222-4222-8222-222222222222'
+      )) <> 2
+  then raise exception 'case deletion removed audit evidence'; end if;
+end $delete_check$;
 rollback;

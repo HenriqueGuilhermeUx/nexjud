@@ -13,12 +13,15 @@ alter table public.legal_cases enable row level security;
 revoke all on public.legal_cases from public, anon, authenticated;
 create policy enterprise_fixture_owner_read on public.legal_cases
   for select to authenticated using (user_id=auth.uid());
-grant select on public.legal_cases to authenticated;
+create policy enterprise_fixture_owner_delete on public.legal_cases
+  for delete to authenticated using (user_id=auth.uid());
+grant select, delete on public.legal_cases to authenticated;
 
 create table public.enterprise_case_links (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.enterprise_organizations(id),
-  case_id uuid not null references public.legal_cases(id),
+  -- Case links must not block the legacy owner's normal delete action.
+  case_id uuid not null references public.legal_cases(id) on delete cascade,
   batch_id uuid not null,
   actor_id uuid not null references auth.users(id),
   source_system text not null,

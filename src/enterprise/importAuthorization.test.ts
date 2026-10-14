@@ -19,6 +19,12 @@ describe("Authorized enterprise import", () => {
   it("rejects read-only role", () => {
     expect(() => planAuthorizedEnterpriseImport({ ...context, role: "reader" }, request)).toThrow()
   })
+  it("rejects null batch item without crashing into tenant scope", () => {
+    expect(() => planAuthorizedEnterpriseImport(context, { ...request, items: [null as unknown as typeof item] })).toThrow("Processo inválido")
+  })
+  it("rejects missing request", () => {
+    expect(() => planAuthorizedEnterpriseImport(context, null as unknown as typeof request)).toThrow("Lote vazio")
+  })
   it("rejects missing user identity", () => {
     expect(() => planAuthorizedEnterpriseImport({ ...context, userId: "" }, request)).toThrow()
   })

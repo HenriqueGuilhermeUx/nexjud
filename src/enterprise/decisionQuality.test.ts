@@ -5,7 +5,7 @@ const valid = {
   id: "evidence-1",
   source: "documento autenticado",
   collectedAt: "2026-10-14T12:00:00Z",
-  documentHash: "sha256:example",
+  documentHash: "sha256:" + "a".repeat(64),
   verified: true,
 }
 

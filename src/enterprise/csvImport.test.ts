@@ -6,7 +6,7 @@ const row = "case-1,crm,00000000002026826000"
 describe("enterprise CSV import for web and mobile PWA", () => {
   it("parses a well-formed lot and normalizes CNJ punctuation", () => {
     const result = parseEnterpriseCsv("\uFEFF" + header + "\r\ncase-1,crm,0000000-00.2026.8.26.0000\r\n")
-    expect(result).toEqual({ok:true,items:[{externalId:"case-1",sourceSystem:"crm",cnjDigits:"00000000002026826000"}]})
+    expect(result).toEqual({ok:true,items:[{externalId:"case-1",sourceSystem:"crm",cnjDigits:"00000000020268260000"}]})
   })
   it("rejects missing header, missing rows and excess rows", () => {
     expect(parseEnterpriseCsv(row).ok).toBe(false)

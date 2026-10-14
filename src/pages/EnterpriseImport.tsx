@@ -100,7 +100,7 @@ export default function EnterpriseImport({ mode = "web" }: { mode?: "web" | "pwa
   function preview() {
     invalidate()
     const parsed = parseEnterpriseCsv(text)
-    if (!parsed.ok) {
+    if ("error" in parsed) {
       setResult(parsed.error)
       return
     }

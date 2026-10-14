@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { getSupabase } from "@/lib/supabase"
+import EnterpriseImport from "@/pages/EnterpriseImport"
 
 const colors = {
   bg: "#080A10",
@@ -696,7 +697,7 @@ export default function CompanionPWA() {
   else if (section === "caso" && segments[1]) view = <CaseDetailPWA caseId={segments[1]} navigate={navigate} />
   else if (section === "audiencia") view = <HearingPWA userId={user.id} caseId={segments[1]} navigate={navigate} />
   else if (section === "studio") view = <StudioPWA navigate={navigate} />
-  else if (section === "enterprise") view = <div className="space-y-4 pt-6"><Back /><ScreenTitle eyebrow="EMPRESAS" title="Carteiras empresariais" subtitle="Importação de processos com autorização e rastreabilidade." /><ShellCard><p className="text-sm" style={{ color: colors.muted }}>O envio exige uma organização habilitada e a API empresarial disponível.</p><PrimaryButton className="mt-4 w-full" onClick={() => navigate("/enterprise/import")}><Upload size={18} /> Abrir importação empresarial</PrimaryButton></ShellCard></div>
+  else if (section === "enterprise") view = <EnterpriseImport mode="pwa" />
   else view = <HomeScreenPWA userId={user.id} navigate={navigate} />
 
   return <div className="nexjud-pwa-screen min-h-[100dvh]" style={{ background: colors.bg }}>

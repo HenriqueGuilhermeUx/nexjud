@@ -56,15 +56,18 @@ export function validateImportRequest(request: EnterpriseCaseImportRequest): str
   }
   if (request.items.length > 100) errors.push("O lote excede 100 processos.")
   const keys = new Set<string>()
+  const organizations = new Set<string>()
   for (const [index, item] of request.items.entries()) {
     if (!item.organizationId?.trim() || !item.externalId?.trim() || !item.sourceSystem?.trim()) {
       errors.push(`Processo ${index + 1}: identificadores obrigatórios ausentes.`)
     }
+    organizations.add(item.organizationId?.trim() ?? "")
     const digits = item.cnjNumber?.replace(/\D/g, "") ?? ""
     if (!/^\d{20}$/.test(digits)) errors.push(`Processo ${index + 1}: CNJ deve conter 20 dígitos.`)
-    const key = [item.organizationId, item.sourceSystem, item.externalId].join(":")
+    const key = [item.organizationId?.trim(), item.sourceSystem?.trim().toLowerCase(), item.externalId?.trim()].join(":")
     if (keys.has(key)) errors.push(`Processo ${index + 1}: identificador duplicado no lote.`)
     keys.add(key)
   }
+  if (organizations.size > 1) errors.push("Um lote deve pertencer a uma única organização.")
   return errors
 }

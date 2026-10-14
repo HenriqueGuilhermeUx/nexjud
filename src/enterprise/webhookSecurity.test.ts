@@ -3,7 +3,7 @@ import { validateWebhookDestination, validateWebhookEnvelope } from "./webhookSe
 
 describe("webhook destination validation", () => {
   it("accepts a public HTTPS domain", () => {
-    expect(validateWebhookDestination("https://hooks.example.com/events").hostname).toBe("hooks.example.com")
+    expect(validateWebhookDestination("https://hooks.acme.com/events").hostname).toBe("hooks.acme.com")
   })
   it.each([
     "http://hooks.example.com/events",
@@ -14,6 +14,8 @@ describe("webhook destination validation", () => {
     "https://user:pass@hooks.example.com/events",
     "https://hooks.example.com:8443/events",
     "https://hooks.example.com/events#fragment",
+    "https://hooks.acme.com/events?token=secret",
+    "https://hooks.example.com/events",
   ])("rejects unsafe destination %s", (destination) => {
     expect(() => validateWebhookDestination(destination)).toThrow()
   })

@@ -3,6 +3,7 @@ import type { TenantContext } from "./tenantScope"
 import type { ServerImportDependencies } from "./importCommitService"
 import { commitEnterpriseImport } from "./importCommitService"
 import { publicImportError } from "./importError"
+import { validateImportRequest } from "./apiContracts"
 
 export type VerifiedImportIdentity = { context: TenantContext }
 export type ImportHttpDependencies = ServerImportDependencies & {
@@ -26,6 +27,11 @@ export async function handleEnterpriseImport(
     return publicImportError("UNAUTHENTICATED")
   }
   if (!identity?.context?.userId?.trim()) return publicImportError("UNAUTHENTICATED")
+  try {
+    validateImportRequest(body)
+  } catch {
+    return publicImportError("INVALID_REQUEST")
+  }
   try {
     const result = await commitEnterpriseImport(identity.context, body, now, dependencies)
     return { status: result.status === "created" ? 201 : 200, body: result }

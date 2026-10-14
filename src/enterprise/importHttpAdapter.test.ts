@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import { handleEnterpriseImport } from "./importHttpAdapter"
+import { ImportIdempotencyConflict } from "./importIdempotencyConflict"
 
 const body = { idempotencyKey: "batch-a", items: [{ organizationId: "org-a", externalId: "case-a", sourceSystem: "erp", cnjNumber: "0000000-00.2026.8.26.0000" }] }
 const context = { userId: "user-a", organizationId: "org-a", role: "legal" as const }
@@ -60,6 +61,14 @@ describe("Enterprise import HTTP adapter", () => {
     }, now)
     expect(response.status).toBe(400)
     expect(commit).not.toHaveBeenCalled()
+  })
+  it("returns 409 only for a typed idempotency conflict", async () => {
+    const response = await handleEnterpriseImport(body, {
+      authenticate: async () => ({ context }), sha256,
+      persistence: { commit: async () => { throw new ImportIdempotencyConflict() } },
+    }, now)
+    expect(response.status).toBe(409)
+    expect(response.body).toEqual({ error: { code: "IDEMPOTENCY_CONFLICT", message: "Chave de idempotência já utilizada com conteúdo diferente." } })
   })
   it("hides unexpected persistence errors", async () => {
     const response = await handleEnterpriseImport(body, {

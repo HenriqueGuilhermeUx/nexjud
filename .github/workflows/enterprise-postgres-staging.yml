@@ -8,6 +8,7 @@ on:
       - 'docs/enterprise/F9-local-auth-fixture.sql'
       - 'docs/enterprise/F10-tenant-isolation-negative-tests.sql'
       - 'docs/enterprise/F11-tenant-fk-integrity-tests.sql'
+      - 'docs/enterprise/F12-client-role-access-tests.sql'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -48,3 +49,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F10-tenant-isolation-negative-tests.sql
       - name: Test cross-organization foreign key integrity
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F11-tenant-fk-integrity-tests.sql
+      - name: Exercise denied SQL access under client roles
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F12-client-role-access-tests.sql

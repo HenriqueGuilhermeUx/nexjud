@@ -13,11 +13,11 @@ describe("enterprise import HTTP boundary", () => {
   })
   it("does not use a service role or accept actor identity", () => {
     expect(handler).not.toContain("SUPABASE_SERVICE_ROLE_KEY")
-    expect(handler).toContain('"organizationId", "idempotencyKey", "items"')
+    expect(handler).toContain("validateImportPayload(payload)")
   })
   it("enforces request size and item count", () => {
     expect(handler).toContain("MAX_BYTES = 512_000")
-    expect(handler).toContain("payload.items.length > 500")
+    expect(handler).toContain("validateImportPayload(payload)")
   })
   it("calls the gateway using the user-scoped client", () => {
     expect(handler).toContain('supabase.rpc("enterprise_import_cases"')

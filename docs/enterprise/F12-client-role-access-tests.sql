@@ -33,7 +33,7 @@ begin
           if operation = 'INSERT' then
             execute format('insert into public.%I default values',target);
           elsif operation = 'UPDATE' then
-            execute format('update public.%I set id = id where false',target);
+            execute format('update public.%I set organization_id = organization_id where false',target);
           else
             execute format('delete from public.%I where false',target);
           end if;

@@ -8,6 +8,7 @@ export function validateImportPayloadLimits(request: EnterpriseCaseImportRequest
     errors.push("Chave de idempotência inválida.")
   }
   if (!Array.isArray(request.items)) return [...errors, "Lista de processos inválida."]
+  if (request.items.length > 100) return [...errors, "Lote excede 100 processos."]
   for (const [index, item] of request.items.entries()) {
     if (!item || typeof item !== "object") {
       errors.push(`Processo ${index + 1}: objeto inválido.`)
@@ -19,6 +20,9 @@ export function validateImportPayloadLimits(request: EnterpriseCaseImportRequest
       }
     }
     if (item.metadata !== undefined) {
+      // Metadata is not included in canonicalImportPayload yet.
+      // Reject it until the persisted payload and fingerprint cover the same fields.
+      errors.push(`Processo ${index + 1}: metadados ainda não suportados na importação.`)
       if (!item.metadata || typeof item.metadata !== "object" || Array.isArray(item.metadata) ||
           Object.keys(item.metadata).length > 20) {
         errors.push(`Processo ${index + 1}: metadados inválidos.`)

@@ -667,7 +667,7 @@ function StudioPWA({ navigate }: { navigate: (path: string) => void }) {
     {notice ? <p role="status" style={{color:colors.muted}}>{notice}</p> : null}
     {result ? <ShellCard><h3 className="font-bold" style={{color:colors.text}}>{result.title || "Minuta gerada"}</h3><pre className="mt-3 whitespace-pre-wrap text-sm" style={{color:colors.text}}>{JSON.stringify(result, null, 2)}</pre><PrimaryButton className="mt-3 w-full" onClick={() => navigator.clipboard.writeText(JSON.stringify(result, null, 2))}>Copiar minuta</PrimaryButton></ShellCard> : null}
     <h3 className="font-bold" style={{color:colors.text}}>Minutas salvas</h3>
-    {drafts.map(item => <button key={item.id} onClick={() => { setResult(item.result); setNotice("Minuta recuperada do histórico.") }} className="w-full rounded-xl border p-3 text-left" style={{borderColor:colors.border,color:colors.text}}>{item.title || "Minuta"} · {new Date(item.created_at).toLocaleDateString("pt-BR")}</button>)<p className="text-center text-xs leading-5" style={{ color: colors.muted }}>O conteúdo gerado é um rascunho de apoio e deve ser revisado pelo profissional responsável.</p></div>
+    {drafts.map(item => <button key={item.id} onClick={() => { setResult(item.result); setNotice("Minuta recuperada do histórico.") }} className="w-full rounded-xl border p-3 text-left" style={{borderColor:colors.border,color:colors.text}}>{item.title || "Minuta"} · {new Date(item.created_at).toLocaleDateString("pt-BR")}</button>)}<p className="text-center text-xs leading-5" style={{ color: colors.muted }}>O conteúdo gerado é um rascunho de apoio e deve ser revisado pelo profissional responsável.</p></div>
 }
 
 function Back({ label = "Voltar" }: { label?: string }) {

@@ -17,16 +17,14 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      # Temporary until pnpm-lock.yaml is generated and committed.
+      # npm is isolated from the repository build scripts, which invoke pnpm.
+      # Restore pnpm with a committed lockfile before final merge.
       - name: Install
-        run: pnpm install --no-frozen-lockfile
+        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
       - name: Run Enterprise tests
-        run: pnpm test:enterprise
+        run: npm run test:enterprise
       - name: Typecheck
-        run: pnpm exec tsc -b
+        run: npx --no-install tsc -b

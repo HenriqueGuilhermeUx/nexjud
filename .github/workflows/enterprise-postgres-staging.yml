@@ -20,6 +20,7 @@ on:
       - 'docs/enterprise/F23-import-atomicity-tests.sql'
       - 'docs/enterprise/F24-import-idempotency-tests.sql'
       - 'docs/enterprise/F25-import-concurrency-tests.sh'
+      - 'docs/enterprise/F26-import-replay-decision-tests.sql'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
 
@@ -84,3 +85,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F24-import-idempotency-tests.sql
       - name: Verify concurrent duplicate import requests
         run: bash docs/enterprise/F25-import-concurrency-tests.sh
+      - name: Verify persisted replay receipt and fingerprint conflict decision
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F26-import-replay-decision-tests.sql

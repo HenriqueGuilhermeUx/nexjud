@@ -1,0 +1,44 @@
+name: Enterprise PostgreSQL staging
+
+on:
+  pull_request:
+    paths:
+      - 'docs/enterprise/F7-migracao-sql-proposta.sql'
+      - 'docs/enterprise/F8-staging-catalog-assertions.sql'
+      - 'docs/enterprise/F9-local-auth-fixture.sql'
+      - '.github/workflows/enterprise-postgres-staging.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: local-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: local-only
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create isolated auth fixture
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F9-local-auth-fixture.sql
+      - name: Apply draft Enterprise schema to disposable database
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F7-migracao-sql-proposta.sql
+      - name: Assert deny-by-default catalog invariants
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F8-staging-catalog-assertions.sql

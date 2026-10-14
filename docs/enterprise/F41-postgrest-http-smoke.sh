@@ -29,7 +29,7 @@ docker run -d --rm --net host --name "$NAME" \
 ready=0
 for i in $(seq 1 40); do
  status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 1 "$BASE/" || true)
- if [ "$status" != "000" ]; then ready=1; break; fi
+ if [ "$status" != "000" ] && [ "$status" != "503" ]; then ready=1; break; fi
  sleep 1
 done
 [ "$ready" = 1 ] || { echo "PostgREST did not start"; exit 1; }

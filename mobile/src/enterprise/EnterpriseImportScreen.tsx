@@ -6,6 +6,7 @@ import {
 import * as DocumentPicker from "expo-document-picker"
 import { File } from "expo-file-system"
 import { supabase } from "../lib/supabase"
+import { normalizeImportHistory, type ImportBatch } from "./history"
 import {
   MAX_ENTERPRISE_CSV_BYTES, parseEnterpriseCsv, utf8ByteLength,
   type EnterpriseImportItem,
@@ -56,6 +57,8 @@ export default function EnterpriseImportScreen({ navigation }: { navigation: any
   const [confirmed, setConfirmed] = useState(false)
   const [cases, setCases] = useState<CasePreview[]>([])
   const [caseStatus, setCaseStatus] = useState("")
+  const [history, setHistory] = useState<ImportBatch[]>([])
+  const [historyStatus, setHistoryStatus] = useState<"idle" | "loading" | "ready" | "unavailable">("idle")
 
   function invalidate() {
     setItems([])
@@ -142,6 +145,33 @@ export default function EnterpriseImportScreen({ navigation }: { navigation: any
       setCaseStatus(owned.length ? "" : "Nenhum processo importado encontrado nesta conta.")
     }
     void loadCases()
+    return () => { active = false }
+  }, [organizationId, userId, access, confirmed])
+
+  // Same read-only, author-scoped RPC as the Web/PWA interface.
+  useEffect(() => {
+    let active = true
+    setHistory([])
+    setHistoryStatus("idle")
+    if (!organizationId || !userId || access !== "ready") return () => { active = false }
+    setHistoryStatus("loading")
+    async function loadHistory() {
+      try {
+        const { data: identity, error: identityError } = await supabase.auth.getUser()
+        if (identityError || identity.user?.id !== userId) throw new Error("invalid_session")
+        const { data, error } = await supabase.rpc("enterprise_import_history", {
+          p_organization: organizationId,
+          p_limit: 20,
+        })
+        if (error) throw error
+        const safe = normalizeImportHistory(data)
+        if (!safe) throw new Error("unexpected_history")
+        if (active) { setHistory(safe); setHistoryStatus("ready") }
+      } catch {
+        if (active) { setHistory([]); setHistoryStatus("unavailable") }
+      }
+    }
+    void loadHistory()
     return () => { active = false }
   }, [organizationId, userId, access, confirmed])
 
@@ -301,6 +331,27 @@ export default function EnterpriseImportScreen({ navigation }: { navigation: any
         <Text style={styles.body}>{item.process_number || item.title}</Text>
         <Text style={styles.link}>Abrir dossiê →</Text>
       </Pressable>)}
+    </View>}
+    {access === "ready" && Boolean(organizationId) && <View style={styles.card}>
+      <Text style={styles.section}>Histórico dos meus lotes</Text>
+      <Text style={styles.helper}>
+        Apenas lotes enviados por sua conta nesta organização.
+        O histórico permanece mesmo após excluir um processo.
+      </Text>
+      {historyStatus === "loading" && <ActivityIndicator color={colors.primary} />}
+      {historyStatus === "unavailable" && <Text style={styles.warning}>
+        Histórico indisponível neste ambiente. Nenhum lote foi alterado.
+      </Text>}
+      {historyStatus === "ready" && history.length === 0 && <Text style={styles.helper}>
+        Nenhum lote registrado por sua conta nesta organização.
+      </Text>}
+      {historyStatus === "ready" && history.map(batch => <View key={batch.batchId} style={styles.case}>
+        <Text style={styles.body}>{batch.idempotencyKey}</Text>
+        <Text style={styles.helper}>
+          {batch.itemCount} processo(s) no lote · {batch.linkedCaseCount} ainda vinculado(s)
+        </Text>
+        <Text style={styles.helper}>{new Date(batch.createdAt).toLocaleString("pt-BR")}</Text>
+      </View>)}
     </View>}
   </ScrollView>
 }

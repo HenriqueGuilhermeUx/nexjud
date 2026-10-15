@@ -21,7 +21,13 @@ export function normalizeImportHistory(data: unknown): ImportBatch[] | null {
         typeof row.itemCount !== "number" || !Number.isSafeInteger(row.itemCount) || row.itemCount < 0 ||
         typeof row.linkedCaseCount !== "number" || !Number.isSafeInteger(row.linkedCaseCount) ||
         row.linkedCaseCount < 0 || row.linkedCaseCount > row.itemCount) return null
-    results.push(row as ImportBatch)
+    results.push({
+      batchId: row.batchId,
+      idempotencyKey: row.idempotencyKey,
+      itemCount: row.itemCount,
+      linkedCaseCount: row.linkedCaseCount,
+      createdAt: row.createdAt,
+    })
   }
   return results
 }

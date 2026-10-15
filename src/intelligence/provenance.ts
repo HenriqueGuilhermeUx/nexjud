@@ -16,3 +16,16 @@ export function provenanceOf(item: JudicialDecisionEvidence): EvidenceProvenance
 export function hasTraceableSource(item: JudicialDecisionEvidence) {
   return Boolean(item.source && item.collectedAt && (item.sourceUrl || item.sourceDocumentId || item.processNumber))
 }
+
+/**
+ * A case number or a DataJud movement identifies the proceeding, not the
+ * court document with the judicial reasoning and ruling. Only a document
+ * reference from a court/public-document source supports decision patterns.
+ */
+export function hasVerifiableDecisionDocument(item: JudicialDecisionEvidence): boolean {
+  if (item.source === "datajud") return false
+  return Boolean(
+    item.sourceDocumentId?.trim() ||
+    (item.sourceUrl && /^https?:\/\/\S+$/i.test(item.sourceUrl.trim())),
+  )
+}

@@ -85,9 +85,31 @@ describe("NexJud decision evidence audit — no fabricated judge prediction", ()
   })
   it("never mixes precedents from another judging body even if called directly", () => {
     const pattern = buildObservedDecisionPattern([
-      decision("1"),
+      decision("1"), decision("2"), decision("3"),
       decision("other", { judgingBody: "Turma distinta", citedPrecedents: ["Tese alheia"] }),
     ])
-    expect(pattern?.recurringPrecedents).toEqual([{ label: "Tema 10", count: 1 }])
+    expect(pattern?.recurringPrecedents).toEqual([{ label: "Tema 10", count: 3 }])
+    expect(pattern?.decisionsAnalyzed).toBe(3)
+  })
+  it("requires an identifiable judicial document, not just a process number or DataJud metadata", () => {
+    const processOnly = decision("only-process", { sourceDocumentId: undefined })
+    const datajud = decision("datajud-raw", { source: "datajud" })
+    const checked = auditDecisionEvidence([processOnly, datajud, decision("verified")], target)
+    expect(checked.qualifiedDecisions).toBe(1)
+    expect(checked.comparableDecisions).toBe(1)
+    expect(checked.enoughForDescriptivePattern).toBe(false)
+    expect(checked.gaps.find(g => g.label.includes("Documento decisório"))?.count).toBe(2)
+    expect(buildObservedDecisionPattern([processOnly, datajud, decision("verified")])).toBeNull()
+  })
+  it("direct pattern calls cannot bypass minimum sample, duplicate, or invalid-date gates", () => {
+    expect(buildObservedDecisionPattern([decision("one")])).toBeNull()
+    expect(buildObservedDecisionPattern([decision("one"), decision("two")])).toBeNull()
+    expect(buildObservedDecisionPattern([
+      decision("one"), decision("copy", { sourceDocumentId: "doc-one" }), decision("three"),
+    ])).toBeNull()
+    expect(buildObservedDecisionPattern([
+      decision("one"), decision("two"), decision("invalid", { decisionDate: "2026-02-30" }),
+    ])).toBeNull()
+    expect(buildObservedDecisionPattern([decision("one"), decision("two"), decision("three")])?.decisionsAnalyzed).toBe(3)
   })
 })

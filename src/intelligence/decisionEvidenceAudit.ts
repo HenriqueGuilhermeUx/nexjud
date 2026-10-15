@@ -1,6 +1,6 @@
 import type { JudicialDecisionEvidence } from "./judicialDecisionSchema"
 import { assessEvidenceQuality } from "./evidenceQuality"
-import { hasTraceableSource } from "./provenance"
+import { hasTraceableSource, hasVerifiableDecisionDocument } from "./provenance"
 
 /**
  * Descriptive-only decision evidence audit. The returned review list is
@@ -64,7 +64,7 @@ export function auditDecisionEvidence(
   }
 
   const counters = {
-    reasoning: 0, outcome: 0, date: 0, traceability: 0,
+    reasoning: 0, outcome: 0, date: 0, traceability: 0, document: 0,
     quality: 0, court: 0, judgingBody: 0,
   }
   const qualified: JudicialDecisionEvidence[] = []
@@ -74,13 +74,15 @@ export function auditDecisionEvidence(
     const hasOutcome = Boolean(record.observedOutcome?.trim())
     const validDate = validDecisionDate(record.decisionDate)
     const traceable = hasTraceableSource(record)
+    const document = hasVerifiableDecisionDocument(record)
     const usable = assessEvidenceQuality(record).usableForPattern
     if (!completeReasoning) counters.reasoning++
     if (!hasOutcome) counters.outcome++
     if (!validDate) counters.date++
     if (!traceable) counters.traceability++
-    if (completeReasoning && hasOutcome && validDate && traceable && !usable) counters.quality++
-    if (!(completeReasoning && hasOutcome && validDate && traceable && usable)) continue
+    if (!document) counters.document++
+    if (completeReasoning && hasOutcome && validDate && traceable && document && !usable) counters.quality++
+    if (!(completeReasoning && hasOutcome && validDate && traceable && document && usable)) continue
 
     qualified.push(record)
     if (venueText(record.court) !== venueText(target.court) || !venueText(target.court)) {
@@ -108,6 +110,8 @@ export function auditDecisionEvidence(
       "Confirmar a data da decisão, não apenas a data de distribuição ou andamento."),
     addGap("Referência de origem insuficiente", counters.traceability,
       "Registrar processo, identificador documental ou URL pública verificável."),
+    addGap("Documento decisório sem referência verificável", counters.document,
+      "O número do processo ou um andamento DataJud não substitui o identificador ou link do documento judicial de origem."),
     addGap("Outros requisitos de qualidade ausentes", counters.quality,
       "Conferir classe, assunto, órgão julgador e metadados do documento."),
     addGap("Decisões de outro tribunal", counters.court,

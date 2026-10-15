@@ -1,6 +1,7 @@
 import type { JudicialDecisionEvidence } from "./judicialDecisionSchema"
 import { assessEvidenceQuality } from "./evidenceQuality"
-import { hasTraceableSource } from "./provenance"
+import { hasTraceableSource, hasVerifiableDecisionDocument } from "./provenance"
+import { auditDecisionEvidence } from "./decisionEvidenceAudit"
 
 export interface ObservedDecisionPattern {
   court: string
@@ -25,17 +26,20 @@ function count(values: string[]) {
 }
 
 export function buildObservedDecisionPattern(items: JudicialDecisionEvidence[]): ObservedDecisionPattern | null {
-  const qualified = items.filter((item) => assessEvidenceQuality(item).usableForPattern && hasTraceableSource(item))
-  if (!qualified.length) return null
-  // Never mix courts or judging bodies into a purported single-venue pattern.
-  const court = qualified[0].court
-  const judgingBody = qualified[0].judgingBody
-  // A missing venue cannot support a single-venue descriptive pattern.
-  if (!venueText(court) || !venueText(judgingBody)) return null
-  const comparable = qualified.filter((item) =>
-    venueText(item.court) === venueText(court) &&
-    venueText(item.judgingBody) === venueText(judgingBody))
-  if (!comparable.length) return null
+  // A direct caller must not bypass audit gates (document reference, date,
+  // duplicates, exact judging body, or exploratory minimum of three decisions).
+  const anchor = items.find((item) =>
+    assessEvidenceQuality(item).usableForPattern &&
+    hasTraceableSource(item) &&
+    hasVerifiableDecisionDocument(item) &&
+    venueText(item.court) &&
+    venueText(item.judgingBody))
+  if (!anchor) return null
+  const court = anchor.court
+  const judgingBody = anchor.judgingBody
+  const audit = auditDecisionEvidence(items, { court, judgingBody })
+  if (!audit.enoughForDescriptivePattern) return null
+  const comparable = audit.comparableEvidence
   // Preserve the date printed on the judicial decision, not the UTC rollover.
   const dates = comparable.map((item) => item.decisionDate?.slice(0, 10))
     .filter((date): date is string => Boolean(date)).sort()

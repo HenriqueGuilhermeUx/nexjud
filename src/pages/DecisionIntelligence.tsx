@@ -10,6 +10,7 @@ import { buildObservedDecisionPattern } from "@/intelligence/decisionPattern"
 import { auditDecisionEvidence, type DecisionEvidenceAudit } from "@/intelligence/decisionEvidenceAudit"
 import { DecisionSearchGuard } from "@/intelligence/decisionSearchGuard"
 import { buildDecisionReviewWorksheet } from "@/intelligence/decisionReviewWorksheet"
+import ManualCourtDecisionReview from "@/components/ManualCourtDecisionReview"
 
 export default function DecisionIntelligence() {
   const { user } = useAuth()
@@ -237,6 +238,14 @@ export default function DecisionIntelligence() {
             : "Inclua fatos e argumentos para preparar a revisão profissional; ainda não há comparação automática comprovada."}/>
         </section>}
       </>}
+
+      <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6 space-y-3" aria-label="Documento judicial informado pelo advogado">
+        <h2 className="font-bold text-xl">Já tem uma decisão judicial em mãos?</h2>
+        <p className="text-sm text-gray-400">Cole um trecho da fundamentação e informe o endereço público ou identificador do documento. A conferência será manual, sem enviar esse material ao servidor nem misturá-lo à contagem de decisões verificadas.</p>
+        {lawyerArgument.trim()
+          ? <ManualCourtDecisionReview key={`${cnj}:${alias}:${lawyerArgument}`} argument={lawyerArgument.trim()} />
+          : <p className="text-sm text-amber-200">Para começar, preencha sua tese no campo “argumento” acima.</p>}
+      </section>
 
       <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6">
         <h2 className="font-bold text-xl">E agora, o que você quer fazer?</h2>

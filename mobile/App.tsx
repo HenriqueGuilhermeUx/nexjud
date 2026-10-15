@@ -31,6 +31,7 @@ import {
 } from "lucide-react-native"
 import type { Session } from "@supabase/supabase-js"
 import { supabase } from "./src/lib/supabase"
+import EnterpriseImportScreen from "./src/enterprise/EnterpriseImportScreen"
 
 const Stack = createNativeStackNavigator()
 const Tabs = createBottomTabNavigator()
@@ -172,6 +173,7 @@ function HomeScreen({ navigation }: any) {
     { title: "Perguntar à IA", subtitle: "Legal Brain contextual", icon: Brain, route: "IA" },
     { title: "Consultar casos", subtitle: "Dossiês e estratégia", icon: Briefcase, route: "Casos" },
     { title: "Preparar minuta", subtitle: "Peças e documentos com IA", icon: WandSparkles, parent: "Studio" },
+    { title: "Importar carteira", subtitle: "Processos da organização por CSV", icon: Upload, parent: "EnterpriseImport" },
   ]
 
   return (
@@ -361,6 +363,7 @@ function CasesScreen({ navigation }: any) {
     <View style={styles.safe}>
       <View style={styles.pageFlex}>
         <ScreenTitle eyebrow="CARTEIRA JURÍDICA" title="Casos" subtitle="Processos, estratégia, documentos e próximas ações em um só lugar." />
+        <Pressable style={styles.secondaryButton} onPress={() => navigation.getParent()?.navigate("EnterpriseImport")}><Upload color={colors.primary} size={18} /><Text style={styles.secondaryButtonText}>Importar processos da organização</Text></Pressable>
         <View style={styles.searchBox}><Search color={colors.muted} size={19} /><TextInput style={styles.searchInput} placeholder="Cliente, processo, tribunal ou assunto" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} /></View>
         <FlatList data={filtered} keyExtractor={i => i.id} contentContainerStyle={{ gap: 10, paddingBottom: 30 }} renderItem={({ item }) => <CaseCard item={item} onPress={() => navigation.getParent()?.navigate("CaseDetail", { caseId: item.id })} />} ListEmptyComponent={<Empty title="Nenhum caso encontrado" text="Revise sua busca ou cadastre um caso no Workspace." />} />
       </View>
@@ -717,6 +720,7 @@ export default function App() {
             <Stack.Screen name="Hearing" component={HearingScreen} />
             <Stack.Screen name="Studio" component={StudioScreen} />
             <Stack.Screen name="MeetingNote" component={MeetingNoteScreen} />
+            <Stack.Screen name="EnterpriseImport" component={EnterpriseImportScreen} />
           </> : <Stack.Screen name="Login" component={LoginScreen} />}
         </Stack.Navigator>
       </NavigationContainer>

@@ -11,9 +11,17 @@ on:
         options:
           - preview
           - production
+      confirm_production:
+        description: "Confirma gerar artefato de produção apenas na branch main (não publica)"
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   build-android:
+    # Preview may be built on a feature branch; production artifacts require
+    # main + explicit manual confirmation. These gates precede EXPO_TOKEN access.
+    if: ${{ inputs.profile == 'preview' || (github.ref == 'refs/heads/main' && inputs.profile == 'production' && inputs.confirm_production == true) }}
     name: Build Android (${{ inputs.profile }})
     runs-on: ubuntu-latest
     env:

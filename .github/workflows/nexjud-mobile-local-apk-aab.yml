@@ -5,6 +5,9 @@ on:
 
 jobs:
   build-android:
+    # This workflow uses production IDs and may use Play upload secrets.
+    # Never run its production signing path from Enterprise feature branches.
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:

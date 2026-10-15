@@ -44,7 +44,13 @@ export function parseEnterpriseCsv(value: string): EnterpriseCsvResult {
       return { ok: false, error: `Linha ${index + 2}: use exatamente três colunas.` }
     }
     const [externalId, sourceSystem, cnjInput] = fields
-    const cnjDigits = cnjInput.replace(/\D/g, "")
+    // Only canonical CNJ punctuation is accepted; do not silently discard
+    // letters, symbols or malformed delimiters in a legal case number.
+    if (!/^\d{20}$/.test(cnjInput) &&
+        !/^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/.test(cnjInput)) {
+      return { ok: false, error: `Linha ${index + 2}: CNJ requer 20 dígitos ou a máscara NNNNNNN-DD.AAAA.J.TR.OOOO.` }
+    }
+    const cnjDigits = cnjInput.replace(/[.-]/g, "")
     if (!externalId || externalId.length > 160 || !sourceSystem ||
         sourceSystem.length > 160 || !/^\d{20}$/.test(cnjDigits)) {
       return { ok: false, error: `Linha ${index + 2}: identificador, sistema ou CNJ inválido.` }

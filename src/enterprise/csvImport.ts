@@ -39,7 +39,13 @@ export function parseEnterpriseCsv(input: string): CsvParseResult {
       return { ok: false, error: `Linha ${index + 2}: informe exatamente três colunas separadas por vírgula.` }
     }
     const [externalId, sourceSystem, processNumber] = columns
-    const cnjDigits = processNumber.replace(/\D/g, "")
+    // Never silently strip letters or arbitrary punctuation from a legal-case ID.
+    // Accept the canonical CNJ mask or exactly 20 ASCII digits.
+    if (!/^\d{20}$/.test(processNumber) &&
+      !/^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/.test(processNumber)) {
+      return { ok: false, error: `Linha ${index + 2}: número CNJ precisa ter 20 dígitos ou a máscara NNNNNNN-DD.AAAA.J.TR.OOOO.` }
+    }
+    const cnjDigits = processNumber.replace(/[.-]/g, "")
     if (!externalId || externalId.length > 160 || !sourceSystem || sourceSystem.length > 160 ||
       !/^\d{20}$/.test(cnjDigits)) {
       return { ok: false, error: `Linha ${index + 2}: verifique identificador, origem e número CNJ (20 dígitos).` }

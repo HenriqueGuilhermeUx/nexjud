@@ -10,7 +10,18 @@ export function resolveBackend(config: Config): { url: string; key: string; mode
   if (!url || !key) throw new Error("Supabase de homologação não configurado")
   const local = mode === "development" && /^http:\/\/(localhost|127\.0\.0\.1|10\.0\.2\.2)(:\d+)?\/?$/i.test(url)
   if (!url.startsWith("https://") && !local) throw new Error("Homologação exige HTTPS")
-  if (new URL(url).hostname === new URL(config.productionUrl).hostname || key === config.productionKey) {
+  // Public builds must never contain privileged API keys, even when a worker
+  // skips the EAS pre-install hook (local Expo or Metro exports).
+  if (key.toLowerCase().startsWith("sb_secret_")) {
+    throw new Error("Chave privilegiada não pode entrar no aplicativo NexJud")
+  }
+  const parsed = new URL(url)
+  const prod = new URL(config.productionUrl)
+  if (parsed.username || parsed.password || parsed.search || parsed.hash ||
+      parsed.pathname !== "/") {
+    throw new Error("URL de homologação deve apontar para a raiz do Supabase, sem credenciais ou parâmetros")
+  }
+  if (parsed.hostname === prod.hostname || key === config.productionKey) {
     throw new Error("Teste não pode conectar ao Supabase de produção")
   }
   return { url, key, mode }

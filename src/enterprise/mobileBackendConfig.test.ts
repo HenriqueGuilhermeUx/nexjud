@@ -38,6 +38,15 @@ describe("NexJud native preview backend must not touch production", () => {
     expect(resolve({ ...prod, mode:"development", stageUrl:"http://127.0.0.1:54321", stageKey:"public-stage" }).mode)
       .toBe("development")
   })
+  it("denies privileged keys and disguised Supabase URLs even if the build hook was skipped", () => {
+    const base = { ...prod, mode: "preview", stageUrl: "https://stage.supabase.co", stageKey: "sb_publishable_example" }
+    expect(() => resolve({ ...base, stageKey: "sb_secret_invalid-for-client" })).toThrow("privilegiada")
+    expect(() => resolve({ ...base, stageUrl: "https://login:password@stage.supabase.co" })).toThrow("credenciais")
+    expect(() => resolve({ ...base, stageUrl: "https://stage.supabase.co/another-project" })).toThrow("parâmetros")
+    expect(() => resolve({ ...base, stageUrl: "https://stage.supabase.co/?access=token" })).toThrow("parâmetros")
+    expect(() => resolve({ ...base, stageUrl: "https://stage.supabase.co/#secret" })).toThrow("parâmetros")
+    expect(resolve(base).mode).toBe("preview")
+  })
   it("blocks an unknown environment", () => {
     expect(() => resolve({ ...prod, mode:"broken" })).toThrow("desconhecido")
   })

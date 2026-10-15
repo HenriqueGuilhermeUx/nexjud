@@ -24,7 +24,11 @@ describe("enterprise CSV import for web and mobile PWA", () => {
   it.each([
     "case-1,crm", "case-1,crm,000", "case-1,crm,00000000002026826000,extra",
     '"case-1",crm,00000000002026826000', "case-1,,00000000002026826000",
-    ",crm,00000000002026826000"
+    ",crm,00000000002026826000",
+    "case-1,crm,abc00000000002026826000",
+    "case-1,crm,0000000/00/2026/8/26/0000",
+    "case-1,crm,00000000002026826000!",
+    "case-1,crm,0000000-00.2026.8.26.0000x"
   ])("rejects invalid or ambiguous CSV row: %s", line => {
     expect(parseEnterpriseCsv(header+"\n"+line).ok).toBe(false)
   })

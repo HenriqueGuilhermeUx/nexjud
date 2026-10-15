@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { getSupabase } from "@/lib/supabase"
-import { MAX_IMPORT_BYTES, parseEnterpriseCsv, type EnterpriseCsvItem } from "@/enterprise/csvImport"
+import { MAX_IMPORT_BYTES, parseEnterpriseCsv, hasUnsafeEnterpriseText, type EnterpriseCsvItem } from "@/enterprise/csvImport"
 import EnterpriseImportedCases from "@/components/EnterpriseImportedCases"
 import EnterpriseImportHistory from "@/components/EnterpriseImportHistory"
 import { enterpriseImportErrorMessage } from "@/enterprise/importUiError"
@@ -116,8 +116,8 @@ export default function EnterpriseImport({ mode = "web" }: { mode?: "web" | "pwa
       setResult("Selecione uma organização autorizada.")
       return
     }
-    if (!key.trim() || key.length > 128) {
-      setResult("Informe uma chave de importação de até 128 caracteres.")
+    if (!key.trim() || key.length > 128 || hasUnsafeEnterpriseText(key)) {
+      setResult("Informe uma chave de até 128 caracteres, sem caracteres invisíveis ou de controle.")
       return
     }
     const payload = { organizationId, idempotencyKey: key, items }

@@ -33,6 +33,11 @@ begin
     raise exception 'forbidden' using errcode='42501';
   end if;
   if p_key is null or length(btrim(p_key)) not between 1 and 128
+    or p_key ~ '[[:cntrl:]]'
+    or exists (
+      select 1 from pg_catalog.unnest(array[173,1564,8203,8204,8205,8206,8207,8234,8235,8236,8237,8238,8288,8289,8290,8291,8292,8293,8294,8295,8296,8297,8298,8299,65279]) as forbidden(code)
+      where pg_catalog.strpos(p_key, pg_catalog.chr(forbidden.code)) > 0
+    )
     or p_fingerprint is null or p_fingerprint !~ '^sha256:[a-f0-9]{64}$'
     or jsonb_typeof(p_items) is distinct from 'array'
     or jsonb_array_length(p_items) not between 1 and 500 then
@@ -69,6 +74,13 @@ begin
       or jsonb_typeof(item->'cnjDigits') <> 'string'
       or length(btrim(item->>'externalId')) not between 1 and 160
       or length(btrim(item->>'sourceSystem')) not between 1 and 160
+      or (item->>'externalId') ~ '[[:cntrl:]]'
+      or (item->>'sourceSystem') ~ '[[:cntrl:]]'
+      or exists (
+        select 1 from pg_catalog.unnest(array[173,1564,8203,8204,8205,8206,8207,8234,8235,8236,8237,8238,8288,8289,8290,8291,8292,8293,8294,8295,8296,8297,8298,8299,65279]) as forbidden(code)
+        where pg_catalog.strpos(item->>'externalId', pg_catalog.chr(forbidden.code)) > 0
+           or pg_catalog.strpos(item->>'sourceSystem', pg_catalog.chr(forbidden.code)) > 0
+      )
       or (item->>'cnjDigits') !~ '^[0-9]{20}$'
       or (select count(*) from jsonb_object_keys(item)) <> 3
   ) then raise exception 'invalid items' using errcode='22023'; end if;

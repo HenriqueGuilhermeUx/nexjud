@@ -12,6 +12,12 @@ export type CsvParseResult =
   | { ok: true; items: EnterpriseCsvItem[] }
   | { ok: false; error: string }
 
+// Reject invisible controls and directional formatting in legal identifiers.
+// Preserve ordinary accented and international letters.
+export function hasUnsafeEnterpriseText(value: string): boolean {
+  return /[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/.test(value)
+}
+
 export const MAX_IMPORT_BYTES = 512_000
 export const MAX_IMPORT_ITEMS = 500
 const textBytes = (input: string) => new TextEncoder().encode(input).byteLength
@@ -47,6 +53,7 @@ export function parseEnterpriseCsv(input: string): CsvParseResult {
     }
     const cnjDigits = processNumber.replace(/[.-]/g, "")
     if (!externalId || externalId.length > 160 || !sourceSystem || sourceSystem.length > 160 ||
+      hasUnsafeEnterpriseText(externalId) || hasUnsafeEnterpriseText(sourceSystem) ||
       !/^\d{20}$/.test(cnjDigits)) {
       return { ok: false, error: `Linha ${index + 2}: verifique identificador, origem e número CNJ (20 dígitos).` }
     }

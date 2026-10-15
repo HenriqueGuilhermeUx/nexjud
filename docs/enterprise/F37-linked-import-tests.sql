@@ -35,6 +35,40 @@ begin
   exception when unique_violation then v_duplicate_denied := true;
   end;
   if not v_duplicate_denied then raise exception 'duplicate external id accepted'; end if;
+  -- Audit identifiers may contain international letters but not invisible
+  -- formatting controls or embedded newlines. Reject them inside the RPC too,
+  -- even when the Edge Function is bypassed by an authenticated client.
+  declare
+    v_no_key boolean := false;
+    v_no_source boolean := false;
+    v_no_external boolean := false;
+  begin
+    begin
+      perform public.enterprise_import_cases(
+        'd1111111-1111-4111-8111-111111111111','bad-' || pg_catalog.chr(8238),v_items);
+    exception when invalid_parameter_value then v_no_key := true;
+    end;
+    begin
+      perform public.enterprise_import_cases(
+        'd1111111-1111-4111-8111-111111111111','invalid-source',
+        pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+          'externalId','new', 'sourceSystem','crm' || pg_catalog.chr(8206),
+          'cnjDigits','00000000002026826000')));
+    exception when invalid_parameter_value then v_no_source := true;
+    end;
+    begin
+      perform public.enterprise_import_cases(
+        'd1111111-1111-4111-8111-111111111111','invalid-external',
+        pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+          'externalId','new' || pg_catalog.chr(10), 'sourceSystem','crm',
+          'cnjDigits','00000000002026826000')));
+    exception when invalid_parameter_value then v_no_external := true;
+    end;
+    if not (v_no_key and v_no_source and v_no_external) then
+      raise exception 'invisible audit control accepted by Enterprise RPC';
+    end if;
+  end;
+
 end $verify$;
 -- A second authorized professional in the SAME organization cannot
 -- obtain the first importer's receipt by replaying an identical tenant/key.

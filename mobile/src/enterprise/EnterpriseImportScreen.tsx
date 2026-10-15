@@ -8,7 +8,7 @@ import { File } from "expo-file-system"
 import { supabase } from "../lib/supabase"
 import { normalizeImportHistory, type ImportBatch } from "./history"
 import {
-  MAX_ENTERPRISE_CSV_BYTES, parseEnterpriseCsv, utf8ByteLength,
+  MAX_ENTERPRISE_CSV_BYTES, parseEnterpriseCsv, utf8ByteLength, hasUnsafeEnterpriseText,
   type EnterpriseImportItem,
 } from "./csv"
 
@@ -234,8 +234,8 @@ export default function EnterpriseImportScreen({ navigation }: { navigation: any
       setNotice("Selecione uma organização em que você pode importar.")
       return
     }
-    if (!key.trim() || key.length > 128) {
-      setNotice("A chave deve conter de 1 a 128 caracteres.")
+    if (!key.trim() || key.length > 128 || hasUnsafeEnterpriseText(key)) {
+      setNotice("Chave de 1 a 128 caracteres, sem controles invisíveis.")
       return
     }
     const payload = { organizationId, idempotencyKey: key, items }

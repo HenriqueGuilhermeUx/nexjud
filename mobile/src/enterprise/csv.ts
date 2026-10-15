@@ -7,6 +7,12 @@ export type EnterpriseImportItem = {
 export type EnterpriseCsvResult =
   | { ok: true; items: EnterpriseImportItem[] }
   | { ok: false; error: string }
+// Reject invisible controls and directional formatting in legal identifiers.
+// Preserve ordinary accented and international letters.
+export function hasUnsafeEnterpriseText(value: string): boolean {
+  return /[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/.test(value)
+}
+
 export const MAX_ENTERPRISE_CSV_BYTES = 512_000
 export const MAX_ENTERPRISE_CSV_ROWS = 500
 
@@ -52,6 +58,7 @@ export function parseEnterpriseCsv(value: string): EnterpriseCsvResult {
     }
     const cnjDigits = cnjInput.replace(/[.-]/g, "")
     if (!externalId || externalId.length > 160 || !sourceSystem ||
+        hasUnsafeEnterpriseText(externalId) || hasUnsafeEnterpriseText(sourceSystem) ||
         sourceSystem.length > 160 || !/^\d{20}$/.test(cnjDigits)) {
       return { ok: false, error: `Linha ${index + 2}: identificador, sistema ou CNJ inválido.` }
     }

@@ -11,7 +11,8 @@
     "preview": "pnpm install --prefer-offline && vite preview",
     "install-deps": "pnpm install --prefer-offline",
     "clean": "rm -rf node_modules .pnpm-store pnpm-lock.yaml && pnpm store prune",
-    "test:decision-intelligence": "vitest run src/enterprise/decisionEvidenceAudit.test.ts src/enterprise/decisionSearchGuard.test.ts src/enterprise/decisionReviewWorksheet.test.ts src/enterprise/lawyerProvidedDecision.test.ts src/enterprise/localCourtText.test.ts src/enterprise/historyWritePolicy.test.ts"
+    "test:decision-intelligence": "vitest run src/enterprise/decisionEvidenceAudit.test.ts src/enterprise/decisionSearchGuard.test.ts src/enterprise/decisionReviewWorksheet.test.ts src/enterprise/lawyerProvidedDecision.test.ts src/enterprise/localCourtText.test.ts src/enterprise/historyWritePolicy.test.ts",
+    "test:billing": "vitest run src/enterprise/wooviWebhookPolicy.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

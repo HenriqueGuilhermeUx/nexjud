@@ -34,9 +34,22 @@ if (mode !== "production") {
     stop("preview may not use production Supabase");
   }
   if (key.startsWith("sb_secret_")) stop("privileged keys are forbidden in Expo clients");
-  // The existing production anon JWT must not be reused for a staging project.
-  if (key ===
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvcnVyYWxic3hyYnNhaWNpaHp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1OTIwMTgsImV4cCI6MjA5NTE2ODAxOH0.nJvwaa_QIYWNKUkL18WHz3fBkS8O6TU3nELLjoauDMw"
-  ) stop("production public key cannot be used for staging");
+  // Supabase legacy JWTs carry project ref and role claims. Validate them
+  // without storing or logging the key; modern sb_publishable keys stay opaque.
+  const jwtParts = key.split(".");
+  if (jwtParts.length === 3) {
+    let claims;
+    try {
+      claims = JSON.parse(Buffer.from(jwtParts[1], "base64url").toString("utf8"));
+    } catch {
+      stop("invalid legacy JWT");
+    }
+    if (claims.ref === "zoruralbsxrbsaicihzu") {
+      stop("production project key cannot be used for staging");
+    }
+    if (claims.role === "service_role") {
+      stop("service_role keys are forbidden in Expo clients");
+    }
+  }
 }
 console.log("NexJud EAS backend preflight OK: " + mode);

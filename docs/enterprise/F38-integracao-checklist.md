@@ -12,6 +12,7 @@ Este documento é um registro de evidências **do ambiente descartável**, não 
 | Segurança da estrutura | `F47` comprova RLS deny-by-default, sem policies, sem GRANT de cliente, relações e unicidade |
 | Importação atômica | `F36` (substituição de `F29` somente no CI) vincula cada lote ao `legal_cases` do usuário iniciador. `F37` testa revogação, papéis, isolamento e rollback |
 | HTTP/JWT | `F41`–`F44` exercitam PostgREST/PG real de CI, Deno e GoTrue local com usuários fictícios, inclusive replay, conflito e revogação |
+| Histórico HTTP | `F49`/`F50` criam e testam leitura de lotes por autor; `F51` verifica HTTP assinado pelo GoTrue local, isolamento entre profissionais autorizados, limite da lista, revogação de membership e histórico após exclusão de caso |
 | Web/PWA | Importação CSV e lista de casos do próprio usuário; CI de domínio, build Web |
 | Native | Expo TypeScript e produção JS via Metro Android/iOS; APK preview exige projeto de staging e tem IDs de instalação próprios |
 

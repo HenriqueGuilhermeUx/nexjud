@@ -37,6 +37,7 @@ on:
       - 'docs/enterprise/F47-case-link-schema-security-tests.sql'
       - 'docs/enterprise/F49-actor-import-history.sql'
       - 'docs/enterprise/F50-actor-import-history-tests.sql'
+      - 'docs/enterprise/F51-gotrue-history-postgrest-smoke.sh'
       - 'supabase/functions/enterprise-case-import/**'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:

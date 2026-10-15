@@ -182,3 +182,7 @@ if [ "$owner_case_count" != "2" ]; then
   exit 1
 fi
 echo "NexJud Enterprise Auth and Edge handler end-to-end isolated PASS"
+# Verify the separate read-only history RPC through the same real GoTrue JWTs.
+OWNER_JWT="$OWNER_JWT" READER_JWT="$READER_JWT" \
+OWNER_ID="$OWNER_ID" READER_ID="$READER_ID" \
+bash docs/enterprise/F51-gotrue-history-postgrest-smoke.sh

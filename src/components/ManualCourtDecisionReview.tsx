@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { prepareLawyerProvidedDecision, type LocalReviewDocument } from "@/intelligence/lawyerProvidedDecision"
+import { extractLocalCourtText, validateLocalCourtFile } from "@/intelligence/localCourtText"
 
 type Assessment = "pendente" | "convergente" | "divergente"
 type Review = { id: number; document: LocalReviewDocument; assessment: Assessment }
@@ -11,6 +12,28 @@ export default function ManualCourtDecisionReview({ argument }: { argument: stri
   const [excerpt, setExcerpt] = useState("")
   const [reviews, setReviews] = useState<Review[]>([])
   const [error, setError] = useState("")
+  const [importing, setImporting] = useState(false)
+  const [fileStatus, setFileStatus] = useState("")
+
+  async function importLocalText(file: File | undefined) {
+    if (!file) return
+    const accepted = validateLocalCourtFile(file.name, file.type, file.size)
+    if (accepted.ok === false) { setFileStatus(""); setError(accepted.error); return }
+    setImporting(true)
+    setError("")
+    setFileStatus("")
+    try {
+      const contents = await file.text() // browser-local read, not sent to a server
+      const result = extractLocalCourtText(contents)
+      if (result.ok === false) { setError(result.error); return }
+      setExcerpt(result.text)
+      setFileStatus(`Texto de ${file.name} carregado somente neste navegador. Confira antes de adicionar.`)
+    } catch {
+      setError("Não foi possível ler o arquivo local.")
+    } finally {
+      setImporting(false)
+    }
+  }
 
   function addDocument() {
     const result = prepareLawyerProvidedDecision({
@@ -28,6 +51,7 @@ export default function ManualCourtDecisionReview({ argument }: { argument: stri
     setUrl("")
     setExcerpt("")
     setError("")
+    setFileStatus("")
   }
 
   return <div className="space-y-4">
@@ -49,6 +73,13 @@ export default function ManualCourtDecisionReview({ argument }: { argument: stri
           className="w-full rounded-lg bg-[#0f0f15] border border-[#353542] p-3" />
       </label>
     </div>
+    <label className="text-sm space-y-1 block">
+      <span>Importar fundamentação de arquivo local (.txt ou .md, até 128 KB)</span>
+      <input type="file" accept=".txt,.md,text/plain,text/markdown" disabled={importing}
+        onChange={async e => { const file = e.target.files?.[0]; e.target.value = ""; await importLocalText(file) }}
+        className="block w-full text-xs text-gray-300 mt-2" />
+    </label>
+    {fileStatus && <p role="status" className="text-xs text-emerald-300">{fileStatus}</p>}
     <label className="text-sm space-y-1 block">
       <span>Trecho literal da fundamentação (copiado do documento)</span>
       <textarea value={excerpt} onChange={e => setExcerpt(e.target.value)}

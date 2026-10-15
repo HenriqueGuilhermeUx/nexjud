@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { amountMatchesSignedCharge, findCorrelationID, isPaidEvent, keepExistingPaidPlan, validPaidPlan } from "../../supabase/functions/_shared/wooviWebhookPolicy"
+import { amountMatchesSignedCharge, findCorrelationID, isPaidEvent, keepExistingPaidPlan, validPaidPlan, activateSignedPaidOrder } from "../../supabase/functions/_shared/wooviWebhookPolicy"
 
 const paid = { event: "OPENPIX:CHARGE_COMPLETED", charge: { correlationID: "order-1", value: 19700, status: "COMPLETED" } }
 describe("NexJud signed Woovi webhook policy", () => {
@@ -29,4 +29,49 @@ describe("NexJud signed Woovi webhook policy", () => {
   expect(keepExistingPaidPlan(null,"pro")).toBe(false)
   expect(validPaidPlan("trial")).toBe(false)
  })
+ it("activates entitlement before marking the charge paid", async () => {
+  const sequence: string[] = []
+  const result = await activateSignedPaidOrder({
+   orderAlreadyPaid:false,keepCurrentPlan:false,
+   activateSubscription:async()=>{sequence.push("subscription")},
+   markOrderPaid:async()=>{sequence.push("paid")},
+  })
+  expect(sequence).toEqual(["subscription","paid"])
+  expect(result).toEqual({duplicate:false})
+ })
+ it("does not mark the order paid if subscription activation fails", async () => {
+  let marked=false
+  await expect(activateSignedPaidOrder({
+   orderAlreadyPaid:false, keepCurrentPlan:false,
+   activateSubscription: async()=>{throw new Error("database failed")},
+   markOrderPaid: async()=>{marked=true},
+  })).rejects.toThrow("database failed")
+  expect(marked).toBe(false)
+ })
+ it("retries a partially completed order and ignores already-activated duplicates", async () => {
+  let paid=false, activationCount=0
+  const activate=async()=>{activationCount++}
+  await expect(activateSignedPaidOrder({
+   orderAlreadyPaid:false,keepCurrentPlan:false,activateSubscription:activate,
+   markOrderPaid:async()=>{throw new Error("temporary order update failure")},
+  })).rejects.toThrow("temporary")
+  await activateSignedPaidOrder({orderAlreadyPaid:false,keepCurrentPlan:false,activateSubscription:activate,markOrderPaid:async()=>{paid=true}})
+  expect(paid).toBe(true)
+  expect(activationCount).toBe(2)
+  await activateSignedPaidOrder({
+   orderAlreadyPaid:true,keepCurrentPlan:true,
+   activateSubscription:async()=>{throw new Error("should not touch subscription")},
+   markOrderPaid:async()=>{throw new Error("should not touch order")},
+  })
+ })
+ it("preserves a higher active plan on out-of-order older payments", async () => {
+  const sequence:string[]=[]
+  await activateSignedPaidOrder({
+   orderAlreadyPaid:false,keepCurrentPlan:true,
+   activateSubscription:async()=>{sequence.push("downgrade")},
+   markOrderPaid:async()=>{sequence.push("paid")},
+  })
+  expect(sequence).toEqual(["paid"])
+ })
+
 })

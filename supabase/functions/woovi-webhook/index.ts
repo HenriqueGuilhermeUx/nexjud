@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
-import { findCorrelationID, isPaidEvent, amountMatchesSignedCharge, keepExistingPaidPlan, validPaidPlan } from "../_shared/wooviWebhookPolicy.ts"
+import { findCorrelationID, isPaidEvent, amountMatchesSignedCharge, keepExistingPaidPlan, validPaidPlan, activateSignedPaidOrder } from "../_shared/wooviWebhookPolicy.ts"
 
 function toBase64(bytes: ArrayBuffer) {
   let binary = ""
@@ -96,31 +96,34 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, activated: true, duplicate: true })
     }
 
-    // Activate the subscription FIRST. If this fails, leave the charge pending
-    // so Woovi retries can complete the operation. Never acknowledge partial activation.
-    if (!keepCurrent) {
-      const { error: subscriptionError } = await supabase.from("subscriptions").upsert({
-        user_id: order.user_id,
-        plan: order.plan,
-        status: "active",
-        active: true,
-        payment_provider: "woovi",
-        provider_subscription_id: correlationID,
-        updated_at: now,
-      }, { onConflict: "user_id" })
-      if (subscriptionError) throw subscriptionError
-    }
+    // The sequence is unit-tested with injected writes. A failing subscription
+    // operation never marks the payment paid; provider retries can recover.
+    const reconciliation = await activateSignedPaidOrder({
+      orderAlreadyPaid: order.status === "paid",
+      keepCurrentPlan: keepCurrent,
+      activateSubscription: async () => {
+        const { error } = await supabase.from("subscriptions").upsert({
+          user_id: order.user_id,
+          plan: order.plan,
+          status: "active",
+          active: true,
+          payment_provider: "woovi",
+          provider_subscription_id: correlationID,
+          updated_at: now,
+        }, { onConflict: "user_id" })
+        if (error) throw error
+      },
+      markOrderPaid: async () => {
+        const { error } = await supabase
+          .from("payment_orders")
+          .update({ status: "paid", paid_at: now, raw: body })
+          .eq("id", order.id)
+          .neq("status", "paid")
+        if (error) throw error
+      },
+    })
 
-    if (order.status !== "paid") {
-      const { error: orderUpdateError } = await supabase
-        .from("payment_orders")
-        .update({ status: "paid", paid_at: now, raw: body })
-        .eq("id", order.id)
-        .neq("status", "paid")
-      if (orderUpdateError) throw orderUpdateError
-    }
-
-    return Response.json({ ok: true, activated: true, duplicate: order.status === "paid" })
+    return Response.json({ ok: true, activated: true, duplicate: reconciliation.duplicate })
   } catch (error) {
     return Response.json(
       { ok: false, error: error instanceof Error ? error.message : "Erro webhook" },

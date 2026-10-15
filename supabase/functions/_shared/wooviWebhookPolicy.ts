@@ -37,3 +37,15 @@ export function keepExistingPaidPlan(current: { plan?: string | null; status?: s
   if (!validPaidPlan(current.plan) || !validPaidPlan(newPlan)) return false
   return PLAN_RANK[current.plan] >= PLAN_RANK[newPlan]
 }
+
+/** Payment reconciliation is recoverable: a failed subscription write never marks an order paid. */
+export async function activateSignedPaidOrder(args: {
+ orderAlreadyPaid: boolean
+ keepCurrentPlan: boolean
+ activateSubscription: () => Promise<void>
+ markOrderPaid: () => Promise<void>
+}): Promise<{ duplicate: boolean }> {
+ if (!args.keepCurrentPlan) await args.activateSubscription()
+ if (!args.orderAlreadyPaid) await args.markOrderPaid()
+ return { duplicate: args.orderAlreadyPaid }
+}

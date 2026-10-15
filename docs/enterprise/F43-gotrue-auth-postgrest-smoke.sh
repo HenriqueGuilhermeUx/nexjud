@@ -129,12 +129,12 @@ if [ "$code" = 200 ] || [ "$code" = 201 ]; then
   echo "Forged token gained import access"
   exit 1
 fi
-psql -v ON_ERROR_STOP=1 -v owner="$OWNER_ID" <<'SQL'
-do $assert$
-begin
-  if (select count(*) from public.legal_cases
-    where user_id=:'owner'::uuid) <> 1
-  then raise exception 'GoTrue token import did not create exactly one owned case'; end if;
-end $assert$;
+case_count=$(psql -v ON_ERROR_STOP=1 -v owner="$OWNER_ID" -At <<'SQL'
+select count(*) from public.legal_cases where user_id=:'owner'::uuid;
 SQL
+)
+if [ "$case_count" != "1" ]; then
+  echo "GoTrue token import did not create exactly one owned case"
+  exit 1
+fi
 echo "GoTrue Auth + signed JWT + PostgREST + Enterprise SQL PASS"

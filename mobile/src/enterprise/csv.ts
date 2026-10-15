@@ -45,7 +45,11 @@ export function parseEnterpriseCsv(value: string): EnterpriseCsvResult {
     if (row.includes('"') || row.includes("\0")) {
       return { ok: false, error: `Linha ${index + 2}: aspas ou caracteres nulos não são permitidos.` }
     }
-    const fields = row.split(",").map(x => x.trim())
+    const rawFields = row.split(",")
+    if (rawFields.some(hasUnsafeEnterpriseText)) {
+      return { ok: false, error: `Linha ${index + 2}: caracteres invisíveis ou de controle não são permitidos.` }
+    }
+    const fields = rawFields.map(x => x.trim())
     if (fields.length !== 3) {
       return { ok: false, error: `Linha ${index + 2}: use exatamente três colunas.` }
     }

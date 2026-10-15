@@ -20,6 +20,9 @@ declare
   v_response jsonb;
   v_again jsonb;
   v_duplicate_denied boolean := false;
+  v_no_key boolean := false;
+  v_no_source boolean := false;
+  v_no_external boolean := false;
   v_items jsonb := '[{"externalId":"client-case-1","sourceSystem":"crm","cnjDigits":"00000000002026826000"}]';
 begin
   v_response := public.enterprise_import_cases('d1111111-1111-4111-8111-111111111111','import-A',v_items);
@@ -38,12 +41,7 @@ begin
   -- Audit identifiers may contain international letters but not invisible
   -- formatting controls or embedded newlines. Reject them inside the RPC too,
   -- even when the Edge Function is bypassed by an authenticated client.
-  declare
-    v_no_key boolean := false;
-    v_no_source boolean := false;
-    v_no_external boolean := false;
   begin
-    begin
       perform public.enterprise_import_cases(
         'd1111111-1111-4111-8111-111111111111','bad-' || pg_catalog.chr(8238),v_items);
     exception when invalid_parameter_value then v_no_key := true;
@@ -67,8 +65,6 @@ begin
     if not (v_no_key and v_no_source and v_no_external) then
       raise exception 'invisible audit control accepted by Enterprise RPC';
     end if;
-  end;
-
 end $verify$;
 -- A second authorized professional in the SAME organization cannot
 -- obtain the first importer's receipt by replaying an identical tenant/key.

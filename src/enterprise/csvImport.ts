@@ -40,7 +40,11 @@ export function parseEnterpriseCsv(input: string): CsvParseResult {
     if (line.includes('"') || line.includes("\0")) {
       return { ok: false, error: `Linha ${index + 2}: aspas e caracteres nulos não são suportados neste CSV simples.` }
     }
-    const columns = line.split(",").map(value => value.trim())
+    const rawColumns = line.split(",")
+    if (rawColumns.some(hasUnsafeEnterpriseText)) {
+      return { ok: false, error: `Linha ${index + 2}: caracteres invisíveis ou de controle não são permitidos.` }
+    }
+    const columns = rawColumns.map(value => value.trim())
     if (columns.length !== 3) {
       return { ok: false, error: `Linha ${index + 2}: informe exatamente três colunas separadas por vírgula.` }
     }

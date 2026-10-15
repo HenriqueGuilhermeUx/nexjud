@@ -20,6 +20,7 @@ export default function DecisionIntelligence() {
   const [evidence, setEvidence] = useState<any>(null)
   const [observedPattern, setObservedPattern] = useState<ReturnType<typeof buildObservedDecisionPattern>>(null)
   const [audit, setAudit] = useState<DecisionEvidenceAudit | null>(null)
+  const [reviewLimit, setReviewLimit] = useState(8)
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -32,6 +33,7 @@ export default function DecisionIntelligence() {
     setEvidence(null)
     setObservedPattern(null)
     setAudit(null)
+    setReviewLimit(8)
     try {
       const tribunal = alias || detectTribunalAliasFromCnj(cnj)
       const found = await searchProcessDatajud(cnj, tribunal, user?.id)
@@ -122,15 +124,21 @@ export default function DecisionIntelligence() {
           <h3 className="font-semibold">Registros para conferência de origem</h3>
           {audit.review.length === 0 && <p className="text-sm text-gray-500">Nenhum registro recuperado para conferência.</p>}
           {audit.review.length > 0 && <ul className="space-y-2">
-            {audit.review.map((item, index) => <li key={item.id + "-" + index} className="rounded-xl border border-[#2a2a35] p-3 text-sm">
+            {audit.review.slice(0, reviewLimit).map((item, index) => <li key={item.id + "-" + index} className="rounded-xl border border-[#2a2a35] p-3 text-sm">
               <p className="font-medium text-gray-200">{item.processNumber || "Processo sem número verificável"}</p>
               <p className="text-xs text-gray-400 mt-1">Origem: {item.source} · Tribunal: {item.court || "não identificado"} · Órgão: {item.judgingBody || "não identificado"}</p>
-              <p className="text-xs text-gray-400">ID da fonte: {item.documentReference || item.id || "não disponível"} · Data da decisão: {item.decisionDate || "não identificada"}</p>
-              <p className={item.qualified ? "text-xs text-emerald-300 mt-1" : "text-xs text-amber-300 mt-1"}>
-                {item.qualified ? "Metadados e fundamentação disponíveis para revisão" : "Registro apenas contextual; não qualificado para padrão decisório"}
+              <p className="text-xs text-gray-400">Identificador informado: {item.documentReference || item.id || "não disponível"} · Data da decisão: {item.decisionDate || "não identificada"}</p>
+              {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-block text-xs text-primary underline mt-2">Abrir referência informada (conferir autenticidade)</a>}
+              <p className={item.comparable ? "text-xs text-emerald-300 mt-1" : "text-xs text-amber-300 mt-1"}>
+                {item.comparable ? "Decisão qualificada e comparável ao órgão selecionado" : item.qualified ? "Decisão documentada, mas de outro juízo" : "Registro contextual; insuficiente para padrão decisório"}
               </p>
+              {item.exclusionReasons.length > 0 && <p className="text-xs text-gray-400 mt-1">Pendências: {item.exclusionReasons.join("; ")}.</p>
             </li>)}
           </ul>}
+          {audit.review.length > reviewLimit && <button type="button" onClick={() => setReviewLimit(current => current + 8)}
+            className="rounded-lg border border-[#3c3c4a] px-4 py-2 text-sm hover:border-primary/60">
+            Mostrar mais registros ({Math.min(reviewLimit, audit.review.length)} de {audit.review.length})
+          </button>}
         </section>}
         {observedPattern && <section className="grid lg:grid-cols-3 gap-4">
           <Insight icon={<Target/>} title="Teses citadas na amostra" text={observedPattern.recurringTheses.length

@@ -27,10 +27,25 @@ export type DecisionEvidenceAudit = {
     processNumber: string | null
     source: string
     documentReference: string | null
+    sourceUrl: string | null
     decisionDate: string | null
     qualified: boolean
+    comparable: boolean
+    exclusionReasons: string[]
   }>
   comparableEvidence: JudicialDecisionEvidence[]
+}
+
+/** Only show browser-safe links; the displayed URL is not proof of authenticity. */
+function safeSourceUrl(value: string | undefined): string | null {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    return (url.protocol === "https:" || url.protocol === "http:") &&
+      !url.username && !url.password ? url.href : null
+  } catch {
+    return null
+  }
 }
 
 function venueText(value: string | undefined): string {
@@ -131,16 +146,34 @@ export function auditDecisionEvidence(
     enoughForDescriptivePattern: comparable.length >= 3,
     period: dates.length ? `${dates[0]} a ${dates[dates.length - 1]}` : null,
     gaps,
-    review: distinct.slice(0, 8).map(record => ({
-      id: record.id,
-      court: record.court,
-      judgingBody: record.judgingBody || null,
-      processNumber: record.processNumber || null,
-      source: record.source,
-      documentReference: record.sourceDocumentId || null,
-      decisionDate: validDecisionDate(record.decisionDate) ? record.decisionDate! : null,
-      qualified: qualified.includes(record),
-    })),
+    review: distinct.map(record => {
+      const exclusionReasons: string[] = []
+      if (!record.reasoning.some(reason => Boolean(reason.trim()))) exclusionReasons.push("Fundamentação não disponível")
+      if (!record.observedOutcome?.trim()) exclusionReasons.push("Resultado decisório não identificado")
+      if (!validDecisionDate(record.decisionDate)) exclusionReasons.push("Data judicial ausente ou inválida")
+      if (!hasTraceableSource(record)) exclusionReasons.push("Referência de origem insuficiente")
+      if (!hasVerifiableDecisionDocument(record)) exclusionReasons.push("Documento decisório não identificado")
+      if (!assessEvidenceQuality(record).usableForPattern) exclusionReasons.push("Requisitos de qualidade incompletos")
+      if (qualified.includes(record)) {
+        if (!venueText(target.court) || venueText(record.court) !== venueText(target.court))
+          exclusionReasons.push("Tribunal diferente do processo analisado")
+        else if (!venueText(target.judgingBody) || venueText(record.judgingBody) !== venueText(target.judgingBody))
+          exclusionReasons.push("Órgão julgador diferente do processo analisado")
+      }
+      return {
+        id: record.id,
+        court: record.court,
+        judgingBody: record.judgingBody || null,
+        processNumber: record.processNumber || null,
+        source: record.source,
+        documentReference: record.sourceDocumentId || null,
+        sourceUrl: safeSourceUrl(record.sourceUrl),
+        decisionDate: validDecisionDate(record.decisionDate) ? record.decisionDate! : null,
+        qualified: qualified.includes(record),
+        comparable: comparable.includes(record),
+        exclusionReasons,
+      }
+    }),
     comparableEvidence: comparable,
   }
 }

@@ -79,6 +79,29 @@ describe("NexJud decision evidence audit — no fabricated judge prediction", ()
     expect(pattern?.period).toBe(audit.period)
     expect(pattern?.recurringPrecedents).toEqual([{ label: "Tema 10", count: 3 }])
   })
+  it("shows an actionable exclusion reason and safe document links per record", () => {
+    const audit = auditDecisionEvidence([
+      decision("first", { reasoning: [], sourceUrl: "javascript:alert(1)" }),
+      decision("second", { judgingBody: "2ª Vara Cível", sourceUrl: "https://tribunal.example/decisao/2" }),
+      decision("third", { sourceUrl: "https://user:password@tribunal.example/decisao/3" }),
+    ], target)
+    expect(audit.review).toHaveLength(3)
+    expect(audit.review[0].qualified).toBe(false)
+    expect(audit.review[0].exclusionReasons).toContain("Fundamentação não disponível")
+    expect(audit.review[0].sourceUrl).toBeNull()
+    expect(audit.review[1].qualified).toBe(true)
+    expect(audit.review[1].comparable).toBe(false)
+    expect(audit.review[1].exclusionReasons).toContain("Órgão julgador diferente do processo analisado")
+    expect(audit.review[1].sourceUrl).toBe("https://tribunal.example/decisao/2")
+    expect(audit.review[2].sourceUrl).toBeNull()
+    expect(audit.review[2].comparable).toBe(true)
+  })
+  it("keeps all distinct entries reviewable instead of truncating the audit to eight", () => {
+    const audit = auditDecisionEvidence(Array.from({ length: 11 }, (_, index) =>
+      decision(String(index))), target)
+    expect(audit.review).toHaveLength(11)
+    expect(audit.review[10].id).toBe("10")
+  })
   it("never produces a single-venue pattern when court or judging body is missing", () => {
     expect(buildObservedDecisionPattern([decision("1", { judgingBody: undefined })])).toBeNull()
     expect(buildObservedDecisionPattern([decision("2", { court: "" })])).toBeNull()

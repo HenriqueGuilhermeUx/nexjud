@@ -94,11 +94,11 @@ insert into public.enterprise_memberships(organization_id,user_id,role) values
 SQL
 BODY='{"p_organization":"c9191919-1919-4919-8919-191919191919","p_key":"gotrue-verified-1","p_items":[{"externalId":"gotrue-case","sourceSystem":"gotrue-local","cnjDigits":"00000000002026826000"}]}'
 call() {
-  local bearer="$1"
+  local bearer="$1" payload="${2:-$BODY}"
   curl -sS -o "$RESPONSE" -w '%{http_code}' --max-time 15 \
     -X POST "$API/rpc/enterprise_import_cases" \
     -H "Authorization: Bearer $bearer" \
-    -H 'Content-Type: application/json' -d "$BODY"
+    -H 'Content-Type: application/json' -d "$payload"
 }
 expect() {
   local actual="$1" expected="$2" label="$3"
@@ -124,6 +124,30 @@ assert json.load(open(sys.argv[1]))["status"]=="already_processed"
 PY
 code=$(call "$READER_JWT")
 expect "$code" 403 "GoTrue-signed reader forbidden"
+# Promotions, per-actor replay isolation and revocation must work immediately,
+# including when the client keeps the same still-valid GoTrue JWT.
+psql -v ON_ERROR_STOP=1 -v reader="$READER_ID" <<'SQL'
+update public.enterprise_memberships set role='legal'
+where organization_id='c9191919-1919-4919-8919-191919191919'
+and user_id=:'reader'::uuid;
+SQL
+code=$(call "$READER_JWT")
+expect "$code" 403 "Promoted member cannot replay original author's receipt"
+READER_BODY="${BODY/gotrue-verified-1/gotrue-verified-reader}"
+READER_BODY="${READER_BODY/gotrue-case/gotrue-reader-case}"
+code=$(call "$READER_JWT" "$READER_BODY")
+expect "$code" 200 "Promoted member can create own unique batch"
+python3 - "$RESPONSE" <<'PY'
+import json,sys
+assert json.load(open(sys.argv[1]))["status"]=="created"
+PY
+psql -v ON_ERROR_STOP=1 -v reader="$READER_ID" <<'SQL'
+delete from public.enterprise_memberships
+where organization_id='c9191919-1919-4919-8919-191919191919'
+and user_id=:'reader'::uuid;
+SQL
+code=$(call "$READER_JWT" "$READER_BODY")
+expect "$code" 403 "Revoked membership blocks a still-valid JWT"
 code=$(call "invalid.jwt.value")
 if [ "$code" = 200 ] || [ "$code" = 201 ]; then
   echo "Forged token gained import access"
@@ -135,6 +159,14 @@ SQL
 )
 if [ "$case_count" != "1" ]; then
   echo "GoTrue token import did not create exactly one owned case"
+  exit 1
+fi
+reader_case_count=$(psql -v ON_ERROR_STOP=1 -v reader="$READER_ID" -At <<'SQL'
+select count(*) from public.legal_cases where user_id=:'reader'::uuid;
+SQL
+)
+if [ "$reader_case_count" != "1" ]; then
+  echo "Promoted member did not receive exactly one separate owned case"
   exit 1
 fi
 echo "GoTrue Auth + signed JWT + PostgREST + Enterprise SQL PASS"

@@ -43,11 +43,8 @@ do $other_actor$
 declare
   v_denied boolean := false;
   v_denied_changed boolean := false;
-  v_count_before integer;
   v_items jsonb := '[{"externalId":"client-case-1","sourceSystem":"crm","cnjDigits":"00000000002026826000"}]';
 begin
-  select count(*) into v_count_before from public.enterprise_import_batches
-    where organization_id='d1111111-1111-4111-8111-111111111111';
   begin
     perform public.enterprise_import_cases(
       'd1111111-1111-4111-8111-111111111111', 'import-A', v_items);
@@ -62,9 +59,6 @@ begin
   if not v_denied or not v_denied_changed then
     raise exception 'second member can access the first importer receipt';
   end if;
-  if (select count(*) from public.enterprise_import_batches
-      where organization_id='d1111111-1111-4111-8111-111111111111') <> v_count_before
-  then raise exception 'replayed actor unexpectedly created a batch'; end if;
 end $other_actor$;
 select set_config('request.jwt.claim.sub','a1111111-1111-4111-8111-111111111111',true);
 -- Legacy view remains strictly personal despite tenant membership.

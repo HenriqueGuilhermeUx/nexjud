@@ -65,6 +65,24 @@ describe("NexJud decision evidence audit — no fabricated judge prediction", ()
     expect(one.qualifiedDecisions).toBe(1)
     expect(one.enoughForDescriptivePattern).toBe(false)
   })
+  it("uses normalized venue and local decision dates consistently across audit and pattern", () => {
+    const docs = [
+      decision("1", { decisionDate: "2026-10-01T23:30:00-03:00" }),
+      decision("2", { court: "tjsp", judgingBody: "4ª  VARA CÍVEL", decisionDate: "2026-10-05T23:00:00-03:00" }),
+      decision("3", { court: "ＴＪＳＰ", decisionDate: "2026-10-10" }),
+    ]
+    const audit = auditDecisionEvidence(docs, target)
+    expect(audit.comparableDecisions).toBe(3)
+    expect(audit.period).toBe("2026-10-01 a 2026-10-10")
+    const pattern = buildObservedDecisionPattern(audit.comparableEvidence)
+    expect(pattern?.decisionsAnalyzed).toBe(3)
+    expect(pattern?.period).toBe(audit.period)
+    expect(pattern?.recurringPrecedents).toEqual([{ label: "Tema 10", count: 3 }])
+  })
+  it("never produces a single-venue pattern when court or judging body is missing", () => {
+    expect(buildObservedDecisionPattern([decision("1", { judgingBody: undefined })])).toBeNull()
+    expect(buildObservedDecisionPattern([decision("2", { court: "" })])).toBeNull()
+  })
   it("never mixes precedents from another judging body even if called directly", () => {
     const pattern = buildObservedDecisionPattern([
       decision("1"),

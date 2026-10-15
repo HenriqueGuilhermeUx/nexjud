@@ -96,7 +96,7 @@ export function auditDecisionEvidence(
   }
 
   const dates = comparable.map(record => record.decisionDate!)
-    .map(date => new Date(date).toISOString().slice(0, 10)).sort()
+    .map(date => date.slice(0, 10)).sort()
   const addGap = (label: string, count: number, guidance: string): EvidenceGap | null =>
     count ? { label, count, guidance } : null
   const gaps = [

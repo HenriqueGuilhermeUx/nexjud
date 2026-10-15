@@ -14,6 +14,10 @@ export interface ObservedDecisionPattern {
   warning: string
 }
 
+function venueText(value: string | undefined): string {
+  return (value || "").normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR")
+}
+
 function count(values: string[]) {
   const counts = new Map<string, number>()
   values.filter(Boolean).forEach((value) => counts.set(value, (counts.get(value) || 0) + 1))
@@ -26,9 +30,15 @@ export function buildObservedDecisionPattern(items: JudicialDecisionEvidence[]):
   // Never mix courts or judging bodies into a purported single-venue pattern.
   const court = qualified[0].court
   const judgingBody = qualified[0].judgingBody
-  const comparable = qualified.filter((item) => item.court === court && item.judgingBody === judgingBody)
+  // A missing venue cannot support a single-venue descriptive pattern.
+  if (!venueText(court) || !venueText(judgingBody)) return null
+  const comparable = qualified.filter((item) =>
+    venueText(item.court) === venueText(court) &&
+    venueText(item.judgingBody) === venueText(judgingBody))
   if (!comparable.length) return null
-  const dates = comparable.map((item) => item.decisionDate).filter(Boolean).sort() as string[]
+  // Preserve the date printed on the judicial decision, not the UTC rollover.
+  const dates = comparable.map((item) => item.decisionDate?.slice(0, 10))
+    .filter((date): date is string => Boolean(date)).sort()
   return {
     court,
     judgingBody,

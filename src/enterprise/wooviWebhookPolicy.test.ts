@@ -9,6 +9,12 @@ describe("NexJud signed Woovi webhook policy", () => {
   expect(isPaidEvent({ event: "OPENPIX:CHARGE_CREATED", charge: { status: "COMPLETED" } })).toBe(false)
   expect(isPaidEvent({ event: "OPENPIX:CHARGE_EXPIRED", charge: { status: "EXPIRED" } })).toBe(false)
   expect(isPaidEvent({ event: "OPENPIX:CHARGE_COMPLETED", charge: { status: "REFUNDED" } })).toBe(false)
+  expect(isPaidEvent({ status: "APPROVED" })).toBe(false)
+  expect(isPaidEvent({ status: "COMPLETED" })).toBe(false)
+  expect(isPaidEvent({ event: "PIX_AUTOMATIC_APPROVED", status: "APPROVED" })).toBe(false)
+  expect(isPaidEvent({ event: "OPENPIX:CHARGE_COMPLETED", charge: { status: "APPROVED" } })).toBe(false)
+  expect(isPaidEvent({ event: "OPENPIX:TRANSACTION_RECEIVED", transaction: { status: "PENDING" } })).toBe(false)
+  expect(isPaidEvent({ event: "OPENPIX:CHARGE_COMPLETED" })).toBe(true)
  })
  it("extracts correlation IDs from documented payload envelopes", () => {
   expect(findCorrelationID(paid)).toBe("order-1")

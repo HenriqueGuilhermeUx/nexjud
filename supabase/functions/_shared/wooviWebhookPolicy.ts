@@ -19,10 +19,11 @@ export function isPaidEvent(body: any): boolean {
   const event = String(body?.event || body?.evento || "").toUpperCase()
   const status = String(body?.charge?.status || body?.pixCharge?.status ||
     body?.transaction?.status || body?.status || "").toUpperCase()
-  if (event && !PAID_EVENTS.has(event)) return false
-  if (["EXPIRED", "CANCELED", "CANCELLED", "PENDING", "REFUNDED", "FAILED"].includes(status)) return false
-  if (PAID_EVENTS.has(event)) return true
-  return !event && ["COMPLETED", "PAID", "CONFIRMED", "APPROVED"].includes(status)
+  // Status-only notifications (including APPROVED) cannot prove settlement.
+  // Require a documented paid event and reject contradictory charge statuses.
+  if (!PAID_EVENTS.has(event)) return false
+  if (status && !["COMPLETED", "PAID", "CONFIRMED"].includes(status)) return false
+  return true
 }
 export function amountMatchesSignedCharge(body: any, amountCents: number): boolean {
   if (!Number.isSafeInteger(amountCents) || amountCents <= 0) return false

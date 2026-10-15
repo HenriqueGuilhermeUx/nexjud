@@ -31,7 +31,8 @@
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0",
     "react-native-svg": "15.15.3",
-    "react-native-url-polyfill": "^2.0.0"
+    "react-native-url-polyfill": "^2.0.0",
+    "expo-file-system": "~55.0.26"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

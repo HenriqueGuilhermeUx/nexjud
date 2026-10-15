@@ -29,6 +29,6 @@ describe("Web/PWA and native NexJud Enterprise CSV contract parity", () => {
     }
   )
   it("counts Unicode and surrogate pairs as UTF-8 bytes without TextEncoder", () => {
-    expect(utf8ByteLength("abcç😀")).toBe(10)
+    expect(utf8ByteLength("abcç😀")).toBe(9)
   })
 })

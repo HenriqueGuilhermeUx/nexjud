@@ -112,3 +112,4 @@ begin
 end $verify$;
 SQL
 echo "Enterprise TypeScript handler + PostgREST + PostgreSQL smoke PASS"
+JWT_SECRET="$SECRET" bash docs/enterprise/F43-gotrue-auth-postgrest-smoke.sh

@@ -1,6 +1,21 @@
 import { describe, expect, it } from "vitest"
 import { parseEnterpriseCsv as parseWebCsv } from "./csvImport"
-import { parseEnterpriseCsv as parseNativeCsv, utf8ByteLength } from "../../mobile/src/enterprise/csv"
+import { readFileSync } from "node:fs"
+import { runInNewContext } from "node:vm"
+import { transpileModule, ModuleKind, ScriptTarget } from "typescript"
+
+// Compile the standalone native validator without loading Expo's tsconfig.
+// The module has no native imports; behavior is exercised in an isolated VM.
+const nativeSource = readFileSync(
+  new URL("../../mobile/src/enterprise/csv.ts", import.meta.url), "utf8"
+)
+const nativeJs = transpileModule(nativeSource, {
+  compilerOptions: { target: ScriptTarget.ES2020, module: ModuleKind.CommonJS },
+}).outputText
+const exportsObject: Record<string, unknown> = {}
+runInNewContext(nativeJs, { exports: exportsObject, Set, JSON, String, Number })
+const parseNativeCsv = exportsObject.parseEnterpriseCsv as typeof parseWebCsv
+const utf8ByteLength = exportsObject.utf8ByteLength as (value: string) => number
 
 const header = "externalId,sourceSystem,cnjDigits"
 const row = "id1,crm,00000000002026826000"
@@ -25,7 +40,7 @@ describe("Web/PWA and native NexJud Enterprise CSV contract parity", () => {
       const web = parseWebCsv(value)
       const native = parseNativeCsv(value)
       expect(native.ok).toBe(web.ok)
-      if (native.ok && web.ok) expect(native.items).toEqual(web.items)
+      if (native.ok && web.ok) expect(JSON.parse(JSON.stringify(native.items))).toEqual(web.items)
     }
   )
   it("counts Unicode and surrogate pairs as UTF-8 bytes without TextEncoder", () => {

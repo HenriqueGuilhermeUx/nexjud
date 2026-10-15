@@ -40,6 +40,7 @@ export default function HomeDashboard() {
 
   const [caseText, setCaseText] = useState("")
   const [cnjNumber, setCnjNumber] = useState("")
+  const [saveCnjToHistory, setSaveCnjToHistory] = useState(false)
   const [tribunalAlias, setTribunalAlias] = useState("")
   const [datajudLoading, setDatajudLoading] = useState(false)
   const [datajudProcess, setDatajudProcess] = useState<any>(null)
@@ -85,7 +86,7 @@ const [realJurisprudence, setRealJurisprudence] = useState<any>(null)
 
     try {
       const alias = tribunalAlias || detectTribunalAliasFromCnj(cnjNumber)
-      const result = await searchProcessDatajud(cnjNumber, alias, user?.id)
+      const result = await searchProcessDatajud(cnjNumber, alias, saveCnjToHistory ? user?.id : undefined)
 
       if (!result.found || !result.process) {
         alert("Processo não encontrado no DataJud para este tribunal.")
@@ -413,6 +414,10 @@ Assunto: ${datajudProcess.subject}`
                 className="rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary"
               />
 
+              <label className="lg:col-span-4 flex items-start gap-3 rounded-xl border border-[#353544] p-3 text-sm text-gray-300">
+                <input type="checkbox" checked={saveCnjToHistory} onChange={e=>setSaveCnjToHistory(e.target.checked)} className="mt-1 accent-primary" />
+                <span>Salvar este processo no meu histórico (opcional). Desmarcado por padrão: a consulta apenas lê os dados disponíveis no DataJud.</span>
+              </label>
               <button
                 onClick={handleDatajudSearch}
                 disabled={datajudLoading}

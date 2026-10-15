@@ -41,6 +41,26 @@ jobs:
         run: npx tsc --noEmit
       - name: Expo config
         run: npx expo config --type public >/dev/null
+      - name: Verify EAS preview cannot use production or lack staging
+        run: |
+          if EAS_BUILD=1 EAS_BUILD_PROFILE=preview EXPO_PUBLIC_NEXJUD_ENV=preview \
+            node scripts/assert-backend-env.mjs; then
+            echo "Unsafe preview without staging was accepted"
+            exit 1
+          fi
+          if EAS_BUILD=1 EAS_BUILD_PROFILE=preview EXPO_PUBLIC_NEXJUD_ENV=preview \
+            EXPO_PUBLIC_SUPABASE_URL=https://zoruralbsxrbsaicihzu.supabase.co \
+            EXPO_PUBLIC_SUPABASE_ANON_KEY=public-test-only \
+            node scripts/assert-backend-env.mjs; then
+            echo "Unsafe preview pointing at production was accepted"
+            exit 1
+          fi
+          EAS_BUILD=1 EAS_BUILD_PROFILE=preview EXPO_PUBLIC_NEXJUD_ENV=preview \
+            EXPO_PUBLIC_SUPABASE_URL=https://ci-isolated.supabase.co \
+            EXPO_PUBLIC_SUPABASE_ANON_KEY=ci-public-anon-only \
+            node scripts/assert-backend-env.mjs
+          EAS_BUILD=1 EAS_BUILD_PROFILE=production EXPO_PUBLIC_NEXJUD_ENV=production \
+            node scripts/assert-backend-env.mjs
       - name: Verify Metro production JS bundle for Android
         env:
           CI: "1"

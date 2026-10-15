@@ -33,6 +33,6 @@ jobs:
         with:
           deno-version: v2.x
       - name: Typecheck Woovi webhook Edge Function
-        run: deno check supabase/functions/woovi-webhook/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/woovi-webhook/index.ts
       - name: Build Web/PWA
         run: npx vite build

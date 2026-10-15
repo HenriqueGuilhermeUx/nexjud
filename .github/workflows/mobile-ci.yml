@@ -41,6 +41,25 @@ jobs:
         run: npx tsc --noEmit
       - name: Expo config
         run: npx expo config --type public >/dev/null
+      - name: Verify Expo preview and production native application IDs
+        shell: bash
+        run: |
+          EXPO_PUBLIC_NEXJUD_ENV=production npx expo config --type public --json > /tmp/nexjud-prod-config.json
+          EXPO_PUBLIC_NEXJUD_ENV=preview npx expo config --type public --json > /tmp/nexjud-preview-config.json
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const prod = JSON.parse(fs.readFileSync("/tmp/nexjud-prod-config.json", "utf8"));
+          const preview = JSON.parse(fs.readFileSync("/tmp/nexjud-preview-config.json", "utf8"));
+          if (prod.android.package !== "com.nexjud.companion" || prod.ios.bundleIdentifier !== "com.nexjud.companion") {
+            throw new Error("NexJud production identifiers changed");
+          }
+          if (preview.android.package !== "com.nexjud.companion.preview" ||
+              preview.ios.bundleIdentifier !== "com.nexjud.companion.preview" ||
+              preview.scheme !== "nexjud-preview") {
+            throw new Error("NexJud preview does not have separate install identifiers");
+          }
+          console.log("NexJud Expo preview/production native identifiers are isolated");
+          NODE
       - name: Verify EAS preview cannot use production or lack staging
         run: |
           if EAS_BUILD=1 EAS_BUILD_PROFILE=preview EXPO_PUBLIC_NEXJUD_ENV=preview \

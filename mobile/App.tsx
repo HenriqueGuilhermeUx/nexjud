@@ -183,10 +183,10 @@ function HomeScreen({ navigation }: any) {
 
       <View style={styles.statusCard}>
         <View style={styles.inline}><Scale color={colors.primary} size={21} /><Text style={styles.cardTitle}>Como este juízo costuma decidir casos como o seu?</Text></View>
-        <Text style={styles.body}>Compare seu processo com decisões públicas encontradas e veja evidências, pontos de atenção e caminhos para fortalecer sua estratégia.</Text>
+        <Text style={styles.body}>1. Digite um CNJ. 2. Confira as fontes e os registros disponíveis. 3. Acrescente sua tese para organizar os próximos passos.</Text>
         <TextInput style={styles.input} placeholder="Digite ou cole o número CNJ" placeholderTextColor={colors.muted} value={processNumber} onChangeText={setProcessNumber} autoCapitalize="none" />
         <Button label="ANALISAR PROCESSO" onPress={analyzeCourt} icon={<Search color="#fff" size={18} />} />
-        <Text style={styles.helper}>A NexJud analisa padrões observados em decisões públicas. Não prevê nem garante o resultado do processo.</Text>
+        <Text style={styles.helper}>O DataJud traz dados processuais; fundamentos judiciais completos só aparecem quando há documento identificável. A NexJud não prevê êxito.</Text>
       </View>
 
       <Text style={styles.sectionTitle}>O que você quer fazer agora?</Text>
@@ -594,7 +594,35 @@ function HearingScreen({ route, navigation }: any) {
 function ProfileScreen() {
   const [profile, setProfile] = useState<any>(null)
   const [email, setEmail] = useState("")
-  useEffect(() => { supabase.auth.getUser().then(async ({ data }) => { if (!data.user) return; setEmail(data.user.email || ""); const p = await supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle(); setProfile(p.data) }) }, [])
+  const [subscription, setSubscription] = useState<{ plan?: string; status?: string; active?: boolean; trial_end?: string | null } | null>(null)
+  const [subscriptionError, setSubscriptionError] = useState(false)
+  async function loadProfileAndPlan() {
+    const { data } = await supabase.auth.getUser()
+    if (!data.user) return
+    setEmail(data.user.email || "")
+    const [p, sub] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle(),
+      supabase.from("subscriptions").select("plan,status,active,trial_end").eq("user_id", data.user.id).maybeSingle(),
+    ])
+    setProfile(p.data)
+    setSubscription(sub.data)
+    setSubscriptionError(Boolean(sub.error))
+  }
+  useEffect(() => { loadProfileAndPlan() }, [])
+  const planLabel: Record<string, string> = {
+    trial: "Teste gratuito", pro: "Pro", intelligence: "Intelligence",
+    enterprise: "Enterprise", enterprise_plus: "Enterprise Plus",
+  }
+  const activeTrial = subscription?.status === "trialing" && subscription.active && Boolean(
+    subscription.trial_end && Date.parse(subscription.trial_end) > Date.now(),
+  )
+  const activePaid = subscription?.status === "active" && subscription.active
+  const statusLabel = subscriptionError ? "Não foi possível consultar sua assinatura"
+    : activePaid ? "Plano ativo"
+    : activeTrial ? "Teste gratuito ativo"
+    : subscription ? "Acesso não ativo ou vencido"
+    : "Assinatura ainda não encontrada"
+
   const open = (path: string) => Linking.openURL(`${WEB_URL}${path}`)
   return (
     <ScrollView style={styles.safe} contentContainerStyle={styles.page}>
@@ -602,7 +630,16 @@ function ProfileScreen() {
       <Text style={styles.hero}>{profile?.name || profile?.full_name || "Minha conta"}</Text><Text style={styles.subtitle}>{email}</Text>
       <View style={styles.statusCard}><CheckCircle2 color={colors.success} size={21} /><View style={{ flex: 1 }}><Text style={styles.cardTitle}>NexJud sincronizado</Text><Text style={styles.helper}>Workspace e Companion compartilham conta e dados.</Text></View></View>
       <Menu label="Abrir Workspace" onPress={() => Linking.openURL(WEB_URL)} />
-      <Menu label="Gerenciar assinatura" onPress={() => open("/pricing")} />
+      <View style={styles.card}>
+        <View style={styles.inline}><ShieldCheck color={activePaid || activeTrial ? colors.success : colors.warning} size={20} /><Text style={styles.cardTitle}>Sua assinatura</Text></View>
+        <Text style={styles.body}>{subscription ? (planLabel[subscription.plan || ""] || subscription.plan || "Plano") : "NexJud"}</Text>
+        <Text style={styles.helper}>{statusLabel}</Text>
+        {subscription?.status === "trialing" && subscription.trial_end
+          ? <Text style={styles.helper}>Fim do teste: {new Date(subscription.trial_end).toLocaleDateString("pt-BR")}</Text> : null}
+        <Button label="Atualizar status da assinatura" onPress={loadProfileAndPlan} secondary />
+        <Text style={styles.helper}>O plano só é ativado após confirmação do pagamento no servidor. Este aplicativo não realiza cobranças.</Text>
+      </View>
+      <Menu label="Conhecer os planos" onPress={() => open("/pricing")} />
       <Menu label="Política de Privacidade" onPress={() => open("/privacy")} />
       <Menu label="Termos de Uso" onPress={() => open("/terms")} />
       <Menu label="Excluir conta e dados" onPress={() => open("/account-deletion")} danger />

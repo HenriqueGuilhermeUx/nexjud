@@ -51,3 +51,13 @@ jobs:
             echo "Metro did not produce an Android JS bundle"
             exit 1
           }
+      - name: Verify Metro production JS bundle for iOS
+        env:
+          CI: "1"
+          EXPO_NO_TELEMETRY: "1"
+        run: |
+          npx expo export --platform ios --output-dir /tmp/nexjud-ios-ci-bundle --clear
+          test -n "$(find /tmp/nexjud-ios-ci-bundle -type f \( -name '*.hbc' -o -name '*.js' \) | head -n 1)" || {
+            echo "Metro did not produce an iOS JS bundle"
+            exit 1
+          }

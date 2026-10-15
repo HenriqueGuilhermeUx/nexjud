@@ -25,7 +25,10 @@ describe("NexJud signed Woovi webhook policy", () => {
   expect(amountMatchesSignedCharge(paid,19700)).toBe(true)
   expect(amountMatchesSignedCharge(paid,39700)).toBe(false)
   expect(amountMatchesSignedCharge({charge:{value:"wat"}},19700)).toBe(false)
-  expect(amountMatchesSignedCharge({event:"OPENPIX:TRANSACTION_RECEIVED"},19700)).toBe(true)
+  expect(amountMatchesSignedCharge({event:"OPENPIX:TRANSACTION_RECEIVED"},19700)).toBe(false)
+  expect(amountMatchesSignedCharge({transaction:{charge:{value:19700}}},19700)).toBe(true)
+  expect(amountMatchesSignedCharge({charge:{value:null}},19700)).toBe(false)
+  expect(amountMatchesSignedCharge({charge:{value:0}},19700)).toBe(false)
   expect(amountMatchesSignedCharge({},-10)).toBe(false)
  })
  it("prevents late older payments from downgrading current active plan", () => {

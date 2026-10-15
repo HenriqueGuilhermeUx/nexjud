@@ -28,7 +28,9 @@ export function isPaidEvent(body: any): boolean {
 export function amountMatchesSignedCharge(body: any, amountCents: number): boolean {
   if (!Number.isSafeInteger(amountCents) || amountCents <= 0) return false
   const value = body?.charge?.value ?? body?.pixCharge?.value ?? body?.transaction?.charge?.value
-  if (value === undefined || value === null) return true // Some transaction events omit charge details
+  // A signed event without the settled amount cannot prove the invoice was paid in full.
+  // Such events require server-side reconciliation with the provider before activation.
+  if (value === undefined || value === null) return false
   const numeric = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN
   return Number.isSafeInteger(numeric) && numeric === amountCents
 }

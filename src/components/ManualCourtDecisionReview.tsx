@@ -16,7 +16,7 @@ export default function ManualCourtDecisionReview({ argument }: { argument: stri
     const result = prepareLawyerProvidedDecision({
       documentReference: reference, sourceUrl: url, reasoningExcerpt: excerpt,
     })
-    if (!result.ok) { setError(result.error); return }
+    if (result.ok === false) { setError(result.error); return }
     if (reviews.length >= 5) { setError("Limite de cinco documentos por sessão local."); return }
     const document = result.document
     setReviews(current => [...current, {

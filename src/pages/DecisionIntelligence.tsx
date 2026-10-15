@@ -9,6 +9,7 @@ import { evidenceStore } from "@/intelligence/evidenceStore"
 import { buildObservedDecisionPattern } from "@/intelligence/decisionPattern"
 import { auditDecisionEvidence, type DecisionEvidenceAudit } from "@/intelligence/decisionEvidenceAudit"
 import { DecisionSearchGuard } from "@/intelligence/decisionSearchGuard"
+import { buildDecisionReviewWorksheet } from "@/intelligence/decisionReviewWorksheet"
 
 export default function DecisionIntelligence() {
   const { user } = useAuth()
@@ -22,6 +23,7 @@ export default function DecisionIntelligence() {
   const [observedPattern, setObservedPattern] = useState<ReturnType<typeof buildObservedDecisionPattern>>(null)
   const [audit, setAudit] = useState<DecisionEvidenceAudit | null>(null)
   const [reviewLimit, setReviewLimit] = useState(8)
+  const [manualReview, setManualReview] = useState<Record<string, "pendente" | "convergente" | "divergente">>({})
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
   const searchGuard = useRef(new DecisionSearchGuard())
@@ -37,6 +39,7 @@ export default function DecisionIntelligence() {
     setAudit(null)
     setObservedPattern(null)
     setReviewLimit(8)
+    setManualReview({})
   }
 
   async function analyze() {
@@ -54,6 +57,7 @@ export default function DecisionIntelligence() {
     setObservedPattern(null)
     setAudit(null)
     setReviewLimit(8)
+    setManualReview({})
     try {
       const found = await searchProcessDatajud(requestedCnj, requestedAlias, user?.id)
       if (!searchGuard.current.isCurrent(requestVersion)) return
@@ -90,6 +94,12 @@ export default function DecisionIntelligence() {
   const p = evidence?.prediction
   const sample = audit?.comparableDecisions ?? 0
   const recordsFound = evidence?.cases?.length ?? 0
+  const reviewDocuments = evidence?.argument && audit
+    ? buildDecisionReviewWorksheet(evidence.normalized || [], {
+        court: process?.court,
+        judgingBody: process?.courtUnit,
+      })
+    : []
 
   return <div className="min-h-screen bg-background text-foreground">
     <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-7">
@@ -106,8 +116,8 @@ export default function DecisionIntelligence() {
           <input value={alias} onChange={e=>{ invalidateCurrentSearch(); setAlias(e.target.value.toLowerCase()) }} placeholder="Tribunal: tjsp, trt2..." className="rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
           <button onClick={analyze} disabled={loading} className="rounded-xl bg-primary text-white font-bold p-4 disabled:opacity-50 flex items-center justify-center gap-2"><Search size={18}/>{loading?"LOCALIZANDO...":"ANALISAR PROCESSO"}</button>
         </div>
-        <textarea value={caseText} onChange={e=>{ if (loading) invalidateCurrentSearch(); setCaseText(e.target.value) }} placeholder="Opcional: complemente fatos, pedidos e teses que não estejam claros nos dados públicos." className="w-full h-32 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
-        <textarea value={lawyerArgument} onChange={e=>{ if (loading) invalidateCurrentSearch(); setLawyerArgument(e.target.value) }} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
+        <textarea value={caseText} onChange={e=>{ invalidateCurrentSearch(); setCaseText(e.target.value) }} placeholder="Opcional: complemente fatos, pedidos e teses que não estejam claros nos dados públicos." className="w-full h-32 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
+        <textarea value={lawyerArgument} onChange={e=>{ invalidateCurrentSearch(); setLawyerArgument(e.target.value) }} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
       </section>
 
       {message && <p role="alert" className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-sm text-amber-200">{message}</p>}
@@ -165,6 +175,55 @@ export default function DecisionIntelligence() {
             className="rounded-lg border border-[#3c3c4a] px-4 py-2 text-sm hover:border-primary/60">
             Mostrar mais registros ({Math.min(reviewLimit, audit.review.length)} de {audit.review.length})
           </button>}
+        </section>}
+        {evidence?.argument && <section aria-label="Confronto documental para revisão humana" className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6 space-y-4">
+          <h2 className="font-bold text-xl">Confronto documental — revisão do advogado</h2>
+          <p className="text-sm text-gray-400">
+            Sua tese: {evidence.argument.slice(0, 450)}{evidence.argument.length > 450 ? "…" : ""}
+          </p>
+          <p className="text-sm text-amber-200">
+            A NexJud não determinou convergência nem divergência. Compare o argumento com o
+            inteiro teor original antes de marcar sua avaliação. Marcações são locais a esta
+            consulta e não são salvas nem transformadas em previsão.
+          </p>
+          {reviewDocuments.length === 0 && <p role="status" className="text-sm text-gray-400">
+            Ainda não há fundamentações documentadas do mesmo órgão julgador disponíveis para
+            confronto. Os metadados DataJud não permitem inferir o entendimento do magistrado.
+          </p>}
+          {reviewDocuments.map((document) => <article key={document.evidenceId} className="rounded-xl border border-[#353543] p-4 space-y-3">
+            <p className="font-semibold">Decisão {document.documentReference || document.evidenceId}</p>
+            <p className="text-xs text-gray-400">
+              {document.court} · {document.judgingBody || "Órgão não identificado"} · {document.decisionDate || "Sem data"}
+              {document.processNumber ? ` · Processo ${document.processNumber}` : ""}
+            </p>
+            <p className="text-sm">Resultado registrado no documento: {document.observedOutcome}</p>
+            <h3 className="text-sm font-semibold">Fundamentação estruturada na fonte</h3>
+            <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+              {document.reasoningExcerpts.map((reason, index) => <li key={index}>{reason}</li>)}
+            </ul>
+            {document.remainingReasoningSegments > 0 && <p className="text-xs text-gray-500">
+              Mais {document.remainingReasoningSegments} trecho(s) não exibido(s); consulte o documento original.
+            </p>}
+            {document.sourceUrl && <a href={document.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline">
+              Abrir referência original (verificar autenticidade)
+            </a>}
+            {!document.sourceUrl && <p className="text-xs text-amber-200">
+              Sem link público informado. Confira a autenticidade pelo identificador documental.
+            </p>}
+            <label className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm">
+              <span>Avaliação manual (não salva):</span>
+              <select value={manualReview[document.evidenceId] || "pendente"}
+                onChange={(event) => setManualReview(current => ({
+                  ...current,
+                  [document.evidenceId]: event.target.value as "pendente" | "convergente" | "divergente",
+                }))}
+                className="rounded-lg bg-[#101017] border border-[#424253] p-2">
+                <option value="pendente">Pendente de análise</option>
+                <option value="convergente">Convergência apontada pelo advogado</option>
+                <option value="divergente">Divergência apontada pelo advogado</option>
+              </select>
+            </label>
+          </article>)}
         </section>}
         {observedPattern && <section className="grid lg:grid-cols-3 gap-4">
           <Insight icon={<Target/>} title="Teses citadas na amostra" text={observedPattern.recurringTheses.length

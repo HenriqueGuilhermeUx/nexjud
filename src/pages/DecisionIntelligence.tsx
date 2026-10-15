@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Brain, Search, Scale, FileText, AlertTriangle, Target, Database, ArrowRight } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
@@ -8,6 +8,7 @@ import { datajudCasesToEvidence } from "@/intelligence/adapters/datajudEvidenceA
 import { evidenceStore } from "@/intelligence/evidenceStore"
 import { buildObservedDecisionPattern } from "@/intelligence/decisionPattern"
 import { auditDecisionEvidence, type DecisionEvidenceAudit } from "@/intelligence/decisionEvidenceAudit"
+import { DecisionSearchGuard } from "@/intelligence/decisionSearchGuard"
 
 export default function DecisionIntelligence() {
   const { user } = useAuth()
@@ -23,9 +24,28 @@ export default function DecisionIntelligence() {
   const [reviewLimit, setReviewLimit] = useState(8)
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
+  const searchGuard = useRef(new DecisionSearchGuard())
+
+  useEffect(() => () => searchGuard.current.invalidate(), [])
+
+  function invalidateCurrentSearch() {
+    searchGuard.current.invalidate()
+    setLoading(false)
+    setMessage("")
+    setProcess(null)
+    setEvidence(null)
+    setAudit(null)
+    setObservedPattern(null)
+    setReviewLimit(8)
+  }
 
   async function analyze() {
     if (!cnj.trim()) { setMessage("Informe o número CNJ para começar."); return }
+    const requestVersion = searchGuard.current.begin()
+    const requestedCnj = cnj.trim()
+    const requestedAlias = alias || detectTribunalAliasFromCnj(requestedCnj)
+    const providedCase = caseText.trim()
+    const providedArgument = lawyerArgument.trim()
     setLoading(true)
     setMessage("")
     // A failed or changed search must never display stale results as the new case.
@@ -35,30 +55,36 @@ export default function DecisionIntelligence() {
     setAudit(null)
     setReviewLimit(8)
     try {
-      const tribunal = alias || detectTribunalAliasFromCnj(cnj)
-      const found = await searchProcessDatajud(cnj, tribunal, user?.id)
+      const found = await searchProcessDatajud(requestedCnj, requestedAlias, user?.id)
+      if (!searchGuard.current.isCurrent(requestVersion)) return
       if (!found.found || !found.process) { setMessage("Processo não localizado no DataJud para este tribunal."); return }
-      setProcess(found.process)
-      const base = caseText.trim() || buildCaseTextFromDatajud(found.process)
-      setCaseText(base)
       const similar = await searchSimilarCasesDatajud({
-        cnj, tribunalAlias: tribunal, classe: found.process.className, assunto: found.process.subject,
+        cnj: requestedCnj, tribunalAlias: requestedAlias,
+        classe: found.process.className, assunto: found.process.subject,
       })
-      const normalized = datajudCasesToEvidence(similar.cases || [], tribunal)
+      if (!searchGuard.current.isCurrent(requestVersion)) return
+      const normalized = datajudCasesToEvidence(similar.cases || [], requestedAlias)
       const reviewed = auditDecisionEvidence(normalized, {
-        court: found.process.court || tribunal,
+        court: found.process.court || requestedAlias,
         judgingBody: found.process.courtUnit,
       })
+      // Persist evidence only when it still belongs to the currently selected case.
       await evidenceStore.put(normalized)
+      if (!searchGuard.current.isCurrent(requestVersion)) return
+      setProcess(found.process)
+      if (!providedCase) setCaseText(buildCaseTextFromDatajud(found.process))
       setAudit(reviewed)
       setObservedPattern(reviewed.enoughForDescriptivePattern
         ? buildObservedDecisionPattern(reviewed.comparableEvidence)
         : null)
-      setEvidence({ prediction: similar.prediction, cases: similar.cases || [], normalized, argument: lawyerArgument.trim() })
+      setEvidence({ prediction: similar.prediction, cases: similar.cases || [], normalized, argument: providedArgument })
     } catch (error) {
+      if (!searchGuard.current.isCurrent(requestVersion)) return
       console.error(error)
       setMessage("Não foi possível concluir a análise agora. Nenhum resultado anterior será apresentado como se fosse desta consulta.")
-    } finally { setLoading(false) }
+    } finally {
+      if (searchGuard.current.isCurrent(requestVersion)) setLoading(false)
+    }
   }
 
   const p = evidence?.prediction
@@ -76,12 +102,12 @@ export default function DecisionIntelligence() {
       <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6 space-y-4">
         <h2 className="font-bold text-xl">Por onde quer começar?</h2>
         <div className="grid lg:grid-cols-4 gap-3">
-          <input value={cnj} onChange={e=>{ setCnj(formatCnj(e.target.value)); setEvidence(null); setAudit(null); setObservedPattern(null) }} placeholder="Número CNJ" className="lg:col-span-2 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
-          <input value={alias} onChange={e=>{ setAlias(e.target.value.toLowerCase()); setEvidence(null); setAudit(null); setObservedPattern(null) }} placeholder="Tribunal: tjsp, trt2..." className="rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
+          <input value={cnj} onChange={e=>{ invalidateCurrentSearch(); setCnj(formatCnj(e.target.value)) }} placeholder="Número CNJ" className="lg:col-span-2 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
+          <input value={alias} onChange={e=>{ invalidateCurrentSearch(); setAlias(e.target.value.toLowerCase()) }} placeholder="Tribunal: tjsp, trt2..." className="rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
           <button onClick={analyze} disabled={loading} className="rounded-xl bg-primary text-white font-bold p-4 disabled:opacity-50 flex items-center justify-center gap-2"><Search size={18}/>{loading?"LOCALIZANDO...":"ANALISAR PROCESSO"}</button>
         </div>
-        <textarea value={caseText} onChange={e=>setCaseText(e.target.value)} placeholder="Opcional: complemente fatos, pedidos e teses que não estejam claros nos dados públicos." className="w-full h-32 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
-        <textarea value={lawyerArgument} onChange={e=>setLawyerArgument(e.target.value)} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
+        <textarea value={caseText} onChange={e=>{ if (loading) invalidateCurrentSearch(); setCaseText(e.target.value) }} placeholder="Opcional: complemente fatos, pedidos e teses que não estejam claros nos dados públicos." className="w-full h-32 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
+        <textarea value={lawyerArgument} onChange={e=>{ if (loading) invalidateCurrentSearch(); setLawyerArgument(e.target.value) }} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
       </section>
 
       {message && <p role="alert" className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-sm text-amber-200">{message}</p>}

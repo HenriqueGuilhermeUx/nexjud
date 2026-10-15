@@ -10,9 +10,11 @@
 | preview | Supabase de teste separado | Sem URL e chave pública de homologação, o build EAS é bloqueado |
 | development | Supabase de teste ou local | HTTP somente em localhost/127.0.0.1/10.0.2.2 |
 
+A configuração dinâmica em `mobile/app.config.js` conserva os identificadores originais na produção e usa `com.nexjud.companion.preview` em Android/iOS para builds de homologação (e `.dev` para desenvolvimento), com nome e deep link separados. Dessa forma os aplicativos não se substituem ao instalar a versão de teste. Para assinar um IPA de homologação iOS será necessário configurar o provisionamento do bundle ID `.preview`.
+
 O campo `EXPO_PUBLIC_NEXJUD_ENV` é fixado por perfil em `mobile/eas.json`. A implementação está em `mobile/src/lib/backendConfig.ts`, com teste automatizado em `src/enterprise/mobileBackendConfig.test.ts`.
 
-O hook EAS `eas-build-pre-install` invoca `mobile/scripts/assert-backend-env.mjs`, impedindo um APK de teste de usar o endereço de produção ou de ser criado sem destino de teste.
+O hook EAS `eas-build-pre-install` invoca `mobile/scripts/assert-backend-env.mjs` e exige `EAS_BUILD_PROFILE`, inclusive quando `EAS_BUILD` não estiver definido. Ele impede que APKs de teste usem o endereço/chave do projeto de produção, configurações incompletas ou chaves privilegiadas. A validação roda no início do build EAS, enquanto CI usa casos positivos e negativos de execução.
 
 ## Preparação do APK preview
 

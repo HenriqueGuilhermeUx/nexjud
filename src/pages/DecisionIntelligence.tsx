@@ -126,7 +126,7 @@ export default function DecisionIntelligence() {
             className="mt-1 accent-primary" />
           <span><strong>Salvar este processo no meu histórico</strong> (opcional). Desmarcado por padrão:
             a análise consulta o DataJud, mas não envia um pedido de gravação do processo
-            ao histórico da NexJud. </span>
+            ao histórico da NexJud. Não use o ambiente Preview com dados reais.</span>
         </label>
         <textarea value={caseText} onChange={e=>{ invalidateCurrentSearch(); setCaseText(e.target.value) }} placeholder="Opcional: complemente fatos, pedidos e teses que não estejam claros nos dados públicos." className="w-full h-32 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
         <textarea value={lawyerArgument} onChange={e=>{ invalidateCurrentSearch(); setLawyerArgument(e.target.value) }} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>

@@ -1,0 +1,30 @@
+name: Enterprise domain tests
+
+on:
+  pull_request:
+    paths:
+      - "src/enterprise/**"
+      - "package.json"
+      - ".github/workflows/enterprise-domain.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  enterprise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # npm is isolated from the repository build scripts, which invoke pnpm.
+      # Restore pnpm with a committed lockfile before final merge.
+      - name: Install
+        run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - name: Run Enterprise tests
+        run: npm run test:enterprise
+      - name: Typecheck
+        run: npx --no-install tsc -b

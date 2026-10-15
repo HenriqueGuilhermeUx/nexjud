@@ -7,13 +7,19 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "environment": "development"
+      "environment": "development",
+      "env": {
+        "EXPO_PUBLIC_NEXJUD_ENV": "development"
+      }
     },
     "preview": {
       "distribution": "internal",
       "environment": "preview",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_NEXJUD_ENV": "preview"
       }
     },
     "production": {
@@ -21,6 +27,9 @@
       "environment": "production",
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_NEXJUD_ENV": "production"
       }
     },
     "ios-api-ci": {

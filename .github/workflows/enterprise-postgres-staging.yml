@@ -1,0 +1,139 @@
+name: Enterprise PostgreSQL staging
+
+on:
+  pull_request:
+    paths:
+      - 'docs/enterprise/F7-migracao-sql-proposta.sql'
+      - 'docs/enterprise/F8-staging-catalog-assertions.sql'
+      - 'docs/enterprise/F8-client-grant-regression.sh'
+      - 'docs/enterprise/F9-local-auth-fixture.sql'
+      - 'docs/enterprise/F10-tenant-isolation-negative-tests.sql'
+      - 'docs/enterprise/F11-tenant-fk-integrity-tests.sql'
+      - 'docs/enterprise/F12-client-role-access-tests.sql'
+      - 'docs/enterprise/F14-org-read-rls-proposta.sql'
+      - 'docs/enterprise/F15-auth-uid-local-fixture.sql'
+      - 'docs/enterprise/F16-org-read-rls-tests.sql'
+      - 'docs/enterprise/F17-membership-revocation-tests.sql'
+      - 'docs/enterprise/F18-role-transition-tests.sql'
+      - 'docs/enterprise/F19-membership-helper-security-tests.sql'
+      - 'docs/enterprise/F20-import-permission-helper-proposta.sql'
+      - 'docs/enterprise/F21-import-permission-tests.sql'
+      - 'docs/enterprise/F23-import-atomicity-tests.sql'
+      - 'docs/enterprise/F24-import-idempotency-tests.sql'
+      - 'docs/enterprise/F25-import-concurrency-tests.sh'
+      - 'docs/enterprise/F26-import-replay-decision-tests.sql'
+      - 'docs/enterprise/F29-private-import-rpc-proposta.sql'
+      - 'docs/enterprise/F30-private-import-rpc-tests.sql'
+      - 'docs/enterprise/F32-import-gateway-proposta.sql'
+      - 'docs/enterprise/F33-import-gateway-tests.sql'
+      - 'docs/enterprise/F34-legacy-case-link-fixture.sql'
+      - 'docs/enterprise/F36-linked-import-rpc-proposta.sql'
+      - 'docs/enterprise/F37-linked-import-tests.sql'
+      - 'docs/enterprise/F41-postgrest-http-smoke.sh'
+      - 'docs/enterprise/F42-edge-handler-postgrest-smoke.ts'
+      - 'docs/enterprise/F43-gotrue-auth-postgrest-smoke.sh'
+      - 'docs/enterprise/F44-gotrue-edge-http-smoke.ts'
+      - 'docs/enterprise/F46-tenant-case-links-staging.sql'
+      - 'docs/enterprise/F47-case-link-schema-security-tests.sql'
+      - 'docs/enterprise/F49-actor-import-history.sql'
+      - 'docs/enterprise/F50-actor-import-history-tests.sql'
+      - 'docs/enterprise/F51-gotrue-history-postgrest-smoke.sh'
+      - 'supabase/functions/enterprise-case-import/**'
+      - '.github/workflows/enterprise-postgres-staging.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: local-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: local-only
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create isolated auth fixture
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F9-local-auth-fixture.sql
+      - name: Apply draft Enterprise schema to disposable database
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F7-migracao-sql-proposta.sql
+      - name: Assert deny-by-default catalog invariants
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F8-staging-catalog-assertions.sql
+      - name: Verify F8 detects PUBLIC and client grants per table
+        run: bash docs/enterprise/F8-client-grant-regression.sh
+      - name: Test client privilege denial and tenant idempotency boundaries
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F10-tenant-isolation-negative-tests.sql
+      - name: Test cross-organization foreign key integrity
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F11-tenant-fk-integrity-tests.sql
+      - name: Exercise denied SQL access under client roles
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F12-client-role-access-tests.sql
+      - name: Install disposable JWT identity fixture
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F15-auth-uid-local-fixture.sql
+      - name: Apply proposed read-only tenant policies to disposable database
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F14-org-read-rls-proposta.sql
+      - name: Verify tenant and non-member read isolation
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F16-org-read-rls-tests.sql
+      - name: Verify membership revocation and write denial
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F17-membership-revocation-tests.sql
+      - name: Verify role downgrade and subsequent revocation
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F18-role-transition-tests.sql
+      - name: Verify membership helper cannot probe other tenants
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F19-membership-helper-security-tests.sql
+      - name: Apply import authorization helper to disposable database
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F20-import-permission-helper-proposta.sql
+      - name: Verify import permissions by role and organization
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F21-import-permission-tests.sql
+      - name: Verify atomic import rollback and audit integrity
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F23-import-atomicity-tests.sql
+      - name: Verify tenant-scoped import idempotency constraints
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F24-import-idempotency-tests.sql
+      - name: Verify concurrent duplicate import requests
+        run: bash docs/enterprise/F25-import-concurrency-tests.sh
+      - name: Verify persisted replay receipt and fingerprint conflict decision
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F26-import-replay-decision-tests.sql
+      - name: Install private RPC on disposable database
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F29-private-import-rpc-proposta.sql
+      - name: Verify private RPC auth replay conflict and rollback
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F30-private-import-rpc-tests.sql
+      - name: Install authenticated gateway on disposable database
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F32-import-gateway-proposta.sql
+      - name: Verify gateway fingerprint and authorization
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F33-import-gateway-tests.sql
+      - name: Install disposable legacy case fixture
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F34-legacy-case-link-fixture.sql
+      - name: Install review-only legacy-safe case-link schema
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F46-tenant-case-links-staging.sql
+      - name: Verify private links schema and unchanged owner policy
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F47-case-link-schema-security-tests.sql
+      - name: Upgrade private RPC to link imported cases atomically
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F36-linked-import-rpc-proposta.sql
+      - name: Verify case linking, legacy RLS, tenant isolation and rollback
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F37-linked-import-tests.sql
+      - name: Install private actor-scoped history gateway
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F49-actor-import-history.sql
+      - name: Verify history actor isolation, revocation and deleted case evidence
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F50-actor-import-history-tests.sql
+      - name: Setup pinned Deno runtime for Edge Function
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.5.6
+      - name: Validate deployable Edge Function imports under Deno
+        run: deno check --config supabase/functions/enterprise-case-import/deno.json supabase/functions/enterprise-case-import/index.ts
+      - name: Smoke test real JWT and RPC over disposable PostgREST HTTP
+        run: bash docs/enterprise/F41-postgrest-http-smoke.sh

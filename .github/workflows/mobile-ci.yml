@@ -41,3 +41,62 @@ jobs:
         run: npx tsc --noEmit
       - name: Expo config
         run: npx expo config --type public >/dev/null
+      - name: Verify Expo preview and production native application IDs
+        shell: bash
+        run: |
+          EXPO_PUBLIC_NEXJUD_ENV=production npx expo config --type public --json > /tmp/nexjud-prod-config.json
+          EXPO_PUBLIC_NEXJUD_ENV=preview npx expo config --type public --json > /tmp/nexjud-preview-config.json
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const prod = JSON.parse(fs.readFileSync("/tmp/nexjud-prod-config.json", "utf8"));
+          const preview = JSON.parse(fs.readFileSync("/tmp/nexjud-preview-config.json", "utf8"));
+          if (prod.android.package !== "com.nexjud.companion" || prod.ios.bundleIdentifier !== "com.nexjud.companion") {
+            throw new Error("NexJud production identifiers changed");
+          }
+          if (preview.android.package !== "com.nexjud.companion.preview" ||
+              preview.ios.bundleIdentifier !== "com.nexjud.companion.preview" ||
+              preview.scheme !== "nexjud-preview") {
+            throw new Error("NexJud preview does not have separate install identifiers");
+          }
+          console.log("NexJud Expo preview/production native identifiers are isolated");
+          NODE
+      - name: Verify EAS preview cannot use production or lack staging
+        run: |
+          if EAS_BUILD=1 EAS_BUILD_PROFILE=preview EXPO_PUBLIC_NEXJUD_ENV=preview \
+            node scripts/assert-backend-env.mjs; then
+            echo "Unsafe preview without staging was accepted"
+            exit 1
+          fi
+          if EAS_BUILD=1 EAS_BUILD_PROFILE=preview EXPO_PUBLIC_NEXJUD_ENV=preview \
+            EXPO_PUBLIC_SUPABASE_URL=https://zoruralbsxrbsaicihzu.supabase.co \
+            EXPO_PUBLIC_SUPABASE_ANON_KEY=public-test-only \
+            node scripts/assert-backend-env.mjs; then
+            echo "Unsafe preview pointing at production was accepted"
+            exit 1
+          fi
+          EAS_BUILD=1 EAS_BUILD_PROFILE=preview EXPO_PUBLIC_NEXJUD_ENV=preview \
+            EXPO_PUBLIC_SUPABASE_URL=https://ci-isolated.supabase.co \
+            EXPO_PUBLIC_SUPABASE_ANON_KEY=ci-public-anon-only \
+            node scripts/assert-backend-env.mjs
+          EAS_BUILD=1 EAS_BUILD_PROFILE=production EXPO_PUBLIC_NEXJUD_ENV=production \
+            node scripts/assert-backend-env.mjs
+      - name: Verify Metro production JS bundle for Android
+        env:
+          CI: "1"
+          EXPO_NO_TELEMETRY: "1"
+        run: |
+          npx expo export --platform android --output-dir /tmp/nexjud-mobile-ci-bundle --clear
+          test -n "$(find /tmp/nexjud-mobile-ci-bundle -type f -name '*.hbc' -o -name '*.js' | head -n 1)" || {
+            echo "Metro did not produce an Android JS bundle"
+            exit 1
+          }
+      - name: Verify Metro production JS bundle for iOS
+        env:
+          CI: "1"
+          EXPO_NO_TELEMETRY: "1"
+        run: |
+          npx expo export --platform ios --output-dir /tmp/nexjud-ios-ci-bundle --clear
+          test -n "$(find /tmp/nexjud-ios-ci-bundle -type f \( -name '*.hbc' -o -name '*.js' \) | head -n 1)" || {
+            echo "Metro did not produce an iOS JS bundle"
+            exit 1
+          }

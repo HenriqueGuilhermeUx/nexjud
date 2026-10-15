@@ -22,6 +22,9 @@ env:
 
 jobs:
   build_submit:
+    # Involves Apple certificate creation and TestFlight submission:
+    # never execute this production operation from a feature branch.
+    if: ${{ github.ref == 'refs/heads/main' }}
     name: Generate Apple signing, build IPA, upload TestFlight
     runs-on: macos-26
     timeout-minutes: 180

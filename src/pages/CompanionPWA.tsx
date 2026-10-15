@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { getSupabase } from "@/lib/supabase"
+import EnterpriseImport from "@/pages/EnterpriseImport"
 
 const colors = {
   bg: "#080A10",
@@ -696,11 +697,13 @@ export default function CompanionPWA() {
   else if (section === "caso" && segments[1]) view = <CaseDetailPWA caseId={segments[1]} navigate={navigate} />
   else if (section === "audiencia") view = <HearingPWA userId={user.id} caseId={segments[1]} navigate={navigate} />
   else if (section === "studio") view = <StudioPWA navigate={navigate} />
+  else if (section === "enterprise") view = <EnterpriseImport mode="pwa" />
   else view = <HomeScreenPWA userId={user.id} navigate={navigate} />
 
   return <div className="nexjud-pwa-screen min-h-[100dvh]" style={{ background: colors.bg }}>
     <main className={"nexjud-pwa-main mx-auto w-full max-w-xl px-4 " + (primary ? "pb-28" : "pb-8")}>{view}</main>
     {primary ? <BottomNav section={section} navigate={navigate} /> : null}
+    {section === "home" ? <div className="mx-auto max-w-xl px-4 pb-4"><button type="button" onClick={() => navigate("/app/enterprise")} className="w-full rounded-xl border border-indigo-700 bg-indigo-950 p-3 text-left text-sm font-semibold text-indigo-100">Carteiras empresariais e importação →</button></div> : null}
     <InstallHint />
   </div>
 }

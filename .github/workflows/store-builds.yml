@@ -14,6 +14,11 @@ on:
         required: true
         default: false
         type: boolean
+      confirm_production:
+        description: Confirm main-only production build (Apple submission separately controlled)
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -24,7 +29,7 @@ concurrency:
 
 jobs:
   android:
-    if: ${{ inputs.platform == 'all' || inputs.platform == 'android' }}
+    if: ${{ github.ref == 'refs/heads/main' && inputs.confirm_production == true && (inputs.platform == 'all' || inputs.platform == 'android') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -42,7 +47,7 @@ jobs:
         run: npx eas-cli@latest build --platform android --profile production --non-interactive --wait
 
   ios:
-    if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
+    if: ${{ github.ref == 'refs/heads/main' && inputs.confirm_production == true && (inputs.platform == 'all' || inputs.platform == 'ios') }}
     runs-on: ubuntu-latest
     defaults:
       run:

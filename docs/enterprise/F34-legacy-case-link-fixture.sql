@@ -2,12 +2,23 @@
 -- standalone legacy-case fixture. Private link-table DDL lives in F46. NEVER APPLY THIS FILE TO PRODUCTION.
 begin;
 create table public.legal_cases (
+  -- Matches the verified column names, types and defaults of the current
+  -- NexJud legacy legal_cases catalog; no actual customer data is copied.
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id),
+  user_id uuid not null references auth.users(id) on delete cascade,
   title text not null,
+  client_name text,
   process_number text,
+  opponent_name text,
+  court text,
+  status text default 'active',
+  summary text,
+  risk_level text,
+  success_probability integer default 0,
+  tags text[] default '{}'::text[],
   metadata jsonb default '{}'::jsonb,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 alter table public.legal_cases enable row level security;
 revoke all on public.legal_cases from public, anon, authenticated;

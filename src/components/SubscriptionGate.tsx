@@ -1,6 +1,7 @@
 import { ReactNode } from "react"
 import { Navigate } from "react-router-dom"
 import { usePlan } from "@/hooks/usePlan"
+import { paidEntitlementCurrent } from "@/services/paidEntitlement"
 
 export default function SubscriptionGate({ children }: { children: ReactNode }) {
   const { subscription, loading, trialExpired } = usePlan()
@@ -15,7 +16,7 @@ export default function SubscriptionGate({ children }: { children: ReactNode }) 
 
   if (!subscription) return <Navigate to="/upgrade" replace />
 
-  const paidActive = subscription.status === "active" && subscription.active
+  const paidActive = paidEntitlementCurrent(subscription)
   const trialActive = subscription.status === "trialing" && !trialExpired && subscription.active
 
   if (!paidActive && !trialActive) {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
+import { paidEntitlementCurrent } from "@/services/paidEntitlement"
 import {
   getOrCreateSubscription,
   getTrialDaysLeft,
@@ -50,8 +51,8 @@ export function usePlan() {
 
   function hasPlan(required: PlanType) {
     if (!subscription) return false
-    if (subscription.status === "trialing" && !trialExpired) return true
-    if (!subscription.active) return false
+    if (subscription.status === "trialing" && !trialExpired && subscription.active) return true
+    if (!paidEntitlementCurrent(subscription)) return false
     return level >= PLAN_LEVEL[required]
   }
 

@@ -10,6 +10,8 @@ import { buildObservedDecisionPattern } from "@/intelligence/decisionPattern"
 import { auditDecisionEvidence, type DecisionEvidenceAudit } from "@/intelligence/decisionEvidenceAudit"
 import { DecisionSearchGuard } from "@/intelligence/decisionSearchGuard"
 import { buildDecisionReviewWorksheet } from "@/intelligence/decisionReviewWorksheet"
+import ManualCourtDecisionReview from "@/components/ManualCourtDecisionReview"
+import { historyUserIdForSearch } from "@/intelligence/historyWritePolicy"
 
 export default function DecisionIntelligence() {
   const { user } = useAuth()
@@ -26,6 +28,7 @@ export default function DecisionIntelligence() {
   const [manualReview, setManualReview] = useState<Record<string, "pendente" | "convergente" | "divergente">>({})
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
+  const [saveToHistory, setSaveToHistory] = useState(false)
   const searchGuard = useRef(new DecisionSearchGuard())
 
   useEffect(() => () => searchGuard.current.invalidate(), [])
@@ -49,6 +52,7 @@ export default function DecisionIntelligence() {
     const requestedAlias = alias || detectTribunalAliasFromCnj(requestedCnj)
     const providedCase = caseText.trim()
     const providedArgument = lawyerArgument.trim()
+    const historyUserId = historyUserIdForSearch(saveToHistory, user?.id)
     setLoading(true)
     setMessage("")
     // A failed or changed search must never display stale results as the new case.
@@ -59,7 +63,7 @@ export default function DecisionIntelligence() {
     setReviewLimit(8)
     setManualReview({})
     try {
-      const found = await searchProcessDatajud(requestedCnj, requestedAlias, user?.id)
+      const found = await searchProcessDatajud(requestedCnj, requestedAlias, historyUserId)
       if (!searchGuard.current.isCurrent(requestVersion)) return
       if (!found.found || !found.process) { setMessage("Processo não localizado no DataJud para este tribunal."); return }
       const similar = await searchSimilarCasesDatajud({
@@ -116,6 +120,14 @@ export default function DecisionIntelligence() {
           <input value={alias} onChange={e=>{ invalidateCurrentSearch(); setAlias(e.target.value.toLowerCase()) }} placeholder="Tribunal: tjsp, trt2..." className="rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
           <button onClick={analyze} disabled={loading} className="rounded-xl bg-primary text-white font-bold p-4 disabled:opacity-50 flex items-center justify-center gap-2"><Search size={18}/>{loading?"LOCALIZANDO...":"ANALISAR PROCESSO"}</button>
         </div>
+        <label className="flex items-start gap-3 rounded-xl border border-[#343442] p-3 text-sm text-gray-300">
+          <input type="checkbox" checked={saveToHistory} disabled={loading || !user?.id}
+            onChange={e => { invalidateCurrentSearch(); setSaveToHistory(e.target.checked) }}
+            className="mt-1 accent-primary" />
+          <span><strong>Salvar este processo no meu histórico</strong> (opcional). Desmarcado por padrão:
+            a análise consulta o DataJud, mas não envia um pedido de gravação do processo
+            ao histórico da NexJud. </span>
+        </label>
         <textarea value={caseText} onChange={e=>{ invalidateCurrentSearch(); setCaseText(e.target.value) }} placeholder="Opcional: complemente fatos, pedidos e teses que não estejam claros nos dados públicos." className="w-full h-32 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
         <textarea value={lawyerArgument} onChange={e=>{ invalidateCurrentSearch(); setLawyerArgument(e.target.value) }} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
       </section>
@@ -237,6 +249,14 @@ export default function DecisionIntelligence() {
             : "Inclua fatos e argumentos para preparar a revisão profissional; ainda não há comparação automática comprovada."}/>
         </section>}
       </>}
+
+      <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6 space-y-3" aria-label="Documento judicial informado pelo advogado">
+        <h2 className="font-bold text-xl">Já tem uma decisão judicial em mãos?</h2>
+        <p className="text-sm text-gray-400">Cole um trecho da fundamentação e informe o endereço público ou identificador do documento. A conferência será manual, sem enviar esse material ao servidor nem misturá-lo à contagem de decisões verificadas.</p>
+        {lawyerArgument.trim()
+          ? <ManualCourtDecisionReview key={`${cnj}:${alias}:${lawyerArgument}`} argument={lawyerArgument.trim()} />
+          : <p className="text-sm text-amber-200">Para começar, preencha sua tese no campo “argumento” acima.</p>}
+      </section>
 
       <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6">
         <h2 className="font-bold text-xl">E agora, o que você quer fazer?</h2>

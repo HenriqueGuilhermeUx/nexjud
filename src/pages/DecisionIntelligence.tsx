@@ -132,7 +132,7 @@ export default function DecisionIntelligence() {
               <p className={item.comparable ? "text-xs text-emerald-300 mt-1" : "text-xs text-amber-300 mt-1"}>
                 {item.comparable ? "Decisão qualificada e comparável ao órgão selecionado" : item.qualified ? "Decisão documentada, mas de outro juízo" : "Registro contextual; insuficiente para padrão decisório"}
               </p>
-              {item.exclusionReasons.length > 0 && <p className="text-xs text-gray-400 mt-1">Pendências: {item.exclusionReasons.join("; ")}.</p>
+              {item.exclusionReasons.length > 0 && <p className="text-xs text-gray-400 mt-1">Pendências: {item.exclusionReasons.join("; ")}.</p>}
             </li>)}
           </ul>}
           {audit.review.length > reviewLimit && <button type="button" onClick={() => setReviewLimit(current => current + 8)}

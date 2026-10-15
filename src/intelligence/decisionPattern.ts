@@ -32,10 +32,10 @@ export function buildObservedDecisionPattern(items: JudicialDecisionEvidence[]):
   return {
     court,
     judgingBody,
-decisionsAnalyzed: comparable.length,
+    decisionsAnalyzed: comparable.length,
     period: dates.length ? `${dates[0]} a ${dates[dates.length - 1]}` : undefined,
     recurringTheses: count(comparable.flatMap((item) => item.legalTheses)),
-    recurringPrecedents: count(qualified.flatMap((item) => item.citedPrecedents)),
+    recurringPrecedents: count(comparable.flatMap((item) => item.citedPrecedents)),
     observedOutcomes: count(comparable.map((item) => item.observedOutcome || "")),
     evidenceIds: comparable.map((item) => item.id),
     warning: "Padrões observados em decisões públicas não representam previsão nem garantia de resultado.",

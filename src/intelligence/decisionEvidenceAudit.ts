@@ -38,9 +38,12 @@ function venueText(value: string | undefined): string {
 }
 
 function validDecisionDate(value: string | undefined): boolean {
-  // A filing date or malformed timestamp must not become an inferred decision date.
-  return Boolean(value && /^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value) &&
-    Number.isFinite(Date.parse(value)) && !Number.isNaN(new Date(value).getTime()))
+  // Reject impossible calendar dates that Date.parse silently normalizes.
+  if (!value || !/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value)) return false
+  const isoDay = value.slice(0, 10)
+  const dayOnly = new Date(isoDay)
+  return Number.isFinite(dayOnly.getTime()) && dayOnly.toISOString().slice(0, 10) === isoDay &&
+    Number.isFinite(Date.parse(value))
 }
 
 export function auditDecisionEvidence(
@@ -76,7 +79,7 @@ export function auditDecisionEvidence(
     if (!hasOutcome) counters.outcome++
     if (!validDate) counters.date++
     if (!traceable) counters.traceability++
-    if (!usable) counters.quality++
+    if (completeReasoning && hasOutcome && validDate && traceable && !usable) counters.quality++
     if (!(completeReasoning && hasOutcome && validDate && traceable && usable)) continue
 
     qualified.push(record)

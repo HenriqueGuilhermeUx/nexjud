@@ -7,6 +7,7 @@ import { searchSimilarCasesDatajud } from "@/services/realJurisprudenceService"
 import { datajudCasesToEvidence } from "@/intelligence/adapters/datajudEvidenceAdapter"
 import { evidenceStore } from "@/intelligence/evidenceStore"
 import { buildObservedDecisionPattern } from "@/intelligence/decisionPattern"
+import { auditDecisionEvidence, type DecisionEvidenceAudit } from "@/intelligence/decisionEvidenceAudit"
 
 export default function DecisionIntelligence() {
   const { user } = useAuth()
@@ -17,16 +18,24 @@ export default function DecisionIntelligence() {
   const [lawyerArgument, setLawyerArgument] = useState("")
   const [process, setProcess] = useState<any>(null)
   const [evidence, setEvidence] = useState<any>(null)
-  const [observedPattern, setObservedPattern] = useState<any>(null)
+  const [observedPattern, setObservedPattern] = useState<ReturnType<typeof buildObservedDecisionPattern>>(null)
+  const [audit, setAudit] = useState<DecisionEvidenceAudit | null>(null)
+  const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
 
   async function analyze() {
-    if (!cnj.trim()) { alert("Informe o número CNJ para começar."); return }
+    if (!cnj.trim()) { setMessage("Informe o número CNJ para começar."); return }
     setLoading(true)
+    setMessage("")
+    // A failed or changed search must never display stale results as the new case.
+    setProcess(null)
+    setEvidence(null)
+    setObservedPattern(null)
+    setAudit(null)
     try {
       const tribunal = alias || detectTribunalAliasFromCnj(cnj)
       const found = await searchProcessDatajud(cnj, tribunal, user?.id)
-      if (!found.found || !found.process) { alert("Processo não localizado no DataJud para este tribunal."); return }
+      if (!found.found || !found.process) { setMessage("Processo não localizado no DataJud para este tribunal."); return }
       setProcess(found.process)
       const base = caseText.trim() || buildCaseTextFromDatajud(found.process)
       setCaseText(base)
@@ -34,17 +43,24 @@ export default function DecisionIntelligence() {
         cnj, tribunalAlias: tribunal, classe: found.process.className, assunto: found.process.subject,
       })
       const normalized = datajudCasesToEvidence(similar.cases || [], tribunal)
+      const reviewed = auditDecisionEvidence(normalized, {
+        court: found.process.court || tribunal,
+        judgingBody: found.process.courtUnit,
+      })
       await evidenceStore.put(normalized)
-      setObservedPattern(buildObservedDecisionPattern(normalized))
+      setAudit(reviewed)
+      setObservedPattern(reviewed.enoughForDescriptivePattern
+        ? buildObservedDecisionPattern(reviewed.comparableEvidence)
+        : null)
       setEvidence({ prediction: similar.prediction, cases: similar.cases || [], normalized, argument: lawyerArgument.trim() })
     } catch (error) {
       console.error(error)
-      alert("Não foi possível concluir a análise agora. Os dados disponíveis não serão apresentados como previsão.")
+      setMessage("Não foi possível concluir a análise agora. Nenhum resultado anterior será apresentado como se fosse desta consulta.")
     } finally { setLoading(false) }
   }
 
   const p = evidence?.prediction
-  const sample = observedPattern?.decisionsAnalyzed ?? 0
+  const sample = audit?.comparableDecisions ?? 0
   const recordsFound = evidence?.cases?.length ?? 0
 
   return <div className="min-h-screen bg-background text-foreground">
@@ -58,36 +74,74 @@ export default function DecisionIntelligence() {
       <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6 space-y-4">
         <h2 className="font-bold text-xl">Por onde quer começar?</h2>
         <div className="grid lg:grid-cols-4 gap-3">
-          <input value={cnj} onChange={e=>setCnj(formatCnj(e.target.value))} placeholder="Número CNJ" className="lg:col-span-2 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
-          <input value={alias} onChange={e=>setAlias(e.target.value.toLowerCase())} placeholder="Tribunal: tjsp, trt2..." className="rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
+          <input value={cnj} onChange={e=>{ setCnj(formatCnj(e.target.value)); setEvidence(null); setAudit(null); setObservedPattern(null) }} placeholder="Número CNJ" className="lg:col-span-2 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
+          <input value={alias} onChange={e=>{ setAlias(e.target.value.toLowerCase()); setEvidence(null); setAudit(null); setObservedPattern(null) }} placeholder="Tribunal: tjsp, trt2..." className="rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
           <button onClick={analyze} disabled={loading} className="rounded-xl bg-primary text-white font-bold p-4 disabled:opacity-50 flex items-center justify-center gap-2"><Search size={18}/>{loading?"LOCALIZANDO...":"ANALISAR PROCESSO"}</button>
         </div>
         <textarea value={caseText} onChange={e=>setCaseText(e.target.value)} placeholder="Opcional: complemente fatos, pedidos e teses que não estejam claros nos dados públicos." className="w-full h-32 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
         <textarea value={lawyerArgument} onChange={e=>setLawyerArgument(e.target.value)} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
       </section>
 
+      {message && <p role="alert" className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-sm text-amber-200">{message}</p>}
       {!evidence ? <section className="rounded-2xl border border-dashed border-[#343442] p-8 text-center">
         <Database className="mx-auto text-gray-500 mb-3"/>
         <h2 className="font-bold text-xl">Vamos começar pelo processo</h2>
         <p className="text-gray-500 mt-2">Informe o número do processo. Quando localizarmos registros relacionados, mostraremos a quantidade recuperada e se há decisões com fundamentação suficiente para análise.</p>
       </section> : <>
         <section className="grid md:grid-cols-4 gap-4">
-          <Box label="Decisões com evidência suficiente" value={String(sample)} />
-          <Box label="Registros encontrados" value={String(recordsFound)} />
-          <Box label="Período das decisões qualificadas" value={observedPattern?.period || "Não disponível"} />
-          <Box label="Origem dos registros" value="DataJud/CNJ" />
+          <Box label="Registros processuais recuperados" value={String(recordsFound)} />
+          <Box label="Decisões documentadas na busca" value={String(audit?.qualifiedDecisions ?? 0)} />
+          <Box label="Decisões comparáveis ao juízo" value={String(sample)} />
+          <Box label="Período de decisões comparáveis" value={audit?.period || "Não identificado"} />
         </section>
         <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
           <h2 className="font-bold text-xl flex items-center gap-2"><Scale className="text-primary"/> O que encontramos</h2>
           <p className="text-gray-400 mt-2">Classe: {process?.className || "-"} · Assunto: {process?.subject || "-"} · Unidade: {process?.courtUnit || "-"}</p>
           <p className="text-sm text-gray-500 mt-3">{observedPattern?.warning || p?.warning || "Os registros encontrados servem como contexto, não como prova de tendência decisória ou probabilidade de êxito."}</p>
-          {!observedPattern && <p role="status" className="text-sm text-amber-300 mt-3">Dados insuficientes para identificar padrões decisórios verificáveis. Registros processuais não equivalem a decisões fundamentadas; não é possível estimar êxito, perfil do magistrado ou tendência com esta amostra.</p>}
+          {!observedPattern && <p role="status" className="text-sm text-amber-300 mt-3">
+            Não há amostra comparável suficiente para descrever padrões deste juízo. Exigimos, para uma
+            síntese exploratória, ao menos três decisões distintas do mesmo órgão, com fundamentação,
+            resultado, data e origem rastreável. Esse mínimo não garante representatividade
+            nem autoriza previsão de êxito ou de comportamento do magistrado.
+          </p>}
           {observedPattern && <p className="text-sm text-gray-400 mt-3">Base estruturada: {observedPattern.decisionsAnalyzed} decisões públicas normalizadas{observedPattern.period ? ` · ${observedPattern.period}` : ""}. Cada padrão mantém vínculo com as decisões que o sustentam.</p>}
         </section>
+        {audit && <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6 space-y-4" aria-label="Auditoria das evidências">
+          <h2 className="font-bold text-xl">Auditoria das fontes e limitações</h2>
+          <p className="text-sm text-gray-400">
+            {audit.distinctRecords} registro(s) distinto(s) após excluir {audit.duplicateRecords} duplicata(s).
+            O DataJud oferece metadados processuais; eles não são, por si, decisões com inteiro teor.
+            A análise não identifica automaticamente convergência ou divergência da sua tese.
+          </p>
+          {audit.gaps.length > 0 && <ul className="space-y-3">
+            {audit.gaps.map(gap => <li key={gap.label} className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-sm">
+              <strong className="text-amber-200">{gap.label}: {gap.count}</strong>
+              <p className="mt-1 text-gray-400">{gap.guidance}</p>
+            </li>)}
+          </ul>}
+          <h3 className="font-semibold">Registros para conferência de origem</h3>
+          {audit.review.length === 0 && <p className="text-sm text-gray-500">Nenhum registro recuperado para conferência.</p>}
+          {audit.review.length > 0 && <ul className="space-y-2">
+            {audit.review.map((item, index) => <li key={item.id + "-" + index} className="rounded-xl border border-[#2a2a35] p-3 text-sm">
+              <p className="font-medium text-gray-200">{item.processNumber || "Processo sem número verificável"}</p>
+              <p className="text-xs text-gray-400 mt-1">Origem: {item.source} · Tribunal: {item.court || "não identificado"} · Órgão: {item.judgingBody || "não identificado"}</p>
+              <p className="text-xs text-gray-400">ID da fonte: {item.documentReference || item.id || "não disponível"} · Data da decisão: {item.decisionDate || "não identificada"}</p>
+              <p className={item.qualified ? "text-xs text-emerald-300 mt-1" : "text-xs text-amber-300 mt-1"}>
+                {item.qualified ? "Metadados e fundamentação disponíveis para revisão" : "Registro apenas contextual; não qualificado para padrão decisório"}
+              </p>
+            </li>)}
+          </ul>}
+        </section>}
         {observedPattern && <section className="grid lg:grid-cols-3 gap-4">
-          <Insight icon={<Target/>} title="O que favorece sua tese" text="Veja quais fatos, pedidos e fundamentos do seu caso também aparecem nas decisões encontradas. Confira sempre as decisões que sustentam a análise."/>
-          <Insight icon={<AlertTriangle/>} title="Pontos de atenção" text="Veja diferenças relevantes, fundamentos que não costumam ser acolhidos e pontos do seu caso que merecem reforço."/>
-          <Insight icon={<Brain/>} title="Como fortalecer o caso" text={lawyerArgument ? "Sua tese foi incluída na análise. Use as decisões encontradas para reforçar, ajustar ou delimitar o argumento." : "Acrescente uma tese ou argumento para tornar a análise mais útil à sua estratégia."}/>
+          <Insight icon={<Target/>} title="Teses citadas na amostra" text={observedPattern.recurringTheses.length
+            ? observedPattern.recurringTheses.slice(0, 5).map(item => `${item.label} (${item.count})`).join("; ")
+            : "Nenhuma tese estruturada foi identificada com fonte suficiente."}/>
+          <Insight icon={<AlertTriangle/>} title="Resultados documentados" text={observedPattern.observedOutcomes.length
+            ? observedPattern.observedOutcomes.slice(0, 5).map(item => `${item.label} (${item.count})`).join("; ")
+            : "Nenhum resultado estruturado disponível."}/>
+          <Insight icon={<Brain/>} title="Comparação com sua tese" text={lawyerArgument.trim()
+            ? "Você informou um argumento, mas ainda não foi realizado confronto semântico verificável com a fundamentação. Confira os documentos originais."
+            : "Inclua fatos e argumentos para preparar a revisão profissional; ainda não há comparação automática comprovada."}/>
         </section>}
       </>}
 

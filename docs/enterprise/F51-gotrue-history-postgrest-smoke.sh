@@ -12,7 +12,12 @@ OUT=$(mktemp)
 trap 'rm -f "$OUT"' EXIT
 
 history() {
-  local bearer="$1" body="${2:-{\"p_organization\":\"$ORG\",\"p_limit\":20}}"
+  local bearer="$1" body
+  if [ "$#" -ge 2 ]; then
+    body="$2"
+  else
+    body=$(printf '{"p_organization":"%s","p_limit":20}' "$ORG")
+  fi
   curl -sS -o "$OUT" -w '%{http_code}' --max-time 15 \
     -X POST "$BASE/rpc/enterprise_import_history" \
     -H 'Content-Type: application/json' \

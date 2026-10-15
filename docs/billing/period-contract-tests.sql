@@ -1,4 +1,7 @@
 -- Fails fast with ON_ERROR_STOP=1. Synthetic users only.
+-- IMPORTANT: all settlement assertions run as the actual service_role, NOT a superuser.
+begin;
+set local role service_role;
 do $t$
 declare
   u uuid := '11111111-1111-4111-8111-111111111111';
@@ -73,6 +76,7 @@ begin
   end if;
 end
 $t$;
+commit;
 -- RLS: the first user must not read another user's orders or subscription.
 begin;
 set local role authenticated;
@@ -83,5 +87,11 @@ begin
   if (select count(*) from public.payment_orders where user_id='22222222-2222-4222-8222-222222222222')<>0 then
     raise exception 'RLS order leak';
   end if;
+  begin
+    perform public.nexjud_settle_paid_order('synthetic-other','{}');
+    raise exception 'SECURITY: authenticated client executed settlement RPC';
+  exception
+    when insufficient_privilege then null;
+  end;
 end $t$;
 rollback;

@@ -33,6 +33,8 @@ on:
       - 'docs/enterprise/F42-edge-handler-postgrest-smoke.ts'
       - 'docs/enterprise/F43-gotrue-auth-postgrest-smoke.sh'
       - 'docs/enterprise/F44-gotrue-edge-http-smoke.ts'
+      - 'docs/enterprise/F46-tenant-case-links-staging.sql'
+      - 'docs/enterprise/F47-case-link-schema-security-tests.sql'
       - 'supabase/functions/enterprise-case-import/**'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
@@ -110,8 +112,12 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F32-import-gateway-proposta.sql
       - name: Verify gateway fingerprint and authorization
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F33-import-gateway-tests.sql
-      - name: Install isolated legacy case fixture and private links
+      - name: Install disposable legacy case fixture
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F34-legacy-case-link-fixture.sql
+      - name: Install review-only legacy-safe case-link schema
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F46-tenant-case-links-staging.sql
+      - name: Verify private links schema and unchanged owner policy
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F47-case-link-schema-security-tests.sql
       - name: Upgrade private RPC to link imported cases atomically
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F36-linked-import-rpc-proposta.sql
       - name: Verify case linking, legacy RLS, tenant isolation and rollback

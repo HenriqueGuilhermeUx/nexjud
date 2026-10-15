@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { getSupabase } from "@/lib/supabase"
 import { MAX_IMPORT_BYTES, parseEnterpriseCsv, type EnterpriseCsvItem } from "@/enterprise/csvImport"
 import EnterpriseImportedCases from "@/components/EnterpriseImportedCases"
+import EnterpriseImportHistory from "@/components/EnterpriseImportHistory"
 import { enterpriseImportErrorMessage } from "@/enterprise/importUiError"
 
 type Organization = { id: string; name: string; role: "owner" | "admin" | "legal" }
@@ -200,6 +201,7 @@ export default function EnterpriseImport({ mode = "web" }: { mode?: "web" | "pwa
       {result && <p role={completed ? "status" : "alert"} className="rounded-lg bg-slate-800 p-3 text-sm">{result}</p>}
       {completed && <Link to={casesTo} className="inline-block text-indigo-200 underline">Conferir meus casos jurídicos</Link>}
       {accessState === "ready" && organizationId && <EnterpriseImportedCases organizationId={organizationId} mode={mode} refresh={completed} />}
+      {accessState === "ready" && organizationId && <EnterpriseImportHistory organizationId={organizationId} refresh={completed} />}
     </div>
   </main>
 }

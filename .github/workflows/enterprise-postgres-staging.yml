@@ -35,6 +35,8 @@ on:
       - 'docs/enterprise/F44-gotrue-edge-http-smoke.ts'
       - 'docs/enterprise/F46-tenant-case-links-staging.sql'
       - 'docs/enterprise/F47-case-link-schema-security-tests.sql'
+      - 'docs/enterprise/F49-actor-import-history.sql'
+      - 'docs/enterprise/F50-actor-import-history-tests.sql'
       - 'supabase/functions/enterprise-case-import/**'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:
@@ -122,6 +124,10 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F36-linked-import-rpc-proposta.sql
       - name: Verify case linking, legacy RLS, tenant isolation and rollback
         run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F37-linked-import-tests.sql
+      - name: Install private actor-scoped history gateway
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F49-actor-import-history.sql
+      - name: Verify history actor isolation, revocation and deleted case evidence
+        run: psql -v ON_ERROR_STOP=1 -f docs/enterprise/F50-actor-import-history-tests.sql
       - name: Setup pinned Deno runtime for Edge Function
         uses: denoland/setup-deno@v2
         with:

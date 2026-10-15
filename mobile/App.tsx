@@ -687,28 +687,28 @@ function CourtAnalysisScreen({ route, navigation }: any) {
 
   return <ScrollView style={styles.safe} contentContainerStyle={styles.page}>
     <Pressable onPress={() => navigation.goBack()}><Text style={styles.linkTextSmall}>← Voltar</Text></Pressable>
-    <ScreenTitle eyebrow="ANÁLISE DO JUÍZO" title="Como este juízo costuma decidir casos como o seu?" subtitle="Compare o processo com decisões públicas relevantes e confira as evidências que sustentam a análise." />
+    <ScreenTitle eyebrow="ANÁLISE DO JUÍZO" title="Confira o contexto do seu processo" subtitle="Consulte os registros DataJud. Fundamentos judiciais só são comparáveis quando existe decisão original identificável." />
     <View style={styles.card}>
       <TextInput style={styles.input} placeholder="Número CNJ" placeholderTextColor={colors.muted} value={cnj} onChangeText={setCnj} autoCapitalize="none" />
       <TextInput style={[styles.input, styles.textareaSmall]} placeholder="Opcional: tese, argumento ou ponto que você quer testar" placeholderTextColor={colors.muted} multiline value={thesis} onChangeText={setThesis} />
       <Button label={loading ? "ANALISANDO..." : "ANALISAR PROCESSO"} onPress={analyze} disabled={loading} icon={loading ? <ActivityIndicator color="#fff" /> : <Search color="#fff" size={18} />} />
     </View>
     {errorText ? <View style={styles.card}><View style={styles.inline}><CircleAlert color={colors.warning} size={20}/><Text style={styles.cardTitle}>Não foi possível analisar agora</Text></View><Text style={styles.helper}>{errorText}</Text></View> : null}
-    {!result ? <Empty title="Comece pelo número do processo" text="A NexJud mostrará a amostra, o período e as decisões públicas que sustentam cada padrão observado." /> : <>
+    {!result ? <Empty title="Comece pelo número do processo" text="Informe um CNJ para consultar dados públicos. Registros DataJud não são o inteiro teor de sentenças." /> : <>
       <View style={styles.metricsRow}>
-        <Metric value={sample} label="Analisadas" icon={<Scale color={colors.primary} size={18} />} />
-        <Metric value={found} label="Encontradas" icon={<FileSearch color={colors.primary} size={18} />} />
+        <Metric value={sample} label="Decisões verificadas" icon={<Scale color={colors.primary} size={18} />} />
+        <Metric value={found} label="Registros processuais" icon={<FileSearch color={colors.primary} size={18} />} />
         <Metric value={result?.period || "—"} label="Período" icon={<CalendarDays color={colors.primary} size={18} />} />
       </View>
       <AnalysisBlock title="O que favorece sua tese" items={favorable} icon={<CheckCircle2 color={colors.success} size={20} />} />
       <AnalysisBlock title="Pontos de atenção" items={attention} icon={<CircleAlert color={colors.warning} size={20} />} />
       <AnalysisBlock title="Como fortalecer o caso" items={opportunities} icon={<Sparkles color={colors.primary} size={20} />} />
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Decisões que sustentam a análise</Text>
-        {evidence.length ? evidence.slice(0, 10).map((item: any, index: number) => <View key={item.id || index} style={styles.rowCard}><FileText color={colors.primary} size={18} /><View style={{flex:1}}><Text style={styles.body}>{item.processNumber || item.title || `Decisão ${index + 1}`}</Text><Text style={styles.helper}>{item.court || item.judgingBody || "Fonte pública"}</Text></View></View>) : <Text style={styles.helper}>Nenhuma decisão estruturada foi retornada para exibição.</Text>}
+        <Text style={styles.cardTitle}>Registros de origem DataJud — conferência documental pendente</Text>
+        {evidence.length ? evidence.slice(0, 10).map((item: any, index: number) => <View key={item.id || index} style={styles.rowCard}><FileText color={colors.primary} size={18} /><View style={{flex:1}}><Text style={styles.body}>{item.processNumber || item.title || `Registro ${index + 1}`}</Text><Text style={styles.helper}>{item.court || item.judgingBody || "Fonte pública"}</Text></View></View>) : <Text style={styles.helper}>Nenhum registro processual adicional retornado.</Text>}
       </View>
     </>}
-    <Text style={styles.disclaimer}>A NexJud analisa padrões observados em decisões públicas. Não prevê nem garante o resultado do processo.</Text>
+    <Text style={styles.disclaimer}>Os registros do DataJud trazem metadados processuais, não fundamentação integral. A NexJud não prevê nem garante resultado; confira o documento original.</Text>
   </ScrollView>
 }
 

@@ -3,13 +3,15 @@ begin;
 insert into auth.users(id) values
  ('a1111111-1111-4111-8111-111111111111'),
  ('b2222222-2222-4222-8222-222222222222'),
- ('c3333333-3333-4333-8333-333333333333');
+ ('c3333333-3333-4333-8333-333333333333'),
+ ('e4444444-4444-4444-8444-444444444444');
 insert into public.enterprise_organizations(id,name,created_by) values
  ('d1111111-1111-4111-8111-111111111111','Org One','a1111111-1111-4111-8111-111111111111'),
  ('d2222222-2222-4222-8222-222222222222','Org Two','b2222222-2222-4222-8222-222222222222');
 insert into public.enterprise_memberships(organization_id,user_id,role) values
  ('d1111111-1111-4111-8111-111111111111','a1111111-1111-4111-8111-111111111111','admin'),
  ('d1111111-1111-4111-8111-111111111111','c3333333-3333-4333-8333-333333333333','reader'),
+ ('d1111111-1111-4111-8111-111111111111','e4444444-4444-4444-8444-444444444444','legal'),
  ('d2222222-2222-4222-8222-222222222222','b2222222-2222-4222-8222-222222222222','owner');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','a1111111-1111-4111-8111-111111111111',true);
@@ -34,6 +36,37 @@ begin
   end;
   if not v_duplicate_denied then raise exception 'duplicate external id accepted'; end if;
 end $verify$;
+-- A second authorized professional in the SAME organization cannot
+-- obtain the first importer's receipt by replaying an identical tenant/key.
+select set_config('request.jwt.claim.sub','e4444444-4444-4444-8444-444444444444',true);
+do $other_actor$
+declare
+  v_denied boolean := false;
+  v_denied_changed boolean := false;
+  v_count_before integer;
+  v_items jsonb := '[{"externalId":"client-case-1","sourceSystem":"crm","cnjDigits":"00000000002026826000"}]';
+begin
+  select count(*) into v_count_before from public.enterprise_import_batches
+    where organization_id='d1111111-1111-4111-8111-111111111111';
+  begin
+    perform public.enterprise_import_cases(
+      'd1111111-1111-4111-8111-111111111111', 'import-A', v_items);
+  exception when insufficient_privilege then v_denied := true;
+  end;
+  begin
+    perform public.enterprise_import_cases(
+      'd1111111-1111-4111-8111-111111111111','import-A',
+      '[{"externalId":"different","sourceSystem":"crm","cnjDigits":"00000000002026826000"}]'::jsonb);
+  exception when insufficient_privilege then v_denied_changed := true;
+  end;
+  if not v_denied or not v_denied_changed then
+    raise exception 'second member can access the first importer receipt';
+  end if;
+  if (select count(*) from public.enterprise_import_batches
+      where organization_id='d1111111-1111-4111-8111-111111111111') <> v_count_before
+  then raise exception 'replayed actor unexpectedly created a batch'; end if;
+end $other_actor$;
+select set_config('request.jwt.claim.sub','a1111111-1111-4111-8111-111111111111',true);
 -- Legacy view remains strictly personal despite tenant membership.
 do $verify$
 begin

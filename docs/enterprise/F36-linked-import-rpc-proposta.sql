@@ -20,6 +20,7 @@ declare
   v_role text;
   v_batch uuid;
   v_existing_fingerprint text;
+  v_existing_actor uuid;
   v_receipt jsonb;
   v_count integer;
   v_item record;
@@ -43,11 +44,16 @@ begin
   on conflict (organization_id,idempotency_key) do nothing
   returning id into v_batch;
   if v_batch is null then
-    select fingerprint,receipt into v_existing_fingerprint,v_receipt
+    select fingerprint,receipt,actor_id into v_existing_fingerprint,v_receipt,v_existing_actor
       from public.enterprise_import_batches
       where organization_id=p_organization and idempotency_key=btrim(p_key);
     if v_existing_fingerprint is null then
       raise exception 'concurrent import retry required' using errcode='40001';
+    end if;
+    -- A tenant member must not learn another member's replay receipt
+    -- (it includes actor identity), even with the same input payload.
+    if v_existing_actor is distinct from v_actor then
+      raise exception 'forbidden' using errcode='42501';
     end if;
     if v_existing_fingerprint <> p_fingerprint then
       raise exception 'idempotency conflict' using errcode='23505';

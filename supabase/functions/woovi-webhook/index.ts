@@ -1,39 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
-
-function findCorrelationID(body: any) {
-  const candidates = [
-    body?.charge?.correlationID,
-    body?.charge?.correlationId,
-    body?.charge?.identifier,
-    body?.pixCharge?.correlationID,
-    body?.pixCharge?.correlationId,
-    body?.transaction?.charge?.correlationID,
-    body?.transaction?.charge?.correlationId,
-    body?.transaction?.correlationID,
-    body?.transaction?.correlationId,
-    body?.correlationID,
-    body?.correlationId,
-  ]
-  return String(candidates.find(Boolean) || "")
-}
-
-function isPaidEvent(body: any) {
-  const event = String(body?.event || body?.evento || "").toUpperCase()
-  const status = String(
-    body?.charge?.status || body?.pixCharge?.status || body?.transaction?.status || body?.status || ""
-  ).toUpperCase()
-
-  return (
-    event === "OPENPIX:TRANSACTION_RECEIVED" ||
-    event === "OPENPIX:CHARGE_COMPLETED" ||
-    event.includes("TRANSACTION_RECEIVED") ||
-    status === "COMPLETED" ||
-    status === "PAID" ||
-    status === "CONFIRMED" ||
-    status === "APPROVED"
-  )
-}
+import { findCorrelationID, isPaidEvent, amountMatchesSignedCharge, keepExistingPaidPlan, validPaidPlan } from "../_shared/wooviWebhookPolicy.ts"
 
 function toBase64(bytes: ArrayBuffer) {
   let binary = ""
@@ -67,13 +34,6 @@ Deno.serve(async (req) => {
     }
 
     const rawBody = await req.text()
-    const body = JSON.parse(rawBody || "{}")
-
-    // Woovi sends a connectivity test when the webhook is configured.
-    if (body.evento === "teste_webhook" || body.event === "teste_webhook") {
-      return Response.json({ ok: true, test: true })
-    }
-
     const webhookSecret = Deno.env.get("WOOVI_WEBHOOK_SECRET") || ""
     const signature = req.headers.get("x-openpix-signature") || req.headers.get("X-OpenPix-Signature") || ""
 
@@ -82,6 +42,11 @@ Deno.serve(async (req) => {
     }
     if (!signature || !(await verifyHmac(rawBody, signature, webhookSecret))) {
       return Response.json({ ok: false, error: "invalid_webhook_signature" }, { status: 401 })
+    }
+    // Parse only after verifying the raw bytes. Never exempt test events from signature verification.
+    const body = JSON.parse(rawBody || "{}")
+    if (body.evento === "teste_webhook" || body.event === "teste_webhook") {
+      return Response.json({ ok: true, test: true })
     }
 
     if (!isPaidEvent(body)) {
@@ -114,45 +79,48 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, ignored: true, reason: "order_not_found", correlationID })
     }
 
-    if (order.status === "paid") {
-      return Response.json({
-        ok: true,
-        activated: true,
-        duplicate: true,
-        user_id: order.user_id,
-        plan: order.plan,
-        correlationID,
-      })
+    if (!validPaidPlan(order.plan) || !amountMatchesSignedCharge(body, order.amount_cents)) {
+      return Response.json({ ok: false, error: "payment_order_mismatch" }, { status: 422 })
     }
 
     const now = new Date().toISOString()
+    const { data: currentSubscription, error: readError } = await supabase
+      .from("subscriptions")
+      .select("plan,status,active")
+      .eq("user_id", order.user_id)
+      .maybeSingle()
+    if (readError) throw readError
 
-    const { error: orderUpdateError } = await supabase
-      .from("payment_orders")
-      .update({ status: "paid", paid_at: now, raw: body })
-      .eq("id", order.id)
-      .neq("status", "paid")
-    if (orderUpdateError) throw orderUpdateError
+    const keepCurrent = keepExistingPaidPlan(currentSubscription, order.plan)
+    if (order.status === "paid" && keepCurrent) {
+      return Response.json({ ok: true, activated: true, duplicate: true })
+    }
 
-    const { error: subscriptionError } = await supabase.from("subscriptions").upsert({
-      user_id: order.user_id,
-      plan: order.plan,
-      status: "active",
-      active: true,
-      payment_provider: "woovi",
-      provider_subscription_id: correlationID,
-      updated_at: now,
-    }, { onConflict: "user_id" })
-    if (subscriptionError) throw subscriptionError
+    // Activate the subscription FIRST. If this fails, leave the charge pending
+    // so Woovi retries can complete the operation. Never acknowledge partial activation.
+    if (!keepCurrent) {
+      const { error: subscriptionError } = await supabase.from("subscriptions").upsert({
+        user_id: order.user_id,
+        plan: order.plan,
+        status: "active",
+        active: true,
+        payment_provider: "woovi",
+        provider_subscription_id: correlationID,
+        updated_at: now,
+      }, { onConflict: "user_id" })
+      if (subscriptionError) throw subscriptionError
+    }
 
-    return Response.json({
-      ok: true,
-      activated: true,
-      duplicate: false,
-      user_id: order.user_id,
-      plan: order.plan,
-      correlationID,
-    })
+    if (order.status !== "paid") {
+      const { error: orderUpdateError } = await supabase
+        .from("payment_orders")
+        .update({ status: "paid", paid_at: now, raw: body })
+        .eq("id", order.id)
+        .neq("status", "paid")
+      if (orderUpdateError) throw orderUpdateError
+    }
+
+    return Response.json({ ok: true, activated: true, duplicate: order.status === "paid" })
   } catch (error) {
     return Response.json(
       { ok: false, error: error instanceof Error ? error.message : "Erro webhook" },

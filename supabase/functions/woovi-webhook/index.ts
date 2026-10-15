@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
-import { findCorrelationID, isPaidEvent, amountMatchesSignedCharge, keepExistingPaidPlan, validPaidPlan, activateSignedPaidOrder } from "../_shared/wooviWebhookPolicy.ts"
+import { findCorrelationID, isPaidEvent, amountMatchesSignedCharge, validPaidPlan } from "../_shared/wooviWebhookPolicy.ts"
 
 function toBase64(bytes: ArrayBuffer) {
   let binary = ""
@@ -83,47 +83,16 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: "payment_order_mismatch" }, { status: 422 })
     }
 
-    const now = new Date().toISOString()
-    const { data: currentSubscription, error: readError } = await supabase
-      .from("subscriptions")
-      .select("plan,status,active")
-      .eq("user_id", order.user_id)
-      .maybeSingle()
-    if (readError) throw readError
-
-    const keepCurrent = keepExistingPaidPlan(currentSubscription, order.plan)
-    if (order.status === "paid" && keepCurrent) {
-      return Response.json({ ok: true, activated: true, duplicate: true })
-    }
-
-    // The sequence is unit-tested with injected writes. A failing subscription
-    // operation never marks the payment paid; provider retries can recover.
-    const reconciliation = await activateSignedPaidOrder({
-      orderAlreadyPaid: order.status === "paid",
-      keepCurrentPlan: keepCurrent,
-      activateSubscription: async () => {
-        const { error } = await supabase.from("subscriptions").upsert({
-          user_id: order.user_id,
-          plan: order.plan,
-          status: "active",
-          active: true,
-          payment_provider: "woovi",
-          provider_subscription_id: correlationID,
-          updated_at: now,
-        }, { onConflict: "user_id" })
-        if (error) throw error
-      },
-      markOrderPaid: async () => {
-        const { error } = await supabase
-          .from("payment_orders")
-          .update({ status: "paid", paid_at: now, raw: body })
-          .eq("id", order.id)
-          .neq("status", "paid")
-        if (error) throw error
-      },
-    })
-
-    return Response.json({ ok: true, activated: true, duplicate: reconciliation.duplicate })
+    // Atomic settlement (single Postgres transaction): service_role-only RPC.
+    // Requires reviewed paid-period SQL to be deployed BEFORE this Edge Function.
+    // If the function is missing or fails, do NOT acknowledge success.
+    const { data: settlement, error: settlementError } = await supabase.rpc(
+      "nexjud_settle_paid_order",
+      { p_correlation_id: correlationID, p_payment_metadata: body },
+    )
+    if (settlementError) throw settlementError
+    if (!settlement?.paid) throw new Error("payment_settlement_unconfirmed")
+    return Response.json({ ok: true, activated: true, duplicate: settlement.duplicate === true })
   } catch (error) {
     return Response.json(
       { ok: false, error: error instanceof Error ? error.message : "Erro webhook" },

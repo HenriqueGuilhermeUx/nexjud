@@ -143,7 +143,7 @@ export default function PricingPage() {
         <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-indigo-500/10 to-[#05050a] p-8 text-center">
           <h1 className="text-4xl font-bold">Escolha seu plano NexJud</h1>
           <p className="text-muted-foreground mt-3 max-w-3xl mx-auto">
-            Comece com 7 dias grátis. Depois escolha o nível de inteligência jurídica ideal para sua operação.
+            Comece com 7 dias grátis. Cada Pix confirmado corresponde a um mês de acesso ao plano escolhido. A renovação não é automática nesta modalidade.
           </p>
         </section>
 
@@ -223,6 +223,12 @@ export default function PricingPage() {
             className="mt-2 w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary"
           />
         </section>
+
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-5 py-4 text-sm text-amber-100">
+          Importante: este checkout gera uma cobrança Pix avulsa para um período mensal.
+          Não realiza Pix Automático nem débito recorrente. A continuidade após o vencimento
+          depende de nova cobrança confirmada. Consulte os termos de uso antes de pagar.
+        </p>
 
         <section className="grid lg:grid-cols-4 gap-5">
           {plans.map((plan) => {

@@ -32,6 +32,7 @@ on:
       - 'docs/enterprise/F41-postgrest-http-smoke.sh'
       - 'docs/enterprise/F42-edge-handler-postgrest-smoke.ts'
       - 'docs/enterprise/F43-gotrue-auth-postgrest-smoke.sh'
+      - 'docs/enterprise/F44-gotrue-edge-http-smoke.ts'
       - 'supabase/functions/enterprise-case-import/**'
       - '.github/workflows/enterprise-postgres-staging.yml'
   workflow_dispatch:

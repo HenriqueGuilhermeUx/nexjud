@@ -170,3 +170,15 @@ if [ "$reader_case_count" != "1" ]; then
   exit 1
 fi
 echo "GoTrue Auth + signed JWT + PostgREST + Enterprise SQL PASS"
+OWNER_JWT="$OWNER_JWT" READER_JWT="$READER_JWT" \
+ deno run --allow-net=127.0.0.1:9999,127.0.0.1:3017 \
+ --allow-env=OWNER_JWT,READER_JWT docs/enterprise/F44-gotrue-edge-http-smoke.ts
+owner_case_count=$(psql -v ON_ERROR_STOP=1 -v owner="$OWNER_ID" -At <<'SQL'
+select count(*) from public.legal_cases where user_id=:'owner'::uuid;
+SQL
+)
+if [ "$owner_case_count" != "2" ]; then
+  echo "GoTrue/Deno HTTP handler did not create exactly one additional owner case"
+  exit 1
+fi
+echo "NexJud Enterprise Auth and Edge handler end-to-end isolated PASS"

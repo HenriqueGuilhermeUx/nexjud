@@ -12,12 +12,14 @@ create role nexjud_http_fixture login password 'test-only-http-db-pw' noinherit;
 grant anon, authenticated to nexjud_http_fixture;
 insert into auth.users(id) values
  ('a7171717-1717-4717-8717-171717171717'),
- ('b8181818-1818-4818-8818-181818181818');
+ ('b8181818-1818-4818-8818-181818181818'),
+ ('e9292929-2929-4929-8929-292929292929');
 insert into public.enterprise_organizations(id,name,created_by)
  values ('c9191919-1919-4919-8919-191919191919','HTTP-only tenant','a7171717-1717-4717-8717-171717171717');
 insert into public.enterprise_memberships(organization_id,user_id,role) values
  ('c9191919-1919-4919-8919-191919191919','a7171717-1717-4717-8717-171717171717','admin'),
- ('c9191919-1919-4919-8919-191919191919','b8181818-1818-4818-8818-181818181818','reader');
+ ('c9191919-1919-4919-8919-191919191919','b8181818-1818-4818-8818-181818181818','reader'),
+ ('c9191919-1919-4919-8919-191919191919','e9292929-2929-4929-8929-292929292929','legal');
 SQL
 docker run -d --rm --net host --name "$NAME" \
  -e PGRST_DB_URI="postgres://nexjud_http_fixture:test-only-http-db-pw@127.0.0.1:5432/postgres" \
@@ -46,6 +48,7 @@ PY
 }
 ADMIN_TOKEN=$(token 'a7171717-1717-4717-8717-171717171717')
 READER_TOKEN=$(token 'b8181818-1818-4818-8818-181818181818')
+PEER_TOKEN=$(token 'e9292929-2929-4929-8929-292929292929')
 PAYLOAD='{"p_organization":"c9191919-1919-4919-8919-191919191919","p_key":"http-smoke-1","p_items":[{"externalId":"http-one","sourceSystem":"smoke","cnjDigits":"00000000002026826000"}]}'
 OUT=$(mktemp)
 call() {
@@ -62,6 +65,8 @@ import json,sys
 v=json.load(open(sys.argv[1]))
 assert v["status"]=="created" and v["receipt"]["itemCount"]==1,v
 PY
+status=$(call "$PEER_TOKEN" "$PAYLOAD")
+[ "$status" = 403 ] || { echo "Same-tenant different actor accessed import receipt: $status $(cat "$OUT")"; exit 1; }
 status=$(call "$ADMIN_TOKEN" "$PAYLOAD")
 [ "$status" = 200 ] || { echo "Replay returned $status: $(cat "$OUT")"; exit 1; }
 python3 - "$OUT" <<'PY'
@@ -92,8 +97,8 @@ SQL
 echo "JWT/HTTP/PostgREST/PostgreSQL isolated import contract PASS"
 # Run the ACTUAL TypeScript handler against this same disposable PostgREST
 # instance. Fake identity only; authorization is still enforced by SQL JWT.
-ADMIN_TOKEN="$ADMIN_TOKEN" READER_TOKEN="$READER_TOKEN" \
- deno run --allow-net=127.0.0.1:3017 --allow-env=ADMIN_TOKEN,READER_TOKEN \
+ADMIN_TOKEN="$ADMIN_TOKEN" READER_TOKEN="$READER_TOKEN" PEER_TOKEN="$PEER_TOKEN" \
+ deno run --allow-net=127.0.0.1:3017 --allow-env=ADMIN_TOKEN,READER_TOKEN,PEER_TOKEN \
  docs/enterprise/F42-edge-handler-postgrest-smoke.ts
 psql -v ON_ERROR_STOP=1 <<'SQL'
 do $verify$

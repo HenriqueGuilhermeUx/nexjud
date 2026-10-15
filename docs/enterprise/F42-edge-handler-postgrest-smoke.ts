@@ -8,7 +8,8 @@ import {
 
 const admin = Deno.env.get("ADMIN_TOKEN")
 const reader = Deno.env.get("READER_TOKEN")
-if (!admin || !reader) throw new Error("Missing isolated JWT fixtures")
+const peer = Deno.env.get("PEER_TOKEN")
+if (!admin || !reader || !peer) throw new Error("Missing isolated JWT fixtures")
 const api = "http://127.0.0.1:3017/rpc/enterprise_import_cases"
 const endpoint = "https://nexjud.local/functions/v1/enterprise-case-import"
 const origin = "https://nexjud.local"
@@ -25,7 +26,7 @@ const base = {
 const runtime: ImportHttpRuntime = {
   allowedOrigins: [origin],
   configured: true,
-  verifyUser: async token => token === admin || token === reader,
+  verifyUser: async token => token === admin || token === reader || token === peer,
   async commit(token, payload) {
     const res = await fetch(api, {
       method: "POST",
@@ -88,6 +89,7 @@ await expectStatus(
 )
 await expectStatus("valid import", request(), 201)
 await expectStatus("idempotent replay", request(), 200)
+await expectStatus("same-tenant different actor cannot replay receipt", request(base, peer), 403)
 await expectStatus(
   "same idempotency key with changed case",
   request({ ...base, items: [{ ...base.items[0], externalId: "handler-two" }] }),

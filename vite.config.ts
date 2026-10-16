@@ -58,6 +58,13 @@ export default defineConfig({
             url: "/app/scanner",
             icons: [{ src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }],
           },
+          {
+            name: "Ferramentas avançadas",
+            short_name: "Ferramentas",
+            description: "Inteligência decisória, revisão e estratégia jurídica",
+            url: "/app/ferramentas",
+            icons: [{ src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }],
+          },
         ],
       },
       workbox: {

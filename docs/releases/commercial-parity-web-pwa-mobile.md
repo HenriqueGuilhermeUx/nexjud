@@ -19,3 +19,15 @@ Marcos isolados; não publicar tudo em produção sem confirmação dos checks.
 2. Assinaturas: registrar período pago e política de renovação/vencimento, ainda não implantados.
 3. Supabase: staging separado, RLS e APIs verificados com identidades de teste sem dados reais.
 4. Builds instaláveis assinados Android/iOS, TestFlight/Play Console e revisão das lojas.
+
+
+## Marco de publicação 2026-10-16 — paridade funcional acessível
+- Web: o Workspace mantém os módulos avançados existentes sem refazer sua implementação; permissões e assinaturas seguem o controle servidor/assinatura.
+- PWA: atalho “Ferramentas avançadas” no início, perfil e manifesto instalável, levando aos módulos reais do Workspace, e estado de assinatura validado conforme o mesmo helper do Web (trial nunca é pago).
+- Android: módulo “Ferramentas avançadas” abre os recursos completos no navegador oficial, com aviso de que pode ser necessário login no browser. Análise CNJ, casos, scanner, IA e agenda permanecem nativos. A tela de assinatura nunca classifica trial legado como plano pago.
+- Android Expo: versão 1.0.4, versionCode local 7 antes de eventual autoIncrement do EAS. É obrigatório confirmar que o código final supera o já publicado na Google Play.
+- Acesso externo aos módulos Web não significa paridade de telas inteiramente nativas; essa diferença deve permanecer transparente ao usuário.
+- **Não ativar cobrança/compra dentro do aplicativo Android**; seguir políticas de cobrança das lojas e revisão comercial.
+- Checagem de release: CI Web + CI Mobile verdes, Deploy Preview Web validado, login/rotas/autenticação testados em dispositivo, AAB release **assinado com chave de upload original**, fingerprint + package conferidos e instalação/upgrade testado.
+- Sem aprovação expressa do AAB no Play Console ou artifact do workflow não declarar app Android publicado. O iOS permanece para o próximo marco.
+- Pagamentos: **não homologar com assinantes legados** enquanto o guard da issue #74 não estiver validado. Nenhum pagamento real pode ser criado neste checklist.

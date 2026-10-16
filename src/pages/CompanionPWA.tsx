@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { getSupabase } from "@/lib/supabase"
+import { paidEntitlementCurrent } from "@/services/paidEntitlement"
 
 const colors = {
   bg: "#080A10",
@@ -253,6 +254,7 @@ function HomeScreenPWA({ userId, navigate }: { userId: string; navigate: (path: 
     ["Perguntar à IA", "Legal Brain contextual", Brain, "/app/ia"],
     ["Consultar casos", "Dossiês e estratégia", Briefcase, "/app/casos"],
     ["Preparar minuta", "Peças e documentos com IA", WandSparkles, "/app/studio"],
+    ["Ferramentas avançadas", "Análise e estratégia completas", Sparkles, "/app/ferramentas"],
   ] as const
 
   return <div className="space-y-5">
@@ -458,16 +460,59 @@ function AgendaScreenPWA({ userId }: { userId: string }) {
   </div>
 }
 
+const advancedWorkspaceTools = [
+  { title: "Análise do Juízo completa", description: "Evidências, amostra, auditoria e revisão das decisões", path: "/dashboard/decision-intelligence" },
+  { title: "Legal Intelligence", description: "Análise jurídica ampliada, conforme seu plano", path: "/dashboard/legal-intelligence-engine" },
+  { title: "Red Team", description: "Teste teses, argumentos e fragilidades", path: "/dashboard/red-team" },
+  { title: "Carteira processual", description: "Acompanhe processos e dossiês", path: "/dashboard/process-portfolio" },
+  { title: "Histórico das análises", description: "Consulte os registros que você decidiu salvar", path: "/dashboard/history" },
+  { title: "Estratégia de litígio", description: "Recursos empresariais sujeitos ao plano", path: "/dashboard/litigation-strategy" },
+] as const
+
+function AdvancedToolsPWA() {
+  return <div className="space-y-4">
+    <Back />
+    <ScreenTitle eyebrow="WORKSPACE NEXJUD" title="Ferramentas avançadas" subtitle="Abra as capacidades completas da NexJud sem perder seus casos e documentos. O acesso respeita seu plano e suas permissões." />
+    <div className="space-y-2">{advancedWorkspaceTools.map(tool => (
+      <Link key={tool.path} to={tool.path} className="flex items-center gap-3 rounded-[18px] border p-4" style={{ background: colors.card, borderColor: colors.border }}>
+        <Sparkles size={22} style={{ color: colors.primary }} />
+        <span className="flex-1"><span className="block font-bold" style={{ color: colors.text }}>{tool.title}</span><span className="mt-1 block text-xs leading-5" style={{ color: colors.muted }}>{tool.description}</span></span>
+        <ChevronRight size={19} style={{ color: colors.muted }} />
+      </Link>
+    ))}</div>
+    <p className="text-xs leading-5" style={{ color: colors.muted }}>Estas ferramentas abrem o Workspace completo dentro do navegador/PWA. Análises do DataJud não substituem o inteiro teor de decisões judiciais.</p>
+  </div>
+}
+
 function ProfileScreenPWA({ userId }: { userId: string }) {
   const { user, signOut } = useAuth()
   const [profile, setProfile] = useState<any>(null)
-
+  const [subscription, setSubscription] = useState<{ plan?: string; status?: string; active?: boolean; trial_end?: string | null; current_period_end?: string | null } | null>(null)
+  const [subscriptionError, setSubscriptionError] = useState(false)
+  const reloadPlan = async () => {
+    const { data, error } = await getSupabase().from("subscriptions")
+      .select("plan,status,active,trial_end,current_period_end").eq("user_id", userId).maybeSingle()
+    setSubscription(data)
+    setSubscriptionError(Boolean(error))
+  }
   useEffect(() => {
     getSupabase().from("profiles").select("*").eq("id", userId).maybeSingle().then(({ data }) => setProfile(data))
+    void reloadPlan()
   }, [userId])
+  const paidActive = paidEntitlementCurrent(subscription)
+  const trialActive = subscription?.status === "trialing" && subscription.active === true
+    && Boolean(subscription.trial_end && Date.parse(subscription.trial_end) > Date.now())
+  const planLabels: Record<string, string> = {
+    trial: "Teste gratuito", pro: "Pro", intelligence: "Intelligence",
+    enterprise: "Enterprise", enterprise_plus: "Enterprise Plus",
+  }
+  const statusLabel = subscriptionError ? "Falha ao consultar assinatura"
+    : paidActive ? "Plano ativo" : trialActive ? "Teste gratuito ativo"
+    : subscription ? "Acesso não ativo ou vencido" : "Assinatura não encontrada"
 
   const menu = [
     ["Abrir Workspace", "/dashboard"],
+    ["Ferramentas avançadas", "/app/ferramentas"],
     ["Gerenciar assinatura", "/pricing"],
     ["Política de Privacidade", "/privacy"],
     ["Termos de Uso", "/terms"],
@@ -479,6 +524,7 @@ function ProfileScreenPWA({ userId }: { userId: string }) {
     <img src="/icons/icon-512.png" alt="NexJud" className="h-16 w-16 rounded-[22px]" />
     <div><h1 className="text-[30px] font-extrabold" style={{ color: colors.text }}>{profile?.name || profile?.full_name || "Minha conta"}</h1><p className="mt-1 text-base" style={{ color: colors.muted }}>{user?.email}</p></div>
     <ShellCard className="flex items-center gap-3"><CheckCircle2 size={21} style={{ color: colors.success }} /><div><p className="font-bold" style={{ color: colors.text }}>NexJud sincronizado</p><p className="text-xs" style={{ color: colors.muted }}>Workspace e Companion compartilham conta e dados.</p></div></ShellCard>
+    <ShellCard><div className="flex items-center gap-2"><ShieldCheck size={20} style={{ color: paidActive || trialActive ? colors.success : colors.warning }} /><p className="font-bold" style={{ color: colors.text }}>Sua assinatura</p></div><p className="mt-2 text-sm" style={{ color: colors.text }}>{subscription ? (planLabels[subscription.plan || ""] || subscription.plan || "Plano") : "NexJud"} · {statusLabel}</p>{paidActive && subscription?.current_period_end ? <p className="mt-1 text-xs" style={{ color: colors.muted }}>Acesso pago até {new Date(subscription.current_period_end).toLocaleDateString("pt-BR")}</p> : null}{paidActive && !subscription?.current_period_end ? <p className="mt-1 text-xs" style={{ color: colors.muted }}>Plano legado sem vencimento informado; nenhuma alteração automática.</p> : null}{subscription?.status === "trialing" && subscription.trial_end ? <p className="mt-1 text-xs" style={{ color: colors.muted }}>Fim do teste: {new Date(subscription.trial_end).toLocaleDateString("pt-BR")}</p> : null}<button onClick={() => void reloadPlan()} className="mt-3 rounded-xl border px-3 py-2 text-xs font-bold" style={{ color: colors.primary, borderColor: colors.border }}>Atualizar situação</button></ShellCard>
     <div className="space-y-2">{menu.map(([label, href]) => <Link key={label} to={href} className="rounded-[15px] border p-4 flex items-center justify-between" style={{ background: colors.card, borderColor: colors.border, color: label.startsWith("Excluir") ? colors.danger : colors.text }}><span>{label}</span><ChevronRight size={20} /></Link>)}</div>
     <button onClick={() => signOut()} className="w-full p-4 flex items-center justify-center gap-2 font-extrabold" style={{ color: colors.danger }}><LogOut size={20} /> Sair da conta</button>
     <p className="text-center text-xs leading-5" style={{ color: colors.muted }}>NexJud Companion · Apoio tecnológico ao profissional do Direito.</p>
@@ -691,6 +737,7 @@ export default function CompanionPWA() {
   else if (section === "casos") view = <CasesScreenPWA userId={user.id} navigate={navigate} />
   else if (section === "agenda") view = <AgendaScreenPWA userId={user.id} />
   else if (section === "perfil") view = <ProfileScreenPWA userId={user.id} />
+  else if (section === "ferramentas") view = <AdvancedToolsPWA />
   else if (section === "scanner") view = <ScannerScreenPWA userId={user.id} />
   else if (section === "analise") view = <AnalysisScreenPWA />
   else if (section === "caso" && segments[1]) view = <CaseDetailPWA caseId={segments[1]} navigate={navigate} />

@@ -74,6 +74,41 @@ begin
   if (select count(*) from public.subscriptions where status='active')<>2 then
     raise exception 'cross-user contamination';
   end if;
+
+  -- Regression for real-world legacy shape: active Enterprise Plus without
+  -- current_period_end, tested against both lower and identical paid tiers.
+  -- These are disposable synthetic records, not production customers.
+  insert into public.subscriptions (user_id, plan, plan_type, status, active, current_period_end)
+  values ('33333333-3333-4333-8333-333333333333', 'enterprise_plus',
+          'enterprise_plus', 'active', true, null);
+  insert into public.payment_orders (user_id, plan, amount_cents, correlation_id)
+  values
+    ('33333333-3333-4333-8333-333333333333', 'pro', 19700, 'legacy-paid-pro'),
+    ('33333333-3333-4333-8333-333333333333', 'enterprise_plus', 149700, 'legacy-paid-same');
+  caught := false;
+  begin
+    perform public.nexjud_settle_paid_order('legacy-paid-pro','{}');
+  exception when others then
+    caught := SQLERRM = 'legacy_paid_subscription_reconciliation_required';
+  end;
+  if not caught then raise exception 'legacy Enterprise Plus downgraded by Pro Pix'; end if;
+  caught := false;
+  begin
+    perform public.nexjud_settle_paid_order('legacy-paid-same','{}');
+  exception when others then
+    caught := SQLERRM = 'legacy_paid_subscription_reconciliation_required';
+  end;
+  if not caught then raise exception 'legacy unlimited subscription silently shortened'; end if;
+  if not exists (
+    select 1 from public.subscriptions where user_id='33333333-3333-4333-8333-333333333333'
+    and plan='enterprise_plus' and plan_type='enterprise_plus'
+    and status='active' and active is true and current_period_end is null
+  ) then raise exception 'legacy subscription mutated'; end if;
+  if (select count(*) from public.payment_orders where
+       correlation_id in ('legacy-paid-pro','legacy-paid-same')
+       and status='pending' and paid_at is null) <> 2 then
+    raise exception 'legacy Pix orders marked paid despite blocked entitlement';
+  end if;
 end
 $t$;
 commit;

@@ -11,6 +11,8 @@ on:
       - "supabase/functions/_shared/wooviSignature.ts"
       - "supabase/functions/create-pix-checkout/**"
       - "supabase/functions/_shared/wooviCheckoutAuth.ts"
+      - "supabase/functions/_shared/wooviCheckoutEligibility.ts"
+      - "src/enterprise/wooviCheckoutEligibility.test.ts"
       - "src/enterprise/wooviCheckoutAuth.test.ts"
       - "src/enterprise/wooviSignature.test.ts"
       - "package.json"

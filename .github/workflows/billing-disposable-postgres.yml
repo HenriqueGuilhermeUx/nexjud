@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'docs/billing/**'
+      - 'supabase/migrations/20261016_nexjud_paid_periods_atomic_settlement.sql'
       - '.github/workflows/billing-disposable-postgres.yml'
       - 'supabase/functions/woovi-webhook/**'
   workflow_dispatch:
@@ -33,5 +34,7 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/billing/ci-fixture.sql
       - name: Install candidate settlement function ONLY in disposable PostgreSQL
         run: psql -v ON_ERROR_STOP=1 -f docs/billing/paid-period-proposal.sql
+      - name: Confirm proposal and migration are identical
+        run: diff -u docs/billing/paid-period-proposal.sql supabase/migrations/20261016_nexjud_paid_periods_atomic_settlement.sql
       - name: Assert paid periods, replay, renewal, mismatch, downgrade and client denial
         run: psql -v ON_ERROR_STOP=1 -f docs/billing/period-contract-tests.sql

@@ -35,5 +35,8 @@ jobs:
       - name: TypeScript
         run: npx tsc -b
 
+      - name: Billing entitlement regression tests
+        run: npx vitest run src/enterprise/paidEntitlement.test.ts
+
       - name: Vite build
         run: npx vite build

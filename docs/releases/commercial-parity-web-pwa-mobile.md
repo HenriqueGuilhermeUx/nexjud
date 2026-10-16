@@ -31,3 +31,12 @@ Marcos isolados; não publicar tudo em produção sem confirmação dos checks.
 - Checagem de release: CI Web + CI Mobile verdes, Deploy Preview Web validado, login/rotas/autenticação testados em dispositivo, AAB release **assinado com chave de upload original**, fingerprint + package conferidos e instalação/upgrade testado.
 - Sem aprovação expressa do AAB no Play Console ou artifact do workflow não declarar app Android publicado. O iOS permanece para o próximo marco.
 - Pagamentos: **não homologar com assinantes legados** enquanto o guard da issue #74 não estiver validado. Nenhum pagamento real pode ser criado neste checklist.
+
+
+## PWA = app instalável, NÃO site reduzido (diretriz UX de 16/10/2026)
+- A rota `/app` tem interface mobile específica, independente do dashboard Web.
+- Barra inferior com 5 abas permanece visível também em Scanner, Análise, Estúdio, Ferramentas, Dossiê e Audiência. A aba ativa indica a área de origem.
+- Layout próprio para toque, safe areas iOS/Android, tela cheia sem scroll horizontal, contraste e estados de aba acessíveis.
+- Atalhos e funcionalidades nativos do PWA devem manter interação e linguagem de aplicativo; **não** reutilizar telas desktop encolhidas.
+- Funcionalidades mais avançadas ainda abrem o Workspace Web, o que é uma lacuna real de paridade visual. Qualquer futura incorporação deve ser uma tela PWA nativa com validação funcional, não um iframe que apenas embute o desktop.
+- Preservar o domínio do site público e o PWA como experiências distintas apesar do mesmo deploy, com revisão de login, cache/atualização e instalação.

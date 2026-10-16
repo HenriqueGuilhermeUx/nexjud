@@ -139,10 +139,62 @@ body {
 
 .nexjud-pwa-main {
   padding-top: max(18px, env(safe-area-inset-top));
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nexjud-pwa-shell {
+  isolation: isolate;
+  width: 100%;
+  overflow-x: clip;
+}
+
+.nexjud-pwa-shell button,
+.nexjud-pwa-shell a,
+.nexjud-pwa-shell input,
+.nexjud-pwa-shell textarea {
+  touch-action: manipulation;
 }
 
 .nexjud-pwa-tabbar {
   padding-bottom: env(safe-area-inset-bottom);
+  background: rgba(17, 21, 33, .96);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 -8px 28px rgba(2, 5, 15, .32);
+}
+
+.nexjud-pwa-tab {
+  min-width: 0;
+  outline-offset: -3px;
+}
+
+.nexjud-pwa-tabicon {
+  width: 46px;
+  height: 31px;
+  border-radius: 17px;
+  display: grid;
+  place-items: center;
+  transition: background .15s ease, transform .15s ease;
+}
+
+.nexjud-pwa-tab[aria-current="page"] .nexjud-pwa-tabicon {
+  background: rgba(79, 124, 255, .17);
+}
+
+.nexjud-pwa-tab:active .nexjud-pwa-tabicon {
+  transform: scale(.94);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nexjud-pwa-main {
+    animation: nexjud-pwa-enter .16s ease-out;
+  }
+  @keyframes nexjud-pwa-enter {
+    from { opacity: .8; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }
 
 .nexjud-pwa-install {

@@ -4,7 +4,7 @@ import {
   ArrowLeft, ArrowRight, Bell, Brain, Briefcase, CalendarDays, Camera,
   CheckCircle2, ChevronRight, CircleAlert, Clock3, FilePlus2, FileSearch,
   FileText, Gavel, Home, ListTodo, LogOut, Scale, Search, Send, ShieldCheck,
-  Sparkles, Upload, User, WandSparkles, X
+  Sparkles, Upload, User, WandSparkles, X, Download
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { getSupabase } from "@/lib/supabase"
@@ -131,6 +131,7 @@ function CompanionLogin() {
       <input className="nexjud-pwa-input w-full rounded-[15px] border px-4 py-3.5" style={{ background: colors.card, borderColor: colors.border, color: colors.text }} placeholder="Senha" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
       {error ? <p className="text-sm" style={{ color: colors.danger }}>{error}</p> : null}
       <button disabled={busy} className="min-h-[50px] w-full rounded-[15px] font-extrabold disabled:opacity-50" style={{ background: colors.primary, color: "#fff" }}>{busy ? "Entrando..." : "Entrar"}</button>
+      <button type="button" onClick={() => window.dispatchEvent(new Event("nexjud:open-install"))} className="flex min-h-[50px] w-full items-center justify-center gap-2 rounded-[15px] border px-4 py-3 font-extrabold" style={{ background: colors.primarySoft, borderColor: colors.primary, color: colors.text }}><Download size={20} /> Instalar aplicativo NexJud</button>
       <Link to="/login" className="block py-2 text-center text-sm font-bold" style={{ color: colors.primary }}>Criar conta</Link>
       <div className="flex items-center gap-2 text-sm" style={{ color: colors.muted }}><ShieldCheck size={18} style={{ color: colors.success }} /> Mesma conta, casos, documentos e análises da NexJud.</div>
     </form>
@@ -169,16 +170,26 @@ function InstallHint() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
   const [visible, setVisible] = useState(false)
   const [ios, setIos] = useState(false)
+  const [android, setAndroid] = useState(false)
+  const [inAppBrowser, setInAppBrowser] = useState(false)
+  const [manual, setManual] = useState(false)
 
   useEffect(() => {
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true
-    if (standalone || localStorage.getItem("nexjud-pwa-install-dismissed-v2") === "1") return
+    if (standalone) return
 
     const ua = navigator.userAgent
-    const isIos = /iPhone|iPad|iPod/i.test(ua)
+    const isIos = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1)
+    const isAndroid = /Android/i.test(ua)
     setIos(isIos)
+    setAndroid(isAndroid)
+    setInAppBrowser(/Instagram|FBAN|FBAV|FB_IAB|WhatsApp/i.test(ua))
 
-    const timer = window.setTimeout(() => setVisible(true), 1400)
+    try {
+      if ((isIos || isAndroid) && localStorage.getItem("nexjud-pwa-install-dismissed-v3") !== "1") setVisible(true)
+    } catch { if (isIos || isAndroid) setVisible(true) }
+    const forceOpen = () => { setVisible(true); setManual(false) }
+    window.addEventListener("nexjud:open-install", forceOpen)
     const handler = (event: Event) => {
       event.preventDefault()
       setDeferred(event as BeforeInstallPromptEvent)
@@ -186,33 +197,44 @@ function InstallHint() {
     }
     window.addEventListener("beforeinstallprompt", handler)
     return () => {
-      window.clearTimeout(timer)
+      window.removeEventListener("nexjud:open-install", forceOpen)
       window.removeEventListener("beforeinstallprompt", handler)
     }
   }, [])
 
   function dismiss() {
     setVisible(false)
-    localStorage.setItem("nexjud-pwa-install-dismissed-v2", "1")
+    try { localStorage.setItem("nexjud-pwa-install-dismissed-v3", "1") } catch { /* private browsing */ }
+    setManual(false)
   }
 
   async function install() {
-    if (!deferred) return
-    await deferred.prompt()
-    await deferred.userChoice
-    setDeferred(null)
-    setVisible(false)
+    if (!deferred) { setManual(true); return }
+    try {
+      await deferred.prompt()
+      const decision = await deferred.userChoice
+      setDeferred(null)
+      if (decision.outcome === "accepted") setVisible(false)
+      else setManual(true)
+    } catch { setDeferred(null); setManual(true) }
   }
 
-  if (!visible || (!ios && !deferred)) return null
+  if (!visible) return null
+
+  const guidance = inAppBrowser
+    ? "Abra este endereço no Chrome ou Safari, fora de WhatsApp e Instagram, e use o menu do navegador para instalar."
+    : ios ? "No Safari, toque em Compartilhar (quadrado com seta para cima), depois Adicionar à Tela de Início e Adicionar."
+    : android ? "No Chrome, abra o menu ⋮ e toque em Instalar aplicativo ou Adicionar à tela inicial. O aviso automático nem sempre aparece."
+    : "No Chrome ou Edge, abra o menu e procure Instalar NexJud ou Instalar este site como aplicativo."
 
   return <div className="fixed left-3 right-3 z-50 mx-auto max-w-xl rounded-[20px] border p-4 shadow-2xl nexjud-pwa-install" style={{ background: colors.cardAlt, borderColor: colors.border, color: colors.text }}>
     <div className="flex gap-3">
       <img src="/icons/icon-512.png" alt="" className="h-12 w-12 rounded-[14px]" />
       <div className="min-w-0 flex-1">
         <p className="font-extrabold">Instalar NexJud Companion</p>
-        <p className="mt-1 text-sm leading-5" style={{ color: colors.muted }}>{ios ? "No Safari: Compartilhar → Adicionar à Tela de Início. Na primeira abertura do app, entre novamente se o Safari solicitar." : "Use o NexJud como app, em tela cheia, direto da sua tela inicial."}</p>
-        {!ios && deferred ? <button onClick={install} className="mt-3 rounded-xl px-4 py-2 text-sm font-extrabold" style={{ background: colors.primary, color: "#fff" }}>Instalar agora</button> : null}
+        <p className="mt-1 text-sm leading-5" style={{ color: colors.muted }}>Use o NexJud em tela cheia pela tela inicial do celular.</p>
+        {(manual || ios || inAppBrowser) ? <p className="mt-3 rounded-xl p-3 text-sm leading-6" style={{ background: colors.bg, color: colors.text }}>{guidance}</p> : null}
+        <button type="button" onClick={install} className="mt-3 flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-extrabold" style={{ background: colors.primary, color: "#fff" }}><Download size={17} /> {deferred ? "Instalar agora" : "Como instalar"}</button>
       </div>
       <button onClick={dismiss} aria-label="Fechar" className="h-9 w-9 flex items-center justify-center" style={{ color: colors.muted }}><X size={19} /></button>
     </div>
@@ -264,6 +286,7 @@ function HomeScreenPWA({ userId, navigate }: { userId: string; navigate: (path: 
   ] as const
 
   return <div className="space-y-5">
+    <button type="button" onClick={() => window.dispatchEvent(new Event("nexjud:open-install"))} className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-bold" style={{ background: colors.primarySoft, borderColor: colors.primary, color: colors.text }}><Download size={19} /> Instalar NexJud como aplicativo</button>
     <div className="flex items-start gap-3">
       <div className="flex-1"><p className="text-[12px] font-extrabold tracking-[0.13em]" style={{ color: colors.primary }}>NEXJUD · INTELIGÊNCIA DECISÓRIA</p><h1 className="mt-1 text-[30px] font-extrabold" style={{ color: colors.text }}>Olá, {firstName}.</h1></div>
       <button onClick={() => navigate("/app/agenda")} className="h-11 w-11 rounded-2xl border flex items-center justify-center" style={{ background: colors.card, borderColor: colors.border, color: colors.text }}><Bell size={21} /></button>
@@ -531,6 +554,7 @@ function ProfileScreenPWA({ userId }: { userId: string }) {
     <div><h1 className="text-[30px] font-extrabold" style={{ color: colors.text }}>{profile?.name || profile?.full_name || "Minha conta"}</h1><p className="mt-1 text-base" style={{ color: colors.muted }}>{user?.email}</p></div>
     <ShellCard className="flex items-center gap-3"><CheckCircle2 size={21} style={{ color: colors.success }} /><div><p className="font-bold" style={{ color: colors.text }}>NexJud sincronizado</p><p className="text-xs" style={{ color: colors.muted }}>Workspace e Companion compartilham conta e dados.</p></div></ShellCard>
     <ShellCard><div className="flex items-center gap-2"><ShieldCheck size={20} style={{ color: paidActive || trialActive ? colors.success : colors.warning }} /><p className="font-bold" style={{ color: colors.text }}>Sua assinatura</p></div><p className="mt-2 text-sm" style={{ color: colors.text }}>{subscription ? (planLabels[subscription.plan || ""] || subscription.plan || "Plano") : "NexJud"} · {statusLabel}</p>{paidActive && subscription?.current_period_end ? <p className="mt-1 text-xs" style={{ color: colors.muted }}>Acesso pago até {new Date(subscription.current_period_end).toLocaleDateString("pt-BR")}</p> : null}{paidActive && !subscription?.current_period_end ? <p className="mt-1 text-xs" style={{ color: colors.muted }}>Plano legado sem vencimento informado; nenhuma alteração automática.</p> : null}{subscription?.status === "trialing" && subscription.trial_end ? <p className="mt-1 text-xs" style={{ color: colors.muted }}>Fim do teste: {new Date(subscription.trial_end).toLocaleDateString("pt-BR")}</p> : null}<button onClick={() => void reloadPlan()} className="mt-3 rounded-xl border px-3 py-2 text-xs font-bold" style={{ color: colors.primary, borderColor: colors.border }}>Atualizar situação</button></ShellCard>
+    <button type="button" onClick={() => window.dispatchEvent(new Event("nexjud:open-install"))} className="flex min-h-[50px] w-full items-center justify-center gap-2 rounded-[15px] border p-3 font-extrabold" style={{ background: colors.primarySoft, borderColor: colors.primary, color: colors.text }}><Download size={19} /> Instalar aplicativo NexJud</button>
     <div className="space-y-2">{menu.map(([label, href]) => <Link key={label} to={href} className="rounded-[15px] border p-4 flex items-center justify-between" style={{ background: colors.card, borderColor: colors.border, color: label.startsWith("Excluir") ? colors.danger : colors.text }}><span>{label}</span><ChevronRight size={20} /></Link>)}</div>
     <button onClick={() => signOut()} className="w-full p-4 flex items-center justify-center gap-2 font-extrabold" style={{ color: colors.danger }}><LogOut size={20} /> Sair da conta</button>
     <p className="text-center text-xs leading-5" style={{ color: colors.muted }}>NexJud Companion · Apoio tecnológico ao profissional do Direito.</p>
@@ -735,7 +759,7 @@ export default function CompanionPWA() {
   const section = segments[0] || "home"
 
   if (loading) return <div className="nexjud-pwa-screen min-h-screen" style={{ background: colors.bg }}><Loader label="Iniciando NexJud..." /></div>
-  if (!user) return <CompanionLogin />
+  if (!user) return <><CompanionLogin /><InstallHint /></>
 
   let view: React.ReactNode
   if (section === "ia") view = <ChatScreenPWA userId={user.id} />

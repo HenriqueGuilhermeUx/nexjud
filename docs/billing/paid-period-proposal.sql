@@ -57,6 +57,15 @@ begin
     when 'pro' then 1 when 'intelligence' then 2
     when 'enterprise' then 3 when 'enterprise_plus' then 4 else 0 end;
 
+  -- An active paid legacy entitlement without a recorded expiry may be
+  -- contractual/perpetual. Never replace it implicitly with a paid month.
+  -- Combined with the Edge checkout guard, this is defence in depth for
+  -- orders issued before the checkout protection was deployed.
+  if v_sub.active is true and v_sub.status = 'active'
+     and v_rank_old > 0 and v_sub.current_period_end is null then
+    raise exception 'legacy_paid_subscription_reconciliation_required';
+  end if;
+
   if v_sub.active is true and v_sub.status = 'active'
      and v_sub.current_period_end > v_now and v_rank_old > v_rank_new then
     -- A lower plan paid while higher tier is active requires an explicit

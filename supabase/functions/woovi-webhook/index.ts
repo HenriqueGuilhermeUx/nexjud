@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { findCorrelationID, isPaidEvent, amountMatchesSignedCharge, validPaidPlan } from "../_shared/wooviWebhookPolicy.ts"
+import { verifyWooviRsaSignature, pickWooviPublicKeys } from "../_shared/wooviSignature.ts"
 
 function toBase64(bytes: ArrayBuffer) {
   let binary = ""
@@ -27,6 +28,28 @@ async function verifyHmac(rawBody: string, signature: string, secret: string) {
   return safeEqual(toBase64(digest), signature)
 }
 
+// Cache public key rotation set for one hour. Only trusted Woovi endpoints are queried.
+let publicKeysCache: string[] = []
+let keysExpireAt = 0
+async function wooviPublicKeys(): Promise<string[]> {
+  if (publicKeysCache.length && Date.now() < keysExpireAt) return publicKeysCache
+  try {
+    const res = await fetch("https://api.woovi.com/api/v1/webhook/public-keys", {
+      signal: AbortSignal.timeout(6500),
+    })
+    if (!res.ok) throw new Error("woovi_public_keys_unavailable")
+    const keys = pickWooviPublicKeys(await res.json())
+    if (!keys.length) throw new Error("woovi_public_keys_empty")
+    publicKeysCache = keys
+    keysExpireAt = Date.now() + 60 * 60 * 1000
+    return keys
+  } catch (error) {
+    // A temporary key service outage must not invalidate cached legitimate signatures.
+    if (publicKeysCache.length) return publicKeysCache
+    throw error
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     if (req.method !== "POST") {
@@ -35,12 +58,22 @@ Deno.serve(async (req) => {
 
     const rawBody = await req.text()
     const webhookSecret = Deno.env.get("WOOVI_WEBHOOK_SECRET") || ""
-    const signature = req.headers.get("x-openpix-signature") || req.headers.get("X-OpenPix-Signature") || ""
-
-    if (!webhookSecret) {
-      return Response.json({ ok: false, error: "WOOVI_WEBHOOK_SECRET não configurado." }, { status: 500 })
+    const hmacSignature = req.headers.get("x-openpix-signature") || ""
+    const rsaSignature = req.headers.get("x-webhook-signature") || ""
+    if (!hmacSignature && !rsaSignature) {
+      return Response.json({ ok: false, error: "invalid_webhook_signature" }, { status: 401 })
     }
-    if (!signature || !(await verifyHmac(rawBody, signature, webhookSecret))) {
+    let validSignature = false
+    // The recommended Woovi RSA signature is independent of local HMAC secret configuration.
+    if (rsaSignature) {
+      const keys = await wooviPublicKeys()
+      validSignature = await verifyWooviRsaSignature(rawBody, rsaSignature, keys)
+    }
+    // Retain compatibility with older Woovi webhook configurations.
+    if (!validSignature && hmacSignature && webhookSecret) {
+      validSignature = await verifyHmac(rawBody, hmacSignature, webhookSecret)
+    }
+    if (!validSignature) {
       return Response.json({ ok: false, error: "invalid_webhook_signature" }, { status: 401 })
     }
     // Parse only after verifying the raw bytes. Never exempt test events from signature verification.

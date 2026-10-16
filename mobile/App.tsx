@@ -615,7 +615,7 @@ function AdvancedToolsScreen({ navigation }: any) {
   </ScrollView>
 }
 
-function ProfileScreen() {
+function ProfileScreen({ navigation }: any) {
   const [profile, setProfile] = useState<any>(null)
   const [email, setEmail] = useState("")
   const [subscription, setSubscription] = useState<{ plan?: string; status?: string; active?: boolean; trial_end?: string | null; current_period_end?: string | null } | null>(null)
@@ -657,7 +657,7 @@ function ProfileScreen() {
       <Text style={styles.hero}>{profile?.name || profile?.full_name || "Minha conta"}</Text><Text style={styles.subtitle}>{email}</Text>
       <View style={styles.statusCard}><CheckCircle2 color={colors.success} size={21} /><View style={{ flex: 1 }}><Text style={styles.cardTitle}>NexJud sincronizado</Text><Text style={styles.helper}>Workspace e Companion compartilham conta e dados.</Text></View></View>
       <Menu label="Abrir Workspace" onPress={() => Linking.openURL(WEB_URL)} />
-      <Menu label="Ferramentas avançadas" onPress={() => Linking.openURL(`${WEB_URL}/dashboard/decision-intelligence`)} />
+      <Menu label="Ferramentas avançadas" onPress={() => navigation.getParent()?.navigate("AdvancedTools")} />
       <View style={styles.card}>
         <View style={styles.inline}><ShieldCheck color={activePaid || activeTrial ? colors.success : colors.warning} size={20} /><Text style={styles.cardTitle}>Sua assinatura</Text></View>
         <Text style={styles.body}>{subscription ? (planLabel[subscription.plan || ""] || subscription.plan || "Plano") : "NexJud"}</Text>

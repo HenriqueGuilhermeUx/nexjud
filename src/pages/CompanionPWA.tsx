@@ -145,14 +145,20 @@ function BottomNav({ section, navigate }: { section: string; navigate: (path: st
     ["agenda", "/app/agenda", CalendarDays, "Agenda"],
     ["perfil", "/app/perfil", User, "Perfil"],
   ] as const
+  // Secondary screens stay inside the same mobile app shell.
+  const activeSection = ["caso", "audiencia"].includes(section) ? "casos"
+    : ["scanner", "analise", "studio", "ferramentas"].includes(section) ? "home"
+    : section
 
-  return <nav className="nexjud-pwa-tabbar fixed inset-x-0 bottom-0 z-40 border-t" style={{ background: colors.card, borderColor: colors.border }}>
+  return <nav aria-label="Navegação principal do NexJud" className="nexjud-pwa-tabbar fixed inset-x-0 bottom-0 z-40 border-t" style={{ borderColor: colors.border }}>
     <div className="mx-auto grid max-w-xl grid-cols-5">
       {tabs.map(([key, path, Icon, label]) => {
-        const active = section === key
-        return <button key={key} onClick={() => navigate(path)} className="min-h-[60px] flex flex-col items-center justify-center gap-1 text-[10px] font-extrabold" style={{ color: active ? colors.primary : colors.muted }}>
-          <Icon size={21} />
-          {label}
+        const active = activeSection === key
+        return <button type="button" key={key} aria-label={label} aria-current={active ? "page" : undefined}
+          onClick={() => navigate(path)} className="nexjud-pwa-tab min-h-[64px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-extrabold"
+          style={{ color: active ? colors.primary : colors.muted }}>
+          <span className="nexjud-pwa-tabicon"><Icon size={21} strokeWidth={active ? 2.5 : 2} /></span>
+          <span>{label}</span>
         </button>
       })}
     </div>
@@ -727,7 +733,6 @@ export default function CompanionPWA() {
   const navigate = useNavigate()
   const segments = location.pathname.replace(/^\/app\/?/, "").split("/").filter(Boolean)
   const section = segments[0] || "home"
-  const primary = ["home", "ia", "casos", "agenda", "perfil"].includes(section)
 
   if (loading) return <div className="nexjud-pwa-screen min-h-screen" style={{ background: colors.bg }}><Loader label="Iniciando NexJud..." /></div>
   if (!user) return <CompanionLogin />
@@ -745,9 +750,9 @@ export default function CompanionPWA() {
   else if (section === "studio") view = <StudioPWA navigate={navigate} />
   else view = <HomeScreenPWA userId={user.id} navigate={navigate} />
 
-  return <div className="nexjud-pwa-screen min-h-[100dvh]" style={{ background: colors.bg }}>
-    <main className={"nexjud-pwa-main mx-auto w-full max-w-xl px-4 " + (primary ? "pb-28" : "pb-8")}>{view}</main>
-    {primary ? <BottomNav section={section} navigate={navigate} /> : null}
+  return <div className="nexjud-pwa-screen nexjud-pwa-shell min-h-[100dvh]" style={{ background: colors.bg }}>
+    <main id="nexjud-pwa-content" className="nexjud-pwa-main mx-auto w-full max-w-xl px-4" key={location.pathname}>{view}</main>
+    <BottomNav section={section} navigate={navigate} />
     <InstallHint />
   </div>
 }

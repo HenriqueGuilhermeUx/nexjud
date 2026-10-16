@@ -671,7 +671,7 @@ function ProfileScreen() {
         <Button label="Atualizar status da assinatura" onPress={loadProfileAndPlan} secondary />
         <Text style={styles.helper}>O plano só é ativado após confirmação do pagamento no servidor. Este aplicativo não realiza cobranças.</Text>
       </View>
-      <Menu label="Conhecer os planos" onPress={() => open("/pricing")} />
+      <Text style={styles.helper}>Planos e assinaturas são administrados fora deste aplicativo. Aqui você consulta apenas a situação da sua conta.</Text>
       <Menu label="Política de Privacidade" onPress={() => open("/privacy")} />
       <Menu label="Termos de Uso" onPress={() => open("/terms")} />
       <Menu label="Excluir conta e dados" onPress={() => open("/account-deletion")} danger />

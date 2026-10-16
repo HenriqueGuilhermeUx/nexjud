@@ -1,0 +1,3 @@
+One-time TestFlight upload for exact verified SHA-256 NexJud iOS IPA 1.0.4 build 4.
+Source build: 38933008029; artifact: NexJud-IOS-1.0.4-build-4.
+Never generate/revoke Apple distribution certificates, never submit to App Review or publish.

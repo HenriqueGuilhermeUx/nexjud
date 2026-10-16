@@ -1,0 +1,113 @@
+name: NexJud iOS 1.0.4 (4) — Upload verified IPA to TestFlight
+
+on:
+  push:
+    branches:
+      - nexjud-ios-release-b4
+    paths:
+      - '.github/build-triggers/nexjud-testflight-b4.txt'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nexjud-ios-testflight-b4
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    name: Upload previously verified signed IPA (no certificate changes)
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      ASC_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download exact successful NexJud iOS 1.0.4 (4) artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: NexJud-IOS-1.0.4-build-4
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 38933008029
+          path: release
+
+      - name: Verify IPA checksum, bundle identity, build and signed payload
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import hashlib, os, plistlib, zipfile
+          ipa = "release/NexJud-AppStore.ipa"
+          if not os.path.isfile(ipa):
+              raise SystemExit("IPA missing from verified artifact")
+          checksum = hashlib.sha256(open(ipa, "rb").read()).hexdigest()
+          if checksum != "0009f15b72ea148d4da1282bf45383466c898a95ba74b63acea091c57f8ecfb4":
+              raise SystemExit("IPA SHA-256 mismatch, upload blocked")
+          with zipfile.ZipFile(ipa) as z:
+              paths=[p for p in z.namelist() if p.startswith("Payload/") and p.endswith(".app/Info.plist") and p.count("/")==2]
+              if len(paths)!=1: raise SystemExit("Unexpected IPA payload")
+              info=plistlib.loads(z.read(paths[0]))
+              if z.testzip() is not None: raise SystemExit("Corrupt IPA")
+              if not any("/_CodeSignature/" in p for p in z.namelist()):
+                  raise SystemExit("No iOS code signature resources in IPA")
+          if info.get("CFBundleIdentifier")!="com.nexjud.companion":
+              raise SystemExit("Wrong iOS bundle identifier")
+          if str(info.get("CFBundleShortVersionString"))!="1.0.4" or str(info.get("CFBundleVersion"))!="4":
+              raise SystemExit("Wrong iOS version/build")
+          if not info.get("NSPhotoLibraryUsageDescription"):
+              raise SystemExit("Photo library purpose string missing")
+          print("PASS: exact NexJud 1.0.4 (4) SHA-256, IPA and Info.plist.")
+          PY
+
+      - name: Install Fastlane for App Store Connect submission
+        run: gem install fastlane --no-document
+
+      - name: Prepare Apple App Store Connect API signing key
+        env:
+          ASC_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          test -n "${ASC_KEY_ID:-}" && test -n "${ASC_ISSUER_ID:-}" && test -n "${ASC_API_KEY_P8:-}"
+          mkdir -p "$RUNNER_TEMP/nexjud-asc"
+          KEY_PATH="$RUNNER_TEMP/nexjud-asc/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_API_KEY_P8" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          grep -q -- '-----BEGIN PRIVATE KEY-----' "$KEY_PATH"
+          grep -q -- '-----END PRIVATE KEY-----' "$KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Upload to TestFlight only (not App Review or public App Store)
+        run: |
+          set -euo pipefail
+          export IPA_PATH="$GITHUB_WORKSPACE/release/NexJud-AppStore.ipa"
+          mkdir -p fastlane
+          cat > fastlane/Fastfile <<'RUBY'
+          default_platform(:ios)
+          platform :ios do
+            lane :upload_local do
+              api_key = app_store_connect_api_key(
+                key_id: ENV.fetch("ASC_KEY_ID"),
+                issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+                key_filepath: ENV.fetch("ASC_KEY_PATH"),
+                duration: 1200,
+                in_house: false
+              )
+              pilot(
+                api_key: api_key,
+                ipa: ENV.fetch("IPA_PATH"),
+                skip_waiting_for_build_processing: false,
+                distribute_external: false
+              )
+            end
+          end
+          RUBY
+          fastlane ios upload_local
+
+      - name: TestFlight upload summary
+        run: |
+          echo "NexJud iOS 1.0.4 (4) uploaded to TestFlight (no App Review submission)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Review App Privacy, add demo account, test and manually submit to App Review." >> "$GITHUB_STEP_SUMMARY"

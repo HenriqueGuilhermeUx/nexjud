@@ -206,6 +206,7 @@ body {
 }
 
 @media (display-mode: standalone) {
+  .nexjud-pwa-install-cta { display: none !important; }
   .nexjud-pwa-screen {
     min-height: 100dvh;
   }

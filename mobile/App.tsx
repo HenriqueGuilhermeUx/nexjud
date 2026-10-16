@@ -98,6 +98,51 @@ async function getUserId() {
   return data.user?.id || null
 }
 
+// App Review 5.1.1(i) / 5.1.2(i): no third-party AI processing on iOS
+// before an informed, explicit, revocable opt-in for the signed-in user.
+const IOS_AI_DISCLOSURE_VERSION = "openai-consent-v1"
+
+async function confirmIosAiConsent(): Promise<boolean> {
+  if (Platform.OS !== "ios") return true
+  const uid = await getUserId()
+  if (!uid) { Alert.alert("Sessão necessária", "Entre na sua conta para utilizar a inteligência artificial."); return false }
+  const key = `nexjud-ios-ai-${IOS_AI_DISCLOSURE_VERSION}-${uid}`
+  try {
+    if (await AsyncStorage.getItem(key) === "allowed") return true
+  } catch {
+    Alert.alert("Armazenamento indisponível", "Não foi possível consultar a sua autorização. Nenhum dado será enviado à IA.")
+    return false
+  }
+  return new Promise(resolve => {
+    Alert.alert(
+      "Autorizar compartilhamento com a OpenAI?",
+      "Para gerar respostas e análises, a NexJud pode enviar à OpenAI (fornecedor externo de inteligência artificial) perguntas, histórico da conversa, conteúdo do caso selecionado, dados processuais e trechos de documentos relacionados. Essas informações podem conter dados pessoais seus e de clientes. O envio só ocorrerá se você permitir. Você pode revogar a autorização em Perfil > Privacidade e IA.",
+      [
+        { text: "Não permitir", style: "cancel", onPress: () => resolve(false) },
+        { text: "Autorizo o envio", onPress: () => {
+          void AsyncStorage.setItem(key, "allowed").then(() => resolve(true)).catch(() => {
+            Alert.alert("Não foi possível registrar a autorização", "Nenhum dado será enviado à IA.")
+            resolve(false)
+          })
+        } },
+      ],
+      { cancelable: false },
+    )
+  })
+}
+
+async function revokeIosAiConsent() {
+  if (Platform.OS !== "ios") return
+  const uid = await getUserId()
+  if (!uid) return
+  try {
+    await AsyncStorage.removeItem(`nexjud-ios-ai-${IOS_AI_DISCLOSURE_VERSION}-${uid}`)
+    Alert.alert("Autorização revogada", "A NexJud solicitará sua permissão novamente antes de enviar novos dados à OpenAI. Envios anteriores não são desfeitos por esta ação.")
+  } catch {
+    Alert.alert("Não foi possível revogar", "Entre em contato com o suporte para exercer seus direitos de privacidade.")
+  }
+}
+
 function LoginScreen() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -120,7 +165,10 @@ function LoginScreen() {
         <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor={colors.muted} autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
         <TextInput style={styles.input} placeholder="Senha" placeholderTextColor={colors.muted} secureTextEntry value={password} onChangeText={setPassword} onSubmitEditing={login} />
         <Button label={loading ? "Entrando..." : "Entrar"} onPress={login} disabled={loading} />
-        <Pressable onPress={() => Linking.openURL(`${WEB_URL}/login`)}><Text style={styles.linkText}>Criar conta ou recuperar senha</Text></Pressable>
+        {Platform.OS === "ios"
+          ? <><Text style={styles.helper}>Acesso exclusivo a contas NexJud já existentes. Não há cadastro, contratação nem compras neste aplicativo.</Text>
+              <Pressable onPress={() => Linking.openURL("mailto:suporte@nexjud.com.br?subject=Acesso%20NexJud")}><Text style={styles.linkText}>Precisa de ajuda para entrar? Contate o suporte.</Text></Pressable></>
+          : <Pressable onPress={() => Linking.openURL(`${WEB_URL}/login`)}><Text style={styles.linkText}>Criar conta ou recuperar senha</Text></Pressable>}
         <View style={styles.inline}><ShieldCheck color={colors.success} size={17} /><Text style={styles.helper}>Mesma conta, casos, documentos e análises da NexJud.</Text></View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -172,7 +220,7 @@ function HomeScreen({ navigation }: any) {
     { title: "Perguntar à IA", subtitle: "Legal Brain contextual", icon: Brain, route: "IA" },
     { title: "Consultar casos", subtitle: "Dossiês e estratégia", icon: Briefcase, route: "Casos" },
     { title: "Preparar minuta", subtitle: "Peças e documentos com IA", icon: WandSparkles, parent: "Studio" },
-    { title: "Ferramentas avançadas", subtitle: "Inteligência e estratégia completas", icon: Sparkles, parent: "AdvancedTools" },
+    ...(Platform.OS === "ios" ? [] : [{ title: "Ferramentas avançadas", subtitle: "Inteligência e estratégia completas", icon: Sparkles, parent: "AdvancedTools" }]),
   ]
 
   return (
@@ -275,6 +323,7 @@ function ChatScreen() {
   async function send(text = message) {
     const prompt = text.trim()
     if (!prompt || loading) return
+    if (!(await confirmIosAiConsent())) return
     setMessages(prev => [...prev, { role: "user", content: prompt }])
     setMessage("")
     setLoading(true)
@@ -518,6 +567,7 @@ function StudioScreen({ navigation }: any) {
   useEffect(() => { loadDrafts() }, [])
   async function start() {
     if (!facts.trim() || busy) return
+    if (!(await confirmIosAiConsent())) return
     setBusy(true); setNotice("")
     try {
       const uid = await getUserId()
@@ -602,6 +652,10 @@ const advancedTools = [
 ] as const
 
 function AdvancedToolsScreen({ navigation }: any) {
+  if (Platform.OS === "ios") return <SafeAreaView style={styles.safe}>
+    <Text style={[styles.helper, { padding: 24 }]}>O NexJud Companion iOS oferece apenas as ferramentas de acompanhamento disponíveis no aplicativo, sem links comerciais ou contratação externa.</Text>
+    <Button label="Voltar" onPress={() => navigation.goBack()} secondary />
+  </SafeAreaView>
   return <ScrollView style={styles.safe} contentContainerStyle={styles.page}>
     <Pressable onPress={() => navigation.goBack()}><Text style={styles.linkTextSmall}>← Voltar</Text></Pressable>
     <ScreenTitle eyebrow="WORKSPACE NEXJUD" title="Ferramentas avançadas" subtitle="Acesse os módulos completos no site da NexJud. Seus casos e documentos continuam na mesma conta." />
@@ -656,11 +710,13 @@ function ProfileScreen({ navigation }: any) {
       <View style={styles.profileIcon}><User color="#fff" size={32} /></View>
       <Text style={styles.hero}>{profile?.name || profile?.full_name || "Minha conta"}</Text><Text style={styles.subtitle}>{email}</Text>
       <View style={styles.statusCard}><CheckCircle2 color={colors.success} size={21} /><View style={{ flex: 1 }}><Text style={styles.cardTitle}>NexJud sincronizado</Text><Text style={styles.helper}>Workspace e Companion compartilham conta e dados.</Text></View></View>
-      <Menu label="Abrir Workspace" onPress={() => Linking.openURL(WEB_URL)} />
-      <Menu label="Ferramentas avançadas" onPress={() => navigation.getParent()?.navigate("AdvancedTools")} />
+      {Platform.OS !== "ios" ? <>
+        <Menu label="Abrir Workspace" onPress={() => Linking.openURL(WEB_URL)} />
+        <Menu label="Ferramentas avançadas" onPress={() => navigation.getParent()?.navigate("AdvancedTools")} />
+      </> : null}
       <View style={styles.card}>
-        <View style={styles.inline}><ShieldCheck color={activePaid || activeTrial ? colors.success : colors.warning} size={20} /><Text style={styles.cardTitle}>Sua assinatura</Text></View>
-        <Text style={styles.body}>{subscription ? (planLabel[subscription.plan || ""] || subscription.plan || "Plano") : "NexJud"}</Text>
+        <View style={styles.inline}><ShieldCheck color={activePaid || activeTrial ? colors.success : colors.warning} size={20} /><Text style={styles.cardTitle}>{Platform.OS === "ios" ? "Seu acesso" : "Sua assinatura"}</Text></View>
+        <Text style={styles.body}>{Platform.OS === "ios" ? "NexJud Companion" : subscription ? (planLabel[subscription.plan || ""] || subscription.plan || "Plano") : "NexJud"}</Text>
         <Text style={styles.helper}>{statusLabel}</Text>
         {subscription?.status === "trialing" && subscription.trial_end
           ? <Text style={styles.helper}>Fim do teste: {new Date(subscription.trial_end).toLocaleDateString("pt-BR")}</Text> : null}
@@ -669,9 +725,12 @@ function ProfileScreen({ navigation }: any) {
         {activePaid && !subscription?.current_period_end
           ? <Text style={styles.helper}>Cadastro anterior sem data de vencimento; situação em revisão, sem alteração automática.</Text> : null}
         <Button label="Atualizar status da assinatura" onPress={loadProfileAndPlan} secondary />
-        <Text style={styles.helper}>O plano só é ativado após confirmação do pagamento no servidor. Este aplicativo não realiza cobranças.</Text>
+        {Platform.OS !== "ios" ? <Text style={styles.helper}>O plano só é ativado após confirmação do pagamento no servidor. Este aplicativo não realiza cobranças.</Text> : null}
       </View>
-      <Text style={styles.helper}>Planos e assinaturas são administrados fora deste aplicativo. Aqui você consulta apenas a situação da sua conta.</Text>
+      {Platform.OS === "ios" ? <>
+        <Text style={styles.helper}>Este aplicativo é gratuito e complementar ao NexJud Workspace. Não permite compras, contratação nem alterações comerciais.</Text>
+        <Menu label="Privacidade e IA · Revogar autorização de envio à OpenAI" onPress={revokeIosAiConsent} />
+      </> : <Text style={styles.helper}>Planos e assinaturas são administrados fora deste aplicativo. Aqui você consulta apenas a situação da sua conta.</Text>}
       <Menu label="Política de Privacidade" onPress={() => open("/privacy")} />
       <Menu label="Termos de Uso" onPress={() => open("/terms")} />
       <Menu label="Excluir conta e dados" onPress={() => open("/account-deletion")} danger />
@@ -696,6 +755,7 @@ function CourtAnalysisScreen({ route, navigation }: any) {
   async function analyze() {
     const processNumber = cnj.trim()
     if (!processNumber) return Alert.alert("Informe o processo", "Digite ou cole o número CNJ.")
+    if (!(await confirmIosAiConsent())) return
     setLoading(true); setResult(null); setErrorText("")
     try {
       const { data, error } = await supabase.functions.invoke("decision-intelligence", {

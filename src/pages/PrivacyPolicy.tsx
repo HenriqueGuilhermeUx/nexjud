@@ -8,7 +8,7 @@ export default function PrivacyPolicy() {
         <div>
           <p className="text-sm font-bold tracking-widest text-indigo-400">NEXJUD</p>
           <h1 className="text-4xl font-bold mt-2">Política de Privacidade</h1>
-          <p className="text-gray-400 mt-3">Última atualização: 1º de agosto de 2026.</p>
+          <p className="text-gray-400 mt-3">Última atualização: 16 de outubro de 2026.</p>
         </div>
 
         <Section title="1. Escopo">
@@ -20,17 +20,18 @@ export default function PrivacyPolicy() {
         <Section title="3. Finalidades">
           Os dados são utilizados para autenticação, sincronização entre Web e aplicativo, armazenamento e organização de documentos, execução das funcionalidades de inteligência artificial, suporte, segurança, prevenção de fraude, faturamento e melhoria do serviço.
         </Section>
-        <Section title="4. Inteligência artificial">
-          Conteúdos enviados podem ser processados por modelos de inteligência artificial para gerar análises, resumos, estratégias e documentos solicitados pelo usuário. O NexJud é ferramenta de apoio; a revisão e a decisão jurídica final permanecem sob responsabilidade do profissional.
+        <Section title="4. Inteligência artificial e fornecedor externo">
+          Para executar funcionalidades de IA solicitadas pelo usuário, a NexJud pode enviar à OpenAI (OpenAI, L.L.C., provedora externa de modelos de IA) o texto enviado, perguntas, histórico relevante de conversas, dados processuais, fatos dos casos, informações das partes e trechos de documentos vinculados, conforme o contexto selecionado e a função utilizada. Esses conteúdos podem incluir dados pessoais de terceiros. A transmissão ocorre por funções de servidor da NexJud, não por conexão direta do aplicativo à OpenAI.
+          No aplicativo iOS, o usuário recebe aviso específico e precisa autorizar expressamente antes do primeiro envio à IA; sem essa autorização, as funções com transmissão externa não são executadas. O usuário pode revogar a autorização em Perfil, impedindo novos envios, sem excluir automaticamente dados já processados. O NexJud é ferramenta de apoio e exige revisão profissional dos resultados.
         </Section>
         <Section title="5. Compartilhamento e operadores">
-          Dados podem ser processados por provedores de infraestrutura, banco de dados, armazenamento, autenticação, inteligência artificial, pagamentos, e-mail e monitoramento, sempre de acordo com contratos e medidas de segurança aplicáveis.
+          Usamos infraestrutura Supabase para autenticação, banco de dados, armazenamento e funções servidor; OpenAI para o processamento externo de IA descrito acima; e outros operadores necessários a pagamentos, suporte, e-mail e monitoramento. Compartilhamos apenas informações relacionadas ao serviço solicitado e adotamos controles técnicos, contratuais e organizacionais para exigir proteção apropriada de fornecedores externos. O uso efetivo e os termos de proteção de cada fornecedor precisam ser verificados periodicamente.
         </Section>
         <Section title="6. Segurança e retenção">
           Aplicamos controles de acesso, autenticação, comunicação criptografada, políticas de banco e segregação por usuário. Os dados são mantidos pelo período necessário à prestação do serviço, ao cumprimento de obrigações legais e à defesa de direitos.
         </Section>
         <Section title="7. Direitos do titular">
-          O titular pode solicitar confirmação, acesso, correção, portabilidade, informações sobre compartilhamento, revogação de consentimento quando aplicável e exclusão, observadas as hipóteses legais de conservação.
+          O titular pode solicitar confirmação, acesso, correção, portabilidade, informações sobre compartilhamento, revogação de consentimento quando aplicável e exclusão, observadas as hipóteses legais de conservação. No aplicativo iOS, a permissão para futuros envios à OpenAI pode ser revogada em Perfil. Solicitações sobre histórico, retenção e exclusão também podem ser enviadas a suporte@nexjud.com.br.
         </Section>
         <Section title="8. Exclusão da conta">
           O usuário pode solicitar a exclusão da conta e dos dados pela página pública de exclusão. A solicitação será validada antes da remoção definitiva e poderá preservar registros exigidos por lei ou necessários à defesa de direitos.

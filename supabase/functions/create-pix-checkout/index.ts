@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
+import { wooviAuthorizationValue } from "../_shared/wooviCheckoutAuth.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,7 +80,7 @@ Deno.serve(async (req) => {
     const response = await fetch("https://api.woovi.com/api/v1/charge", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${WOOVI_API_TOKEN}`,
+        Authorization: wooviAuthorizationValue(WOOVI_API_TOKEN),
         "Content-Type": "application/json",
       },
       body: JSON.stringify(wooviBody),
@@ -87,7 +88,7 @@ Deno.serve(async (req) => {
 
     const json = await response.json().catch(() => ({}))
     if (!response.ok) {
-      return Response.json({ error: "Erro ao criar cobrança Woovi.", status: response.status, raw: json }, { status: 500, headers: corsHeaders })
+      return Response.json({ error: "Não foi possível gerar o Pix. Tente novamente.", provider_status: response.status }, { status: 502, headers: corsHeaders })
     }
 
     const charge = extractChargePayload(json)

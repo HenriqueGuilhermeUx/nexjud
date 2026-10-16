@@ -9,6 +9,9 @@ on:
       - "supabase/functions/woovi-webhook/**"
       - "supabase/functions/_shared/wooviWebhookPolicy.ts"
       - "supabase/functions/_shared/wooviSignature.ts"
+      - "supabase/functions/create-pix-checkout/**"
+      - "supabase/functions/_shared/wooviCheckoutAuth.ts"
+      - "src/enterprise/wooviCheckoutAuth.test.ts"
       - "src/enterprise/wooviSignature.test.ts"
       - "package.json"
       - ".github/workflows/billing-safe-release.yml"
@@ -35,6 +38,6 @@ jobs:
         with:
           deno-version: v2.x
       - name: Typecheck Woovi webhook Edge Function
-        run: deno check --node-modules-dir=auto supabase/functions/woovi-webhook/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/woovi-webhook/index.ts supabase/functions/create-pix-checkout/index.ts
       - name: Build Web/PWA
         run: npx vite build

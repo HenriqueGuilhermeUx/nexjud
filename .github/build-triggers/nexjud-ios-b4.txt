@@ -3,3 +3,5 @@ Use existing encrypted signing backup from verified workflow run 38001723707.
 Never issue, replace or revoke Apple signing identities.
 Never upload the IPA automatically to App Store Connect.
 Source main commit: 2d8570d756baed0319d068a4381ed8053d12f1f3.
+
+Retry 2: regenerate broken PNG icons in ephemeral build workspace before iOS packaging.

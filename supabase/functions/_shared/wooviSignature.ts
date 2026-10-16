@@ -5,10 +5,12 @@ export async function verifyWooviRsaSignature(
   publicKeys: readonly string[],
 ): Promise<boolean> {
   if (!signatureBase64 || publicKeys.length === 0 || publicKeys.length > 12) return false
-  let signature: Uint8Array
+  let signature: ArrayBuffer
   try {
     const binary = atob(signatureBase64.trim())
-    signature = Uint8Array.from(binary, char => char.charCodeAt(0))
+    const bytes = Uint8Array.from(binary, char => char.charCodeAt(0))
+    signature = new ArrayBuffer(bytes.byteLength)
+    new Uint8Array(signature).set(bytes)
   } catch { return false }
   const content = new TextEncoder().encode(rawBody)
   for (const pem of publicKeys) {

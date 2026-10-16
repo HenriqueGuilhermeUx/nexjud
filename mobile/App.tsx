@@ -172,6 +172,7 @@ function HomeScreen({ navigation }: any) {
     { title: "Perguntar à IA", subtitle: "Legal Brain contextual", icon: Brain, route: "IA" },
     { title: "Consultar casos", subtitle: "Dossiês e estratégia", icon: Briefcase, route: "Casos" },
     { title: "Preparar minuta", subtitle: "Peças e documentos com IA", icon: WandSparkles, parent: "Studio" },
+    { title: "Ferramentas avançadas", subtitle: "Inteligência e estratégia completas", icon: Sparkles, parent: "AdvancedTools" },
   ]
 
   return (
@@ -591,6 +592,29 @@ function HearingScreen({ route, navigation }: any) {
   )
 }
 
+const advancedTools = [
+  { title: "Análise do Juízo completa", description: "Evidências e revisão documental", path: "/dashboard/decision-intelligence" },
+  { title: "Legal Intelligence", description: "Análise jurídica ampliada", path: "/dashboard/legal-intelligence-engine" },
+  { title: "Red Team", description: "Teste a robustez dos argumentos", path: "/dashboard/red-team" },
+  { title: "Carteira processual", description: "Casos, documentos e acompanhamentos", path: "/dashboard/process-portfolio" },
+  { title: "Histórico das análises", description: "Análises que você decidiu salvar", path: "/dashboard/history" },
+  { title: "Estratégia de litígio", description: "Ferramentas conforme o plano contratado", path: "/dashboard/litigation-strategy" },
+] as const
+
+function AdvancedToolsScreen({ navigation }: any) {
+  return <ScrollView style={styles.safe} contentContainerStyle={styles.page}>
+    <Pressable onPress={() => navigation.goBack()}><Text style={styles.linkTextSmall}>← Voltar</Text></Pressable>
+    <ScreenTitle eyebrow="WORKSPACE NEXJUD" title="Ferramentas avançadas" subtitle="Acesse os módulos completos no site da NexJud. Seus casos e documentos continuam na mesma conta." />
+    <View style={styles.card}><Text style={styles.helper}>Os módulos abaixo abrem o navegador com o Workspace Web. Talvez seja necessário entrar novamente no navegador. O acesso segue seu plano e permissões.</Text></View>
+    {advancedTools.map(tool => <Pressable key={tool.path} style={styles.rowCard} onPress={() => Linking.openURL(`${WEB_URL}${tool.path}`)}>
+      <Sparkles color={colors.primary} size={22} />
+      <View style={{ flex: 1, gap: 3 }}><Text style={styles.cardTitle}>{tool.title}</Text><Text style={styles.helper}>{tool.description}</Text></View>
+      <ChevronRight color={colors.muted} size={19} />
+    </Pressable>)}
+    <Text style={styles.disclaimer}>Consulte as decisões judiciais originais. O DataJud fornece registros processuais, não previsão de resultado.</Text>
+  </ScrollView>
+}
+
 function ProfileScreen() {
   const [profile, setProfile] = useState<any>(null)
   const [email, setEmail] = useState("")
@@ -616,9 +640,10 @@ function ProfileScreen() {
   const activeTrial = subscription?.status === "trialing" && subscription.active && Boolean(
     subscription.trial_end && Date.parse(subscription.trial_end) > Date.now(),
   )
-  const activePaid = subscription?.status === "active" && subscription.active && (
-    !subscription.current_period_end || Date.parse(subscription.current_period_end) > Date.now()
-  )
+  const paidPlans = ["pro", "intelligence", "enterprise", "enterprise_plus"]
+  const activePaid = subscription?.status === "active" && subscription.active === true
+    && paidPlans.includes(subscription.plan || "")
+    && (!subscription.current_period_end || Date.parse(subscription.current_period_end) > Date.now())
   const statusLabel = subscriptionError ? "Não foi possível consultar sua assinatura"
     : activePaid ? "Plano ativo"
     : activeTrial ? "Teste gratuito ativo"
@@ -632,6 +657,7 @@ function ProfileScreen() {
       <Text style={styles.hero}>{profile?.name || profile?.full_name || "Minha conta"}</Text><Text style={styles.subtitle}>{email}</Text>
       <View style={styles.statusCard}><CheckCircle2 color={colors.success} size={21} /><View style={{ flex: 1 }}><Text style={styles.cardTitle}>NexJud sincronizado</Text><Text style={styles.helper}>Workspace e Companion compartilham conta e dados.</Text></View></View>
       <Menu label="Abrir Workspace" onPress={() => Linking.openURL(WEB_URL)} />
+      <Menu label="Ferramentas avançadas" onPress={() => Linking.openURL(`${WEB_URL}/dashboard/decision-intelligence`)} />
       <View style={styles.card}>
         <View style={styles.inline}><ShieldCheck color={activePaid || activeTrial ? colors.success : colors.warning} size={20} /><Text style={styles.cardTitle}>Sua assinatura</Text></View>
         <Text style={styles.body}>{subscription ? (planLabel[subscription.plan || ""] || subscription.plan || "Plano") : "NexJud"}</Text>
@@ -755,6 +781,7 @@ export default function App() {
           {session ? <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="CourtAnalysis" component={CourtAnalysisScreen} />
+            <Stack.Screen name="AdvancedTools" component={AdvancedToolsScreen} />
             <Stack.Screen name="CaseDetail" component={CaseDetailScreen} />
             <Stack.Screen name="HearingPicker" component={HearingPickerScreen} />
             <Stack.Screen name="Hearing" component={HearingScreen} />

@@ -594,7 +594,7 @@ function HearingScreen({ route, navigation }: any) {
 function ProfileScreen() {
   const [profile, setProfile] = useState<any>(null)
   const [email, setEmail] = useState("")
-  const [subscription, setSubscription] = useState<{ plan?: string; status?: string; active?: boolean; trial_end?: string | null } | null>(null)
+  const [subscription, setSubscription] = useState<{ plan?: string; status?: string; active?: boolean; trial_end?: string | null; current_period_end?: string | null } | null>(null)
   const [subscriptionError, setSubscriptionError] = useState(false)
   async function loadProfileAndPlan() {
     const { data } = await supabase.auth.getUser()
@@ -602,7 +602,7 @@ function ProfileScreen() {
     setEmail(data.user.email || "")
     const [p, sub] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle(),
-      supabase.from("subscriptions").select("plan,status,active,trial_end").eq("user_id", data.user.id).maybeSingle(),
+      supabase.from("subscriptions").select("plan,status,active,trial_end,current_period_end").eq("user_id", data.user.id).maybeSingle(),
     ])
     setProfile(p.data)
     setSubscription(sub.data)
@@ -616,7 +616,9 @@ function ProfileScreen() {
   const activeTrial = subscription?.status === "trialing" && subscription.active && Boolean(
     subscription.trial_end && Date.parse(subscription.trial_end) > Date.now(),
   )
-  const activePaid = subscription?.status === "active" && subscription.active
+  const activePaid = subscription?.status === "active" && subscription.active && (
+    !subscription.current_period_end || Date.parse(subscription.current_period_end) > Date.now()
+  )
   const statusLabel = subscriptionError ? "Não foi possível consultar sua assinatura"
     : activePaid ? "Plano ativo"
     : activeTrial ? "Teste gratuito ativo"
@@ -636,6 +638,10 @@ function ProfileScreen() {
         <Text style={styles.helper}>{statusLabel}</Text>
         {subscription?.status === "trialing" && subscription.trial_end
           ? <Text style={styles.helper}>Fim do teste: {new Date(subscription.trial_end).toLocaleDateString("pt-BR")}</Text> : null}
+        {activePaid && subscription?.current_period_end
+          ? <Text style={styles.helper}>Acesso pago até: {new Date(subscription.current_period_end).toLocaleDateString("pt-BR")}</Text> : null}
+        {activePaid && !subscription?.current_period_end
+          ? <Text style={styles.helper}>Cadastro anterior sem data de vencimento; situação em revisão, sem alteração automática.</Text> : null}
         <Button label="Atualizar status da assinatura" onPress={loadProfileAndPlan} secondary />
         <Text style={styles.helper}>O plano só é ativado após confirmação do pagamento no servidor. Este aplicativo não realiza cobranças.</Text>
       </View>

@@ -1,0 +1,40 @@
+name: NexJud Billing Safe Release CI
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/pages/PricingPage.tsx"
+      - "src/services/paymentService.ts"
+      - "src/enterprise/wooviWebhookPolicy.test.ts"
+      - "supabase/functions/woovi-webhook/**"
+      - "supabase/functions/_shared/wooviWebhookPolicy.ts"
+      - "supabase/functions/_shared/wooviSignature.ts"
+      - "src/enterprise/wooviSignature.test.ts"
+      - "package.json"
+      - ".github/workflows/billing-safe-release.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  billing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install
+        run: npm install --ignore-scripts=false
+      - name: Verify paid-event policy and idempotency behavior
+        run: npm run test:billing
+      - name: Typecheck Web
+        run: npx tsc -b
+      - name: Install Deno for Edge Function static typecheck
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Typecheck Woovi webhook Edge Function
+        run: deno check --node-modules-dir=auto supabase/functions/woovi-webhook/index.ts
+      - name: Build Web/PWA
+        run: npx vite build

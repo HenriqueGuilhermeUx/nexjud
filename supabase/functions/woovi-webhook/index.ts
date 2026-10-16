@@ -1,39 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
-
-function findCorrelationID(body: any) {
-  const candidates = [
-    body?.charge?.correlationID,
-    body?.charge?.correlationId,
-    body?.charge?.identifier,
-    body?.pixCharge?.correlationID,
-    body?.pixCharge?.correlationId,
-    body?.transaction?.charge?.correlationID,
-    body?.transaction?.charge?.correlationId,
-    body?.transaction?.correlationID,
-    body?.transaction?.correlationId,
-    body?.correlationID,
-    body?.correlationId,
-  ]
-  return String(candidates.find(Boolean) || "")
-}
-
-function isPaidEvent(body: any) {
-  const event = String(body?.event || body?.evento || "").toUpperCase()
-  const status = String(
-    body?.charge?.status || body?.pixCharge?.status || body?.transaction?.status || body?.status || ""
-  ).toUpperCase()
-
-  return (
-    event === "OPENPIX:TRANSACTION_RECEIVED" ||
-    event === "OPENPIX:CHARGE_COMPLETED" ||
-    event.includes("TRANSACTION_RECEIVED") ||
-    status === "COMPLETED" ||
-    status === "PAID" ||
-    status === "CONFIRMED" ||
-    status === "APPROVED"
-  )
-}
+import { findCorrelationID, isPaidEvent, amountMatchesSignedCharge, validPaidPlan } from "../_shared/wooviWebhookPolicy.ts"
+import { verifyWooviRsaSignature, pickWooviPublicKeys } from "../_shared/wooviSignature.ts"
 
 function toBase64(bytes: ArrayBuffer) {
   let binary = ""
@@ -60,6 +28,28 @@ async function verifyHmac(rawBody: string, signature: string, secret: string) {
   return safeEqual(toBase64(digest), signature)
 }
 
+// Cache public key rotation set for one hour. Only trusted Woovi endpoints are queried.
+let publicKeysCache: string[] = []
+let keysExpireAt = 0
+async function wooviPublicKeys(): Promise<string[]> {
+  if (publicKeysCache.length && Date.now() < keysExpireAt) return publicKeysCache
+  try {
+    const res = await fetch("https://api.woovi.com/api/v1/webhook/public-keys", {
+      signal: AbortSignal.timeout(6500),
+    })
+    if (!res.ok) throw new Error("woovi_public_keys_unavailable")
+    const keys = pickWooviPublicKeys(await res.json())
+    if (!keys.length) throw new Error("woovi_public_keys_empty")
+    publicKeysCache = keys
+    keysExpireAt = Date.now() + 60 * 60 * 1000
+    return keys
+  } catch (error) {
+    // A temporary key service outage must not invalidate cached legitimate signatures.
+    if (publicKeysCache.length) return publicKeysCache
+    throw error
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     if (req.method !== "POST") {
@@ -67,21 +57,29 @@ Deno.serve(async (req) => {
     }
 
     const rawBody = await req.text()
+    const webhookSecret = Deno.env.get("WOOVI_WEBHOOK_SECRET") || ""
+    const hmacSignature = req.headers.get("x-openpix-signature") || ""
+    const rsaSignature = req.headers.get("x-webhook-signature") || ""
+    if (!hmacSignature && !rsaSignature) {
+      return Response.json({ ok: false, error: "invalid_webhook_signature" }, { status: 401 })
+    }
+    let validSignature = false
+    // The recommended Woovi RSA signature is independent of local HMAC secret configuration.
+    if (rsaSignature) {
+      const keys = await wooviPublicKeys()
+      validSignature = await verifyWooviRsaSignature(rawBody, rsaSignature, keys)
+    }
+    // Retain compatibility with older Woovi webhook configurations.
+    if (!validSignature && hmacSignature && webhookSecret) {
+      validSignature = await verifyHmac(rawBody, hmacSignature, webhookSecret)
+    }
+    if (!validSignature) {
+      return Response.json({ ok: false, error: "invalid_webhook_signature" }, { status: 401 })
+    }
+    // Parse only after verifying the raw bytes. Never exempt test events from signature verification.
     const body = JSON.parse(rawBody || "{}")
-
-    // Woovi sends a connectivity test when the webhook is configured.
     if (body.evento === "teste_webhook" || body.event === "teste_webhook") {
       return Response.json({ ok: true, test: true })
-    }
-
-    const webhookSecret = Deno.env.get("WOOVI_WEBHOOK_SECRET") || ""
-    const signature = req.headers.get("x-openpix-signature") || req.headers.get("X-OpenPix-Signature") || ""
-
-    if (!webhookSecret) {
-      return Response.json({ ok: false, error: "WOOVI_WEBHOOK_SECRET não configurado." }, { status: 500 })
-    }
-    if (!signature || !(await verifyHmac(rawBody, signature, webhookSecret))) {
-      return Response.json({ ok: false, error: "invalid_webhook_signature" }, { status: 401 })
     }
 
     if (!isPaidEvent(body)) {
@@ -114,45 +112,20 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, ignored: true, reason: "order_not_found", correlationID })
     }
 
-    if (order.status === "paid") {
-      return Response.json({
-        ok: true,
-        activated: true,
-        duplicate: true,
-        user_id: order.user_id,
-        plan: order.plan,
-        correlationID,
-      })
+    if (!validPaidPlan(order.plan) || !amountMatchesSignedCharge(body, order.amount_cents)) {
+      return Response.json({ ok: false, error: "payment_order_mismatch" }, { status: 422 })
     }
 
-    const now = new Date().toISOString()
-
-    const { error: orderUpdateError } = await supabase
-      .from("payment_orders")
-      .update({ status: "paid", paid_at: now, raw: body })
-      .eq("id", order.id)
-      .neq("status", "paid")
-    if (orderUpdateError) throw orderUpdateError
-
-    const { error: subscriptionError } = await supabase.from("subscriptions").upsert({
-      user_id: order.user_id,
-      plan: order.plan,
-      status: "active",
-      active: true,
-      payment_provider: "woovi",
-      provider_subscription_id: correlationID,
-      updated_at: now,
-    }, { onConflict: "user_id" })
-    if (subscriptionError) throw subscriptionError
-
-    return Response.json({
-      ok: true,
-      activated: true,
-      duplicate: false,
-      user_id: order.user_id,
-      plan: order.plan,
-      correlationID,
-    })
+    // Atomic settlement (single Postgres transaction): service_role-only RPC.
+    // Requires reviewed paid-period SQL to be deployed BEFORE this Edge Function.
+    // If the function is missing or fails, do NOT acknowledge success.
+    const { data: settlement, error: settlementError } = await supabase.rpc(
+      "nexjud_settle_paid_order",
+      { p_correlation_id: correlationID, p_payment_metadata: body },
+    )
+    if (settlementError) throw settlementError
+    if (!settlement?.paid) throw new Error("payment_settlement_unconfirmed")
+    return Response.json({ ok: true, activated: true, duplicate: settlement.duplicate === true })
   } catch (error) {
     return Response.json(
       { ok: false, error: error instanceof Error ? error.message : "Erro webhook" },

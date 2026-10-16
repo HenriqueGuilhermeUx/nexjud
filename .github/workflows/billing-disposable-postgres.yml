@@ -1,0 +1,37 @@
+name: NexJud Billing Disposable PostgreSQL
+on:
+  pull_request:
+    paths:
+      - 'docs/billing/**'
+      - '.github/workflows/billing-disposable-postgres.yml'
+      - 'supabase/functions/woovi-webhook/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sql-billing-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGPASSWORD: ci-only
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install disposable billing tables and RLS
+        run: psql -v ON_ERROR_STOP=1 -f docs/billing/ci-fixture.sql
+      - name: Install candidate settlement function ONLY in disposable PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f docs/billing/paid-period-proposal.sql
+      - name: Assert paid periods, replay, renewal, mismatch, downgrade and client denial
+        run: psql -v ON_ERROR_STOP=1 -f docs/billing/period-contract-tests.sql

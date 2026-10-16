@@ -1,8 +1,8 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Check, Crown, Sparkles, Shield, Zap, Copy, Loader2 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { PlanType } from "@/services/subscriptionService"
-import { createPixCheckout } from "@/services/paymentService"
+import { createPixCheckout, getPixOrderStatus } from "@/services/paymentService"
 
 const plans = [
   {
@@ -45,6 +45,31 @@ export default function PricingPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const [checkout, setCheckout] = useState<any>(null)
   const [taxId, setTaxId] = useState("")
+  const [paymentStatus, setPaymentStatus] = useState<"pending" | "paid">("pending")
+  const [paymentNotice, setPaymentNotice] = useState("")
+  const [verifying, setVerifying] = useState(false)
+
+  // Read only the authenticated customer's own order; never infer confirmation
+  // from "I paid" or a locally stored checkout. The webhook controls activation.
+  useEffect(() => {
+    const orderId = checkout?.order?.id as string | undefined
+    if (!orderId || paymentStatus === "paid") return
+    let canceled = false
+    const check = async () => {
+      try {
+        const status = await getPixOrderStatus(orderId)
+        if (!canceled && status === "paid") {
+          setPaymentStatus("paid")
+          setPaymentNotice("Pix confirmado pela NexJud. A assinatura foi ativada.")
+        }
+      } catch {
+        // A transient network/RLS failure must never be presented as successful payment.
+      }
+    }
+    const interval = window.setInterval(check, 6000)
+    return () => { canceled = true; window.clearInterval(interval) }
+  }, [checkout?.order?.id, paymentStatus])
+
 
   async function choosePlan(plan: PlanType) {
     if (!user?.id || !user?.email) {
@@ -53,6 +78,8 @@ export default function PricingPage() {
     }
 
     setLoadingPlan(plan)
+    setPaymentNotice("")
+    setPaymentStatus("pending")
 
     try {
       const data = await createPixCheckout({
@@ -89,9 +116,25 @@ export default function PricingPage() {
     alert("Pix copia e cola copiado.")
   }
 
-  function goDashboard() {
-    alert("Se o pagamento já foi confirmado pelo webhook, seu plano será ativado automaticamente.")
-    window.location.href = "/dashboard"
+  async function goDashboard() {
+    const orderId = checkout?.order?.id as string | undefined
+    if (!orderId) {
+      setPaymentNotice("Não foi possível identificar a cobrança. Gere um novo Pix.")
+      return
+    }
+    setVerifying(true)
+    try {
+      const status = await getPixOrderStatus(orderId)
+      if (status === "paid") {
+        window.location.href = "/dashboard"
+        return
+      }
+      setPaymentNotice("Pagamento ainda não confirmado. Aguarde a confirmação da Woovi; não é necessário pagar novamente.")
+    } catch {
+      setPaymentNotice("Não foi possível verificar o Pix agora. Sua cobrança permanece pendente até confirmação.")
+    } finally {
+      setVerifying(false)
+    }
   }
 
   return (
@@ -100,15 +143,15 @@ export default function PricingPage() {
         <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-indigo-500/10 to-[#05050a] p-8 text-center">
           <h1 className="text-4xl font-bold">Escolha seu plano NexJud</h1>
           <p className="text-muted-foreground mt-3 max-w-3xl mx-auto">
-            Comece com 7 dias grátis. Depois escolha o nível de inteligência jurídica ideal para sua operação.
+            Comece com 7 dias grátis. Cada Pix confirmado corresponde a um mês de acesso ao plano escolhido. A renovação não é automática nesta modalidade.
           </p>
         </section>
 
         {checkout && (
           <section className="rounded-3xl border border-green-500/30 bg-green-500/5 p-6">
-            <h2 className="text-2xl font-bold text-green-400">Pix gerado com sucesso</h2>
+            <h2 className="text-2xl font-bold text-green-400">{paymentStatus === "paid" ? "Pix confirmado" : "Pix gerado com sucesso"}</h2>
             <p className="text-muted-foreground mt-2">
-              Pague o Pix abaixo. Quando o webhook da Woovi confirmar, seu plano será ativado automaticamente.
+              {paymentStatus === "paid" ? "Pagamento confirmado. Você pode acessar o painel." : "Pague o Pix abaixo. Seu plano será liberado quando recebermos a confirmação da Woovi."}
             </p>
 
             <div className="grid lg:grid-cols-2 gap-6 mt-6">
@@ -123,6 +166,7 @@ export default function PricingPage() {
                   className="w-full h-32 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 text-sm"
                 />
 
+                {paymentNotice && <p role="status" className="text-sm text-amber-200 mt-4">{paymentNotice}</p>}
                 <div className="flex flex-col sm:flex-row gap-3 mt-4">
                   <button
                     onClick={copyPix}
@@ -134,9 +178,10 @@ export default function PricingPage() {
 
                   <button
                     onClick={goDashboard}
+                    disabled={verifying}
                     className="px-5 py-3 rounded-xl bg-[#171721] border border-border font-bold"
                   >
-                    Já paguei
+                    {verifying ? "Verificando..." : paymentStatus === "paid" ? "Acessar painel" : "Já paguei — verificar"}
                   </button>
                 </div>
               </div>
@@ -178,6 +223,12 @@ export default function PricingPage() {
             className="mt-2 w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4 outline-none focus:border-primary"
           />
         </section>
+
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-5 py-4 text-sm text-amber-100">
+          Importante: este checkout gera uma cobrança Pix avulsa para um período mensal.
+          Não realiza Pix Automático nem débito recorrente. A continuidade após o vencimento
+          depende de nova cobrança confirmada. Consulte os termos de uso antes de pagar.
+        </p>
 
         <section className="grid lg:grid-cols-4 gap-5">
           {plans.map((plan) => {

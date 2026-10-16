@@ -9,6 +9,8 @@ export interface Subscription {
   status: "trialing" | "active" | "past_due" | "canceled" | "expired"
   trial_start?: string
   trial_end?: string
+  current_period_start?: string | null
+  current_period_end?: string | null
   active: boolean
   payment_provider?: string
   provider_customer_id?: string

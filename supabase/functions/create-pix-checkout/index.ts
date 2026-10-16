@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { wooviAuthorizationValue } from "../_shared/wooviCheckoutAuth.ts"
+import { checkoutEligibilityBlockReason } from "../_shared/wooviCheckoutEligibility.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,6 +56,27 @@ Deno.serve(async (req) => {
 
     if (!prices[plan]) throw new Error("Plano inválido.")
     if (!customerEmail) throw new Error("Email obrigatório.")
+
+    // Fail closed before calling Woovi: legacy paid plans with NULL expiry,
+    // ambiguous subscriptions and active downgrades require human review.
+    const { data: currentSubscription, error: subscriptionError } = await supabase
+      .from("subscriptions")
+      .select("plan, status, active, current_period_end")
+      .eq("user_id", user.id)
+      .maybeSingle()
+    if (subscriptionError) {
+      return Response.json(
+        { error: "Não foi possível conferir sua assinatura. Nenhum Pix foi gerado." },
+        { status: 503, headers: corsHeaders },
+      )
+    }
+    const blocked = checkoutEligibilityBlockReason(currentSubscription, plan)
+    if (blocked) {
+      return Response.json(
+        { error: blocked, code: "checkout_subscription_review_required" },
+        { status: 409, headers: corsHeaders },
+      )
+    }
 
     const correlationID = crypto.randomUUID()
     const amount = prices[plan]

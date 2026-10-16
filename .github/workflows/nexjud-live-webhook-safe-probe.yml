@@ -1,0 +1,31 @@
+name: NexJud Live Webhook Rejects Unsigned Requests
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/nexjud-live-webhook-safe-probe.yml"
+      - "supabase/functions/woovi-webhook/**"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  invalid-signature-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Confirm live endpoint rejects forged billing notification without database changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          # This is an unsigned, intentionally invalid synthetic payload;
+          # it cannot authorize settlement or change a subscription.
+          URL="https://zoruralbsxrbsaicihzu.supabase.co/functions/v1/woovi-webhook"
+          code="$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' \
+            --request POST --header 'Content-Type: application/json' \
+            --header 'x-openpix-signature: definitely-invalid-signature' \
+            --data '{"event":"OPENPIX:CHARGE_COMPLETED","charge":{"correlationID":"invalid-signature-ci-only","value":19700,"status":"COMPLETED"}}' \
+            "$URL")"
+          if [ "$code" != "401" ]; then
+            echo "::error::Expected 401 for forged webhook notification; actual status $code"
+            exit 1
+          fi
+          echo "Webhook safely rejected an invalid signature (HTTP $code)."

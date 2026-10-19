@@ -1,0 +1,267 @@
+name: NexJud iOS 1.0.4 (5) — Signed IPA Build Only
+
+on:
+  push:
+    branches:
+      - nexjud-ios-release-b5
+    paths:
+      - '.github/build-triggers/nexjud-ios-b5.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nexjud-ios-release-b5
+  cancel-in-progress: false
+
+env:
+  CI: 'true'
+  EXPO_NO_TELEMETRY: '1'
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  ASC_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+  ASC_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+  APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+  ASC_APP_ID: ${{ secrets.APPLE_APP_ID }}
+  BUNDLE_ID: com.nexjud.companion
+
+jobs:
+  build_submit:
+    name: Restore existing Apple signing and build signed IPA (no upload)
+    runs-on: macos-26
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Set up Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: 24.11.0
+          packager: npm
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          npm install --include=dev --no-audit --no-fund
+          gem install fastlane --no-document
+
+      - name: Materialize App Store Connect API key
+        env:
+          ASC_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          test -n "${ASC_API_KEY_P8:-}"
+          mkdir -p "$GITHUB_WORKSPACE/mobile/credentials"
+          KEY_PATH="$GITHUB_WORKSPACE/mobile/credentials/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_API_KEY_P8" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          grep -q -- '-----BEGIN PRIVATE KEY-----' "$KEY_PATH"
+          grep -q -- '-----END PRIVATE KEY-----' "$KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          echo "EXPO_ASC_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          echo "EXPO_ASC_KEY_ID=$ASC_KEY_ID" >> "$GITHUB_ENV"
+          echo "EXPO_ASC_ISSUER_ID=$ASC_ISSUER_ID" >> "$GITHUB_ENV"
+          echo "EXPO_APPLE_TEAM_ID=$APPLE_TEAM_ID" >> "$GITHUB_ENV"
+          echo "EXPO_APPLE_TEAM_TYPE=INDIVIDUAL" >> "$GITHUB_ENV"
+
+      - name: Require persistent encrypted signing backup
+        env:
+          IOS_SIGNING_BACKUP_PASSPHRASE: ${{ secrets.IOS_SIGNING_BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${IOS_SIGNING_BACKUP_PASSPHRASE:-}" || ${#IOS_SIGNING_BACKUP_PASSPHRASE} -lt 24 ]]; then
+            echo "::error::Set IOS_SIGNING_BACKUP_PASSPHRASE (24+ random characters) as a NexJud Actions repository secret before generating a new Apple certificate. This prevents losing the new private key."
+            exit 1
+          fi
+
+      - name: Prepare isolated signing keychain
+        run: |
+          set -euo pipefail
+          CERT_DIR="$RUNNER_TEMP/nexjud-ios-signing"
+          KEYCHAIN_PATH="$RUNNER_TEMP/nexjud.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          P12_PASSWORD="$(openssl rand -hex 24)"
+          mkdir -p "$CERT_DIR" "$GITHUB_WORKSPACE/mobile/ios/certs"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" "$HOME/Library/Keychains/login.keychain-db"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          {
+            echo "CERT_DIR=$CERT_DIR"
+            echo "KEYCHAIN_PATH=$KEYCHAIN_PATH"
+            echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD"
+            echo "P12_PASSWORD=$P12_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Download reusable NexJud signing backup
+        uses: actions/download-artifact@v4
+        with:
+          name: NexJud-Encrypted-Apple-Signing-Backup
+          path: nexjud-signing-restore
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 38001723707
+
+      - name: Restore reusable NexJud signing identity
+        id: restore_signing
+        env:
+          IOS_SIGNING_BACKUP_PASSPHRASE: ${{ secrets.IOS_SIGNING_BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          RESTORE_DIR="$RUNNER_TEMP/nexjud-signing-restore"
+          mkdir -p "$RESTORE_DIR"
+          test -s "$GITHUB_WORKSPACE/nexjud-signing-restore/nexjud-signing-backup.enc"
+          cp "$GITHUB_WORKSPACE/nexjud-signing-restore/nexjud-signing-backup.enc" "$GITHUB_WORKSPACE/nexjud-signing-backup.enc"
+          openssl enc -d -aes-256-cbc -pbkdf2 \
+            -in "$GITHUB_WORKSPACE/nexjud-signing-restore/nexjud-signing-backup.enc" \
+            -out "$RESTORE_DIR/signing.tar.gz" \
+            -pass env:IOS_SIGNING_BACKUP_PASSPHRASE
+          mkdir -p "$RESTORE_DIR/unpacked"
+          tar -C "$RESTORE_DIR/unpacked" -xzf "$RESTORE_DIR/signing.tar.gz"
+          test -s "$RESTORE_DIR/unpacked/dist.p12"
+          test -s "$RESTORE_DIR/unpacked/profile.mobileprovision"
+          test -s "$RESTORE_DIR/unpacked/p12-password.txt"
+          cp "$RESTORE_DIR/unpacked/dist.p12" "$CERT_DIR/dist.p12"
+          cp "$RESTORE_DIR/unpacked/profile.mobileprovision" "$CERT_DIR/profile.mobileprovision"
+          P12_PASSWORD="$(cat "$RESTORE_DIR/unpacked/p12-password.txt")"
+          echo "::add-mask::$P12_PASSWORD"
+          echo "P12_PASSWORD=$P12_PASSWORD" >> "$GITHUB_ENV"
+          security import "$CERT_DIR/dist.p12" -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+          echo "restored=true" >> "$GITHUB_OUTPUT"
+          echo "PASS: NexJud reusable signing identity restored."
+
+      - name: Export signing identity for local EAS build
+        run: |
+          set -euo pipefail
+          cp "$CERT_DIR/dist.p12" "$GITHUB_WORKSPACE/mobile/ios/certs/dist.p12"
+          cp "$CERT_DIR/profile.mobileprovision" "$GITHUB_WORKSPACE/mobile/ios/certs/profile.mobileprovision"
+          test -s "$GITHUB_WORKSPACE/mobile/ios/certs/dist.p12"
+          test -s "$GITHUB_WORKSPACE/mobile/ios/certs/profile.mobileprovision"
+          node <<'NODE'
+          const fs=require('fs');
+          fs.writeFileSync("credentials.json",JSON.stringify({
+            ios:{
+              provisioningProfilePath:"ios/certs/profile.mobileprovision",
+              distributionCertificate:{path:"ios/certs/dist.p12",password:process.env.P12_PASSWORD}
+            }
+          },null,2));
+          NODE
+
+      - name: Validate NexJud release identity
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const app=require('./app.json').expo;
+          const eas=require('./eas.json');
+          if(app.ios?.bundleIdentifier!=='com.nexjud.companion') throw new Error('Bundle ID changed');
+          if(app.ios?.infoPlist?.ITSAppUsesNonExemptEncryption!==false) throw new Error('Encryption declaration changed');
+          if(eas?.submit?.production?.ios?.ascAppId!=='6820244418') throw new Error('ASC App ID mismatch');
+          if(eas?.build?.['ios-api-ci']?.credentialsSource!=='local') throw new Error('Local credentials profile missing');
+          console.log('PASS: NexJud iOS release identity validated.');
+          NODE
+          npx tsc --noEmit
+
+      - name: Rebuild valid NexJud icon and splash assets
+        run: |
+          set -euo pipefail
+          node scripts/generate-assets.mjs
+
+      - name: Validate and repair PNG asset chunk checksums
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import struct, zlib
+          for path in Path("assets").glob("*.png"):
+              data = path.read_bytes()
+              if not data.startswith(bytes.fromhex("89504e470d0a1a0a")):
+                  raise SystemExit(f"Invalid PNG signature: {path}")
+              out = bytearray(data[:8])
+              pos = 8
+              fixes = 0
+              while pos + 12 <= len(data):
+                  size = struct.unpack(">I", data[pos:pos+4])[0]
+                  end = pos + 12 + size
+                  if end > len(data):
+                      raise SystemExit(f"Truncated PNG chunk: {path}")
+                  chunk = data[pos+4:pos+8+size]
+                  old_crc = struct.unpack(">I", data[pos+8+size:end])[0]
+                  crc = zlib.crc32(chunk) & 0xffffffff
+                  out += data[pos:pos+8+size] + struct.pack(">I", crc)
+                  fixes += (old_crc != crc)
+                  pos = end
+                  if chunk[:4] == b"IEND":
+                      break
+              if pos != len(data):
+                  raise SystemExit(f"Invalid PNG trailing data: {path}")
+              if fixes:
+                  path.write_bytes(out)
+              print(f"{path}: {fixes} PNG CRC corrections")
+          PY
+
+      - name: Build signed App Store IPA locally
+        env:
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          IPA="$GITHUB_WORKSPACE/NexJud-AppStore.ipa"
+          eas build --platform ios --profile ios-api-ci --local --non-interactive --output "$IPA"
+          test -s "$IPA"
+          shasum -a 256 "$IPA" > "$GITHUB_WORKSPACE/SHA256SUMS-IOS.txt"
+
+      - name: Verify final NexJud IPA before upload
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import os, plistlib, zipfile
+          ipa = os.path.join(os.environ["GITHUB_WORKSPACE"], "NexJud-AppStore.ipa")
+          with zipfile.ZipFile(ipa) as z:
+              infos = [
+                  n for n in z.namelist()
+                  if n.startswith("Payload/")
+                  and n.endswith(".app/Info.plist")
+                  and n.count("/") == 2
+              ]
+              if len(infos) != 1:
+                  raise SystemExit(f"Expected one root app Info.plist, found: {infos}")
+              info = plistlib.loads(z.read(infos[0]))
+          version = str(info.get("CFBundleShortVersionString", ""))
+          build = str(info.get("CFBundleVersion", ""))
+          bundle = str(info.get("CFBundleIdentifier", ""))
+          print(f"Embedded NexJud version={version} build={build} bundle={bundle}")
+          if version != "1.0.4":
+              raise SystemExit(f"Unexpected version: {version}")
+          if build != "5":
+              raise SystemExit(f"Unexpected build: {build}")
+          if bundle != "com.nexjud.companion":
+              raise SystemExit(f"Unexpected bundle: {bundle}")
+          if not info.get("NSPhotoLibraryUsageDescription"):
+              raise SystemExit("Missing NSPhotoLibraryUsageDescription")
+          if not info.get("NSCameraUsageDescription"):
+              raise SystemExit("Missing NSCameraUsageDescription")
+          print("PASS: NexJud 1.0.4(5) IPA and privacy purposes verified.")
+          PY
+
+      - name: Upload signed IPA artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NexJud-IOS-1.0.4-build-5
+          path: |
+            NexJud-AppStore.ipa
+            SHA256SUMS-IOS.txt
+          if-no-files-found: error
+          retention-days: 30

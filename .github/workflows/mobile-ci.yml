@@ -37,6 +37,8 @@ jobs:
           node-version: 20
       - name: Install
         run: npm install --ignore-scripts=false
+      - name: Navigation regression (iPad document scanner)
+        run: node scripts/validate-navigation.mjs
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Expo config

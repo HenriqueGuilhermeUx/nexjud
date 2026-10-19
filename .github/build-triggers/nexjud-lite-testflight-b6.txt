@@ -1,0 +1,1 @@
+Upload exact verified IPA from GitHub run 39279786157, SHA256 7007bf35177e71d9c978057965752a5b90196df1f5fd3c9035e15ffbed896a0 to TestFlight internal testers. No App Review submission, no certificate changes, no production release.

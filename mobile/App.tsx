@@ -214,7 +214,7 @@ function HomeScreen({ navigation }: any) {
   }
 
   const actions = [
-    { title: "Analisar documento", subtitle: "Foto, PDF ou DOCX", icon: FileSearch, route: "Scanner" },
+    { title: "Analisar documento", subtitle: "Foto, PDF ou DOCX", icon: FileSearch, parent: "Scanner" },
     { title: "Fortalecer uma peça", subtitle: "Rascunho e argumentos", icon: FilePlus2, parent: "Studio" },
     { title: "Treinar argumentos", subtitle: "Prepare audiência e sustentação", icon: Gavel, parent: "HearingPicker" },
     { title: "Perguntar à IA", subtitle: "Legal Brain contextual", icon: Brain, route: "IA" },
@@ -846,6 +846,7 @@ export default function App() {
             <Stack.Screen name="HearingPicker" component={HearingPickerScreen} />
             <Stack.Screen name="Hearing" component={HearingScreen} />
             <Stack.Screen name="Studio" component={StudioScreen} />
+            <Stack.Screen name="Scanner" component={ScannerScreen} />
             <Stack.Screen name="MeetingNote" component={MeetingNoteScreen} />
           </> : <Stack.Screen name="Login" component={LoginScreen} />}
         </Stack.Navigator>

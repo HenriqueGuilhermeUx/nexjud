@@ -2,7 +2,8 @@
 import { readFileSync } from "node:fs"
 import assert from "node:assert/strict"
 
-const source = readFileSync(new URL("../App.tsx", import.meta.url), "utf8")
+// Full navigation lives in AndroidCompanion after iOS Lite was isolated.
+const source = readFileSync(new URL("../AndroidCompanion.tsx", import.meta.url), "utf8")
 const screen = source.match(/function MainTabs\(\)\s*\{[\s\S]*?<\/Tabs\.Navigator>/)?.[0] || ""
 const stack = source.match(/<Stack\.Navigator[\s\S]*?<\/Stack\.Navigator>/)?.[0] || ""
 assert.ok(screen, "Main tab navigator missing")

@@ -1,0 +1,1 @@
+NexJud iOS Lite 1.0.4 (6): new minimal existing-account app with two tabs, Cases + local Agenda. No AI, scanner, subscriptions or checkout. Restore original Apple distribution signing backup; never rotate cert or upload to App Store in this job.

@@ -524,15 +524,31 @@ function ScannerScreen() {
   }
 
   async function camera() {
-    const p = await ImagePicker.requestCameraPermissionsAsync()
-    if (!p.granted) return Alert.alert("Permissão necessária", "Autorize a câmera.")
-    const r = await ImagePicker.launchCameraAsync({ quality: .9, mediaTypes: ["images"] })
-    if (!r.canceled) upload({ ...r.assets[0], name: `foto-${Date.now()}.jpg` })
+    if (uploading) return
+    try {
+      const p = await ImagePicker.requestCameraPermissionsAsync()
+      if (!p.granted) {
+        Alert.alert("Permissão necessária", "Autorize o acesso à câmera nos Ajustes do iPad ou iPhone para fotografar documentos.")
+        return
+      }
+      const r = await ImagePicker.launchCameraAsync({ quality: .9, mediaTypes: ["images"] })
+      if (!r.canceled && r.assets?.[0]) await upload({ ...r.assets[0], name: `foto-${Date.now()}.jpg` })
+    } catch (error: any) {
+      Alert.alert("Câmera indisponível", error?.message || "Não foi possível abrir a câmera. Tente importar um arquivo.")
+    }
   }
 
   async function file() {
-    const r = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, type: ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "image/*"] })
-    if (!r.canceled) upload(r.assets[0])
+    if (uploading) return
+    try {
+      const r = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        type: ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "image/*"],
+      })
+      if (!r.canceled && r.assets?.[0]) await upload(r.assets[0])
+    } catch (error: any) {
+      Alert.alert("Não foi possível abrir Arquivos", error?.message || "Tente novamente ou escolha outro documento.")
+    }
   }
 
   return (

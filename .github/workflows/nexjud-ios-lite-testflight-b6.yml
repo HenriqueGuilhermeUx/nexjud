@@ -45,7 +45,7 @@ jobs:
           if not os.path.isfile(ipa):
               raise SystemExit("IPA missing from verified artifact")
           checksum = hashlib.sha256(open(ipa, "rb").read()).hexdigest()
-          if checksum != "7007bf35177e71d9c978057965752a5b90196df1f5fd3c9035e15ffbed896a0":
+          if checksum != "7007bf35177e71d9c978057965752a5b90196df1f5fd3c9035e15ffbed896a0e":
               raise SystemExit("IPA SHA-256 mismatch, upload blocked")
           with zipfile.ZipFile(ipa) as z:
               paths=[p for p in z.namelist() if p.startswith("Payload/") and p.endswith(".app/Info.plist") and p.count("/")==2]

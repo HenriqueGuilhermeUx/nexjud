@@ -1,0 +1,1 @@
+Build NexJud iOS 1.0.4 (5) with iPad Scanner navigation correction and Apple API signing backup. No certificate rotation and no TestFlight upload until validation.

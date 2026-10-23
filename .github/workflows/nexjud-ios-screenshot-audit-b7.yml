@@ -50,7 +50,7 @@ jobs:
               attr = v.get('attributes',{})
               if attr.get('platform') != 'IOS': continue
               print('IOS version:', attr.get('versionString'), 'status:', attr.get('appStoreState'))
-              if attr.get('versionString') != '1.0.4': continue
+              if not str(attr.get('versionString','')).startswith('1.0.4'): continue
               locales=fetch(f'appStoreVersions/{v["id"]}/appStoreVersionLocalizations?limit=100').get('data',[])
               for loc in locales:
                   language=loc.get('attributes',{}).get('locale','?')

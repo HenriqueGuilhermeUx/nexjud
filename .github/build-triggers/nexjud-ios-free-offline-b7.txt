@@ -1,0 +1,1 @@
+Build NexJud iOS 1.0.4(7) offline free Cases and Agenda for App Review. No Supabase login/paid content. Retain original Apple signing identity. Do not submit the binary for public review.

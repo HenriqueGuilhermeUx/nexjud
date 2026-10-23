@@ -64,4 +64,9 @@ jobs:
                       assets=fetch(f'appScreenshotSets/{s["id"]}/appScreenshots?limit=100').get('data',[])
                       print('  Device:',display,'count:',len(assets))
                       # Do not print URLs or files; avoid exposing private content.
+          builds=fetch('builds?filter[app]=6820244418&filter[version]=7&limit=20').get('data',[])
+          print('iOS TestFlight build 7 records:',len(builds))
+          for build in builds:
+              a=build.get('attributes',{})
+              print(' Build',a.get('version'),'processing:',a.get('processingState'),'uploaded:',a.get('uploadedDate'))
           PY

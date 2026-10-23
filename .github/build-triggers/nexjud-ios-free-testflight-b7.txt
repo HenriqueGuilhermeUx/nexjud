@@ -1,0 +1,1 @@
+Release signed and SHA256-verified NexJud iOS 1.0.4 (7) (SHA-256 0847d8b5fd6289792fb55bf6c39f50c0ac0bd68e2a9573fb38246f1866b52462) from successful build 39879604786 to TestFlight internal testers only. Do not submit for App Review or change certs.

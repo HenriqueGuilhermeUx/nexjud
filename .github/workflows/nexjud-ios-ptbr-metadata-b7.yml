@@ -1,0 +1,88 @@
+name: NexJud iOS rejected listing — correct pt-BR free app metadata
+
+on:
+  push:
+    branches:
+      - nexjud-ios-free-offline-b7
+    paths:
+      - '.github/build-triggers/nexjud-ios-ptbr-metadata-b7.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update_listing:
+    name: Update rejected iOS listing metadata to independent free organizer
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      APPLE_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+      APPLE_KEY: ${{ secrets.APPLE_API_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m pip install --quiet pyjwt cryptography
+      - name: Update and verify pt-BR metadata for rejected App Store version only
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, time, urllib.request, urllib.error
+          import jwt
+          token=jwt.encode({
+             'iss':os.environ['APPLE_ISSUER_ID'], 'iat':int(time.time()),
+             'exp':int(time.time())+600, 'aud':'appstoreconnect-v1'
+          }, os.environ['APPLE_KEY'].replace('\\n','\n'), algorithm='ES256',
+             headers={'kid':os.environ['APPLE_KEY_ID'],'typ':'JWT'})
+          root='https://api.appstoreconnect.apple.com/v1/'
+          def call(method, route, data=None):
+              body=None if data is None else json.dumps(data).encode('utf-8')
+              req=urllib.request.Request(root+route, data=body, method=method,
+                headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
+              try:
+                  with urllib.request.urlopen(req,timeout=30) as resp: return json.load(resp)
+              except urllib.error.HTTPError as err:
+                  print('Apple API HTTP error',err.code,'on',method,route)
+                  raise
+          versions=call('GET','apps/6820244418/appStoreVersions?limit=50')['data']
+          matches=[v for v in versions if v.get('attributes',{}).get('platform')=='IOS'
+              and str(v.get('attributes',{}).get('versionString','')).startswith('1.0.4')
+              and v.get('attributes',{}).get('appStoreState')=='REJECTED']
+          if len(matches)!=1: raise SystemExit('Expected exactly one rejected iOS 1.0.4 version')
+          version=matches[0]
+          locs=call('GET',f'appStoreVersions/{version["id"]}/appStoreVersionLocalizations?limit=100')['data']
+          matches=[loc for loc in locs if loc.get('attributes',{}).get('locale')=='pt-BR']
+          if len(matches)!=1: raise SystemExit('Expected exactly one pt-BR localization')
+          loc=matches[0]
+          description=(
+              "NexJud Organizador é um aplicativo gratuito e independente para organizar casos e compromissos jurídicos no iPhone e iPad.\n\n"
+              "O que você pode fazer:\n"
+              "• Casos: cadastrar, pesquisar, consultar, editar e excluir suas próprias anotações.\n"
+              "• Agenda: organizar tarefas, prazos e audiências, marcar compromissos como concluídos e excluí-los.\n\n"
+              "Não é necessário criar conta, assinar serviço ou realizar compras. "
+              "Este aplicativo não contém inteligência artificial, digitalização de documentos ou acesso a serviços pagos. "
+              "Casos e agenda são salvos somente no dispositivo, sem sincronização ou backup automático. "
+              "Ao remover o aplicativo, os dados locais podem ser apagados.\n\n"
+              "O NexJud Organizador é uma ferramenta pessoal de apoio à organização. "
+              "Não fornece aconselhamento jurídico nem acompanha automaticamente prazos processuais oficiais."
+          )
+          promo=(
+              "Organize casos, tarefas, prazos e audiências gratuitamente no iPhone e iPad. "
+              "Sem login, planos ou compras. Dados armazenados no aparelho."
+          )
+          kw="casos,agenda,advocacia,prazos,tarefas,compromissos,organizador,processos"
+          assert len(promo)<=170 and len(kw)<=100
+          data={'data':{'type':'appStoreVersionLocalizations','id':loc['id'],
+                        'attributes':{'description':description,'promotionalText':promo,'keywords':kw}}}
+          res=call('PATCH',f'appStoreVersionLocalizations/{loc["id"]}',data)
+          attrs=res['data']['attributes']
+          if attrs.get('description')!=description or attrs.get('promotionalText')!=promo:
+              raise SystemExit('Apple did not confirm the new description and promotional text')
+          verify=call('GET',f'appStoreVersionLocalizations/{loc["id"]}')
+          a=verify['data']['attributes']
+          if a.get('description')!=description or a.get('promotionalText')!=promo:
+              raise SystemExit('Read-after-write verification failed')
+          print('PASS: pt-BR product description, promotional text and keywords updated and verified.')
+          print('Version:',version['attributes'].get('versionString'),'state:',version['attributes'].get('appStoreState'))
+          print('New description chars:',len(description),'Promo chars:',len(promo),'Keywords chars:',len(kw))
+          PY

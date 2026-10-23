@@ -1,0 +1,70 @@
+name: NexJud iOS — reviewer access instructions for standalone free app
+
+on:
+  push:
+    branches:
+      - nexjud-ios-free-offline-b7
+    paths:
+      - '.github/build-triggers/nexjud-ios-review-info-b7.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      APPLE_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+      APPLE_KEY: ${{ secrets.APPLE_API_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m pip install --quiet pyjwt cryptography
+      - name: Mark rejected iOS version no-login and update reviewer notes
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import os,json,time,urllib.request,urllib.error
+          import jwt
+          token=jwt.encode({'iss':os.environ['APPLE_ISSUER_ID'],'iat':int(time.time()),
+              'exp':int(time.time())+600,'aud':'appstoreconnect-v1'},
+              os.environ['APPLE_KEY'].replace('\\n','\n'),algorithm='ES256',
+              headers={'kid':os.environ['APPLE_KEY_ID'],'typ':'JWT'})
+          root='https://api.appstoreconnect.apple.com/v1/'
+          def request(method,path,payload=None):
+              data=None if payload is None else json.dumps(payload).encode()
+              req=urllib.request.Request(root+path,data=data,method=method,
+                   headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
+              try:
+                  with urllib.request.urlopen(req,timeout=25) as response: return json.load(response)
+              except urllib.error.HTTPError as error:
+                  print('App Store Connect HTTP',error.code,'method',method,'path',path)
+                  raise
+          versions=request('GET','apps/6820244418/appStoreVersions?limit=50')['data']
+          versions=[v for v in versions if v['attributes'].get('platform')=='IOS'
+              and v['attributes'].get('appStoreState')=='REJECTED'
+              and str(v['attributes'].get('versionString','')).startswith('1.0.4')]
+          if len(versions)!=1: raise SystemExit('Expected one rejected 1.0.4 iOS listing')
+          v=versions[0]
+          detail=request('GET',f'appStoreVersions/{v["id"]}/appStoreReviewDetail')['data']
+          notes=(
+            "NexJud iOS is now an independent, completely free, offline organizer. "
+            "No registration, no demo account, no login, no paid plans, no subscriptions, "
+            "no premium/enterprise content, no in-app purchases, no AI or document scanner. "
+            "To test: open the app and tap Cases; use + to create a sample local case, "
+            "open it, edit and delete it. Tap Agenda; add a deadline or task, "
+            "mark it completed and delete it. Close and reopen the app to verify "
+            "local persistence. Both features are accessible immediately without internet. "
+            "All entries are saved only on this device, without backend sync. "
+            "This is build 7; screenshots for this version must show the actual iOS UI."
+          )
+          payload={'data':{'id':detail['id'],'type':'appStoreReviewDetails',
+                            'attributes':{'demoAccountRequired':False,'notes':notes}}}
+          reply=request('PATCH',f'appStoreReviewDetails/{detail["id"]}',payload)
+          verify=request('GET',f'appStoreReviewDetails/{detail["id"]}')['data']['attributes']
+          if verify.get('demoAccountRequired') is not False or verify.get('notes')!=notes:
+              raise SystemExit('Review details read-after-write mismatch')
+          print('PASS: App Review information notes updated; no demo account required.')
+          PY

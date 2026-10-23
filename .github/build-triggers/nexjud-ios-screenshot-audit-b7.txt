@@ -1,3 +1,5 @@
 Read-only inventory of App Store Connect screenshot sets across each localization and iOS device size for NexJud 1.0.4. Do not modify metadata or customers.
 
 Audit retry 2: versionString is 1.0.4 (6), not 1.0.4, include it.
+
+Audit retry 3: also read public description and promo text; read-only.

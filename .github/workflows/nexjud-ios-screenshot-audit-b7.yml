@@ -55,6 +55,8 @@ jobs:
               for loc in locales:
                   language=loc.get('attributes',{}).get('locale','?')
                   print(' Locale:',language)
+                  print(' Listing description:', repr((loc.get('attributes',{}).get('description') or '')[:600]))
+                  print(' Promotional text:', repr((loc.get('attributes',{}).get('promotionalText') or '')[:300]))
                   sets=fetch(f'appStoreVersionLocalizations/{loc["id"]}/appScreenshotSets?limit=100').get('data',[])
                   if not sets: print('  No legacy screenshot sets; check App Asset Library / Media Manager')
                   for s in sets:

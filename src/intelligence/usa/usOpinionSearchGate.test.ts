@@ -71,7 +71,7 @@ describe("NexJud USA opinion search fail-closed gate", () => {
   it("rejects anonymous or unverified tenant membership, insufficient role or entitlement", async () => {
     const a = setup({ principal: vi.fn(async () => null) })
     await expect(runUSOpinionSearch(a.input, a.deps)).rejects.toMatchObject({ code: "UNAUTHENTICATED" })
-    const b = setup({ principal: vi.fn(async () => ({ userId: "user", tenantId: "tenant", role: "other" })) })
+    const b = setup({ principal: vi.fn(async () => ({ userId: "user", tenantId: "tenant", role: "other" as const })) })
     await expect(runUSOpinionSearch(b.input, b.deps)).rejects.toMatchObject({ code: "FORBIDDEN" })
     const c = setup({ entitled: vi.fn(async () => false) })
     await expect(runUSOpinionSearch(c.input, c.deps)).rejects.toMatchObject({ code: "FORBIDDEN" })

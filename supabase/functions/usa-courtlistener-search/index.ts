@@ -10,7 +10,6 @@
  * USA_COURTLISTENER_TOKEN, USA_SUPABASE_URL, USA_SUPABASE_PUBLISHABLE_KEY,
  * USA_ALLOWED_WEB_ORIGIN
  */
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { runUSOpinionSearch, USLegalSearchDenied, type VerifiedUSPrincipal } from "../../../src/intelligence/usa/usOpinionSearchGate.ts"
 import { searchCourtListenerOpinions } from "../_shared/usa/courtListenerClient.ts"

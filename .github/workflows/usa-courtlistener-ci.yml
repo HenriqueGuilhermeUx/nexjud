@@ -1,0 +1,38 @@
+name: NexJud USA CourtListener Isolated Tests
+
+on:
+  push:
+    branches:
+      - feature/usa-courtlistener-predictive-foundation-20261024
+  pull_request:
+    paths:
+      - 'src/intelligence/usa/**'
+      - 'supabase/functions/_shared/usa/**'
+      - '.github/workflows/usa-courtlistener-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexjud-usa-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  courtlistener:
+    name: Mock contract + safety tests (no live API)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts=false
+      - name: CourtListener v4 contract and safety
+        run: npx vitest run src/intelligence/usa/courtListenerNormalizer.test.ts src/intelligence/usa/courtListenerClient.test.ts

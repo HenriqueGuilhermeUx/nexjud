@@ -6,7 +6,7 @@
  * entitlements and an ATOMIC quota server side. No user-supplied IDs or roles.
  * CourtListener receives the user's literal query; require informed opt-in.
  */
-import { normalizeCourtListenerResults, type CourtListenerOpinionSearchHit, type USAOpinionEvidence } from "./courtListenerNormalizer"
+import { normalizeCourtListenerResults, type CourtListenerOpinionSearchHit, type USAOpinionEvidence } from "./courtListenerNormalizer.ts"
 
 export class USLegalSearchDenied extends Error {
   constructor(public readonly code: "DISABLED" | "INVALID_QUERY" | "CONSENT_REQUIRED" |

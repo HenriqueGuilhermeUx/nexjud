@@ -77,3 +77,20 @@ References:
 - ABA Formal Opinion 512: https://www.americanbar.org/news/abanews/aba-news-archives/2024/07/aba-issues-first-ethics-guidance-ai-tools/
 - Existing audit: `docs/NEXJUD_PREDICTIVE_AUDIT_2026-10-12.md`
 - Existing readiness gate: `docs/NEXJUD_PREDICTIVE_READINESS.md`
+
+
+## Engineering update — 2026-10-24 (nonproduction)
+
+The USA-only branch now also contains:
+- `supabase/functions/_shared/usa/courtListenerClient.ts`: server-side-only CourtListener REST v4 search client with first-party URL pinning, bounded cursor pagination (maximum 3 pages), timeout, status-only upstream errors and injectable fetch.
+- `src/intelligence/usa/courtListenerClient.test.ts`: unit/contract checks with mocked responses. These cannot count as live provider integration.
+- `.github/workflows/usa-courtlistener-ci.yml`: dedicated isolated mock tests on branch pushes/PRs.
+
+**New acceptance distinction:** the shared server client exists, but no authenticated US-facing Edge Function route, entitlements, US database, authorized live provider token, state-law review or integration test is enabled. Do not expose or bundle the API token in React. Before shipping a route, add authenticated US tenant + entitlement checks, per-tenant rate limits, search-query confidentiality controls, budgets, tracing without sensitive payloads, and audit logs. Verify source usage permissions for commercial deployment.
+
+Provider notes confirmed in documentation:
+- CourtListener search `type=o` returns opinion clusters; `type=r/d/rd` correspond to different kinds of PACER/RECAP records, which require separate normalizers.
+- Cursor follow-up URLs must keep their query parameters unchanged. Search snippets are not disposition ground truth. For monitoring, CourtListener recommends Alerts API rather than polling search.
+- PACER PCL has a separate QA environment and production searches may incur fees; access is not inherited by a CourtListener token.
+
+**Test evidence:** a dedicated workflow has been committed. Mark its outcome PASS only after the actual GitHub Actions job reports success. Web/bridge CI success is not a substitute for the USA contract tests.

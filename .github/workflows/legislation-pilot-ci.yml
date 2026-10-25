@@ -11,6 +11,8 @@ on:
       - 'src/enterprise/legislationArticleExtract.test.ts'
       - 'src/enterprise/legislationSearchIndex.ts'
       - 'src/enterprise/legislationSearchIndex.test.ts'
+      - 'src/enterprise/legislationSnapshot.ts'
+      - 'src/enterprise/legislationSnapshot.test.ts'
       - 'src/enterprise/legislationPinnedFixture.test.ts'
       - '.github/workflows/legislation-pilot-ci.yml'
   push:
@@ -24,6 +26,8 @@ on:
       - 'src/enterprise/legislationArticleExtract.test.ts'
       - 'src/enterprise/legislationSearchIndex.ts'
       - 'src/enterprise/legislationSearchIndex.test.ts'
+      - 'src/enterprise/legislationSnapshot.ts'
+      - 'src/enterprise/legislationSnapshot.test.ts'
       - 'src/enterprise/legislationPinnedFixture.test.ts'
       - '.github/workflows/legislation-pilot-ci.yml'
 
@@ -44,7 +48,7 @@ jobs:
       - name: TypeScript
         run: npx tsc -b
       - name: Legislation parser and batch staging tests
-        run: npx vitest run src/enterprise/legislationSourcePilot.test.ts src/enterprise/legislationBatchStaging.test.ts src/enterprise/legislationArticleExtract.test.ts src/enterprise/legislationSearchIndex.test.ts
+        run: npx vitest run src/enterprise/legislationSourcePilot.test.ts src/enterprise/legislationBatchStaging.test.ts src/enterprise/legislationArticleExtract.test.ts src/enterprise/legislationSearchIndex.test.ts src/enterprise/legislationSnapshot.test.ts
 
       - name: Check pinned Brazilian legislation sample without importing it
         run: |

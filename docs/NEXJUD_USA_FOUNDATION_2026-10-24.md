@@ -94,3 +94,30 @@ Provider notes confirmed in documentation:
 - PACER PCL has a separate QA environment and production searches may incur fees; access is not inherited by a CourtListener token.
 
 **Test evidence:** a dedicated workflow has been committed. Mark its outcome PASS only after the actual GitHub Actions job reports success. Web/bridge CI success is not a substitute for the USA contract tests.
+
+
+## FJC IDB time-to-termination cohort increment — 2026-10-25
+
+**Source review:** FJC maintains a longitudinal integrated database with district civil filings, pending and termination cohorts and associated historical codebooks. Reporting timeframes and field meanings can change across years, and prior quarterly records may be replaced or updated. A research snapshot MUST be frozen and hashed before feature extraction; no prospective validation can reuse later snapshots as past information.
+
+- Official FJC source overview: https://www.fjc.gov/research/idb
+- FJC federal data description: https://www.id.uscourts.gov/Content_Fetcher/index.cfml/National_Statistics_2710.htm?Content_ID=2710
+- Consult the actual edition-specific official FJC codebook before populating field mappings. No current CSV columns are assumed by the implementation.
+
+**Added code**:
+- `src/intelligence/usa/fjcCivilCohort.ts` — pure extractor boundary requiring explicit source codebook mapping, digest manifest and analyst attestations; separates observed civil terminations (event=1) from right-censored pending records (event=0), preserving observation days.
+- `src/intelligence/usa/fjcCivilCohort.test.ts` — synthetic tests for chronology, duplicate case identities, missing columns, rights flags and censored duration.
+- `docs/usa/sql/REVIEW_ONLY_usa_legal_search_boundary.sql` — reference-only US schema for memberships, entitlements and an atomic quota RPC with RLS. This file is deliberately **outside** `supabase/migrations`. It has NOT been executed, probed, or audited against a real US database.
+
+**Statistics guardrails:**
+- `terminationObserved=1` means the FJC recorded termination; it **does not** mean that the party won.
+- In an observed follow-up window, a pending case is right-censored rather than a zero-duration case.
+- The normalized cohort includes only status/provenance data, not training labels for motion outcomes, judge performance or win/loss percentages.
+- Accept only frozen, versioned source files and field mappings tied to a verified codebook; a syntactically valid digest string in a manifest is NOT cryptographic verification of source bytes.
+- Document inclusion/exclusion populations, filing-vs-terminated selection, duplicate and removed records, observation periods, missingness, case identity stability, truncation, administrative censoring and cross-court drift.
+- For any predictive time-to-event model, implement follow-up-aware estimation and temporally held-out evaluation first; DO NOT use terminated-only cases to imply duration for newly filed cases.
+- No public probability UI, model trained, live ingestion or real federal court-data analysis has occurred.
+
+### Release gates not satisfied
+
+Actual FJC download and license/use review, codebook mapping, file hash verification, representative source fixtures, RLS SQL migration on *new* US infrastructure, negative authorization tests, statistical dataset audit, model training, temporal backtesting, calibration and external professional review.

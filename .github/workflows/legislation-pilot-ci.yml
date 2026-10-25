@@ -13,6 +13,7 @@ on:
       - 'src/enterprise/legislationSearchIndex.test.ts'
       - 'src/enterprise/legislationSnapshot.ts'
       - 'src/enterprise/legislationSnapshot.test.ts'
+      - 'scripts/legislationSnapshotSmoke.ts'
       - 'src/enterprise/legislationPinnedFixture.test.ts'
       - '.github/workflows/legislation-pilot-ci.yml'
   push:
@@ -28,6 +29,7 @@ on:
       - 'src/enterprise/legislationSearchIndex.test.ts'
       - 'src/enterprise/legislationSnapshot.ts'
       - 'src/enterprise/legislationSnapshot.test.ts'
+      - 'scripts/legislationSnapshotSmoke.ts'
       - 'src/enterprise/legislationPinnedFixture.test.ts'
       - '.github/workflows/legislation-pilot-ci.yml'
 
@@ -58,3 +60,14 @@ jobs:
           test "$(wc -c < "$RUNNER_TEMP/lei_15322.md")" -lt 500000
           NEXJUD_PINNED_LEGISLATION_FILE="$RUNNER_TEMP/lei_15322.md" \
             npx vitest run src/enterprise/legislationPinnedFixture.test.ts
+      - name: Export and reload real-law JSON draft snapshot
+        run: |
+          npx --yes tsx@4.20.6 scripts/legislationSnapshotSmoke.ts \
+            "$RUNNER_TEMP/lei_15322.md" "$RUNNER_TEMP/legislation-draft.json"
+      - name: Upload public-law staging snapshot only
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexjud-legislation-source-only
+          path: ${{ runner.temp }}/legislation-draft.json
+          retention-days: 1
+          if-no-files-found: error

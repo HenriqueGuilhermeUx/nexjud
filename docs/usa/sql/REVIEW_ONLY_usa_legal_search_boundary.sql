@@ -83,10 +83,15 @@ create policy usa_legal_entitlement_member_select
       and m.user_id = (select auth.uid()) and m.status = 'active'
   ));
 
--- Vetted privileged function: intentionally SECURITY DEFINER to mutate a
--- quota counter unavailable for direct client writes. Restrict EXECUTE below,
--- never accept an unverified user_id; re-check membership internally.
-create or replace function public.usa_legal_search_consume_quota(p_tenant_id uuid)
+-- Separate privileged implementation from the exposed Data API schema.
+-- Privileged functions in 'public' are avoidable and unsafe. The API invokes
+-- only a SECURITY INVOKER wrapper; the SECURITY DEFINER function lives in a
+-- non-exposed US-only schema. Verify "Exposed schemas" excludes usa_private.
+create schema if not exists usa_private;
+revoke all on schema usa_private from public, anon, authenticated;
+grant usage on schema usa_private to authenticated;
+
+create or replace function usa_private.usa_legal_search_consume_quota_internal(p_tenant_id uuid)
 returns boolean
 language plpgsql
 security definer
@@ -108,8 +113,7 @@ begin
       and e.enabled is true and (e.valid_until is null or e.valid_until > now())
   ) then return false; end if;
 
-  -- Single transactional UPDATE provides atomic count decrement under
-  -- concurrency. Absent quota row or exhausted quota => false.
+  -- Single atomic decrement, no quota row/insufficient balance => denied.
   update public.usa_legal_search_quotas q
   set remaining = remaining - 1, updated_at = now()
   where q.tenant_id = p_tenant_id
@@ -118,13 +122,30 @@ begin
   return found;
 end;
 $$;
+revoke all on function usa_private.usa_legal_search_consume_quota_internal(uuid)
+  from public, anon, authenticated;
+grant execute on function usa_private.usa_legal_search_consume_quota_internal(uuid)
+  to authenticated;
 
-revoke all on function public.usa_legal_search_consume_quota(uuid) from public, anon, authenticated;
-grant execute on function public.usa_legal_search_consume_quota(uuid) to authenticated;
+-- Only this SECURITY INVOKER entrypoint may be callable via the Data API.
+-- It does not itself bypass RLS; the reviewed private implementation checks
+-- caller identity, active membership, entitlement and quota atomically.
+create or replace function public.usa_legal_search_consume_quota(p_tenant_id uuid)
+returns boolean
+language sql
+security invoker
+set search_path = ''
+as $$
+  select usa_private.usa_legal_search_consume_quota_internal(p_tenant_id);
+$$;
+revoke all on function public.usa_legal_search_consume_quota(uuid)
+  from public, anon, authenticated;
+grant execute on function public.usa_legal_search_consume_quota(uuid)
+  to authenticated;
 
 commit;
 
--- Deployment gate: review role ownership, function owner BYPASSRLS semantics,
+-- Deployment gate: review role ownership, private function owner BYPASSRLS semantics, API exposed schemas,
 -- RLS SELECT across tenants, atomic concurrent quota test, denial for anon,
 -- revoked/expired memberships, multi-clinic identity handling, and rollback.
 -- Synthetic, isolated database verification required. NO production test here.

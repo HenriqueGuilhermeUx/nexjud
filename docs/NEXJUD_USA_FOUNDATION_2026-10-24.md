@@ -137,3 +137,14 @@ Actual FJC download and license/use review, codebook mapping, file hash verifica
 - https://www.uscourts.gov/data-table-topics/civil
 
 **Still missing:** signed/archived real source files, format/codebook confirmation, historical snapshot reconstruction, cohort representativeness assessment, temporal backtests, statistical modeling, calibrations and attorney safety review. No trained predictor or live database has been created.
+
+
+## 2026-10-25 additional engineering: reviewed converted text, not a native FJC parser
+
+- `src/intelligence/usa/fjcVerifiedDelimitedSnapshot.ts` parses only deliberately reviewed UTF-8 CSV/TSV conversions, AFTER SHA-256 verification of the **same converted bytes**. It requires an approved per-edition codebook map, format declaration, controlled size, consistent columns, nonduplicate headers and dates, and strict denial on malformed records.
+- `fjcVerifiedDelimitedSnapshot.test.ts` has synthetic cases for quote escaping, LF/CRLF, source substitution, missing/mismatched columns, file version and censoring. The official IDB is **not assumed to ship as CSV**; obtaining the actual source file, independently hashing it, and validating any converter is still a separate release gate.
+- `docs/usa/sql/REVIEW_ONLY_usa_legal_search_boundary.sql` was hardened: the privileged atomic quota implementation is in a non-exposed `usa_private` schema, with a `SECURITY INVOKER` public wrapper. The entire draft requires a deliberate US-only session interlock and remains outside executable migrations. Database access tests are not yet run.
+- The official FJC *Integrated Database: A Research Guide* notes that presiding judge-identifying data are redacted from the IDB under Judicial Conference policy. Consequently, **the IDB cannot supply verified individual-judge identifiers for a judge-specific predictive model**. A judge-specific model would require separately lawful, permitted and independently validated sources; no judge-specific scores should be inferred from IDB rows.
+- The FJC guide also specifies that a case identity is formed using circuit/district, office and docket components and that quarterly replacement can overwrite information. Our single `recordId` field therefore requires a reviewed composite-key mapping from original source data and a proven archival/snapshot protocol.
+
+Reference: https://www.fjc.gov/sites/default/files/IDB-Research-Guide.pdf and https://www.fjc.gov/research/idb

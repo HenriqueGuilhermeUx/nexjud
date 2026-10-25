@@ -71,7 +71,8 @@ export function splitFJCCivilCohortByFiling(
     if (!trainingRow && filed < valStart) { excludedGapCases++; continue }
     const observationCutoff = trainingRow ? trainEnd : snapshotEnd
     const observedEvent = terminated !== null && terminated <= observationCutoff
-    const observedDays = Math.round(((observedEvent ? terminated : observationCutoff) - filed) / 86400000)
+    const eventTime = observedEvent && terminated !== null ? terminated : observationCutoff
+    const observedDays = Math.round((eventTime - filed) / 86400000)
     if (observedDays < 0) throw new Error("Invalid negative follow-up")
     const row: TemporalCohortRow = {
       caseId: r.recordId, courtCode: r.courtCode,

@@ -49,6 +49,8 @@ export function estimateUSCivilDurationBaseline(
   const ids = new Set<string>()
   const atTimes = new Map<number, { events: number; censored: number }>()
   let terminations = 0
+  let eventsByHorizon = 0
+  let atRiskAtHorizon = 0
   let maxFollowup = -1
   for (const r of rows) {
     if (!r || typeof r.caseId !== "string" || !r.caseId.trim() || ids.has(r.caseId) ||
@@ -62,15 +64,18 @@ export function estimateUSCivilDurationBaseline(
     }
     ids.add(r.caseId)
     const group = atTimes.get(r.observedDays) ?? { events: 0, censored: 0 }
-    if (r.terminationObserved === 1) { group.events++; terminations++ }
-    else group.censored++
+    if (r.terminationObserved === 1) {
+      group.events++; terminations++
+      if (r.observedDays <= horizonDays) eventsByHorizon++
+    } else group.censored++
+    if (r.observedDays >= horizonDays) atRiskAtHorizon++
     atTimes.set(r.observedDays, group)
     maxFollowup = Math.max(maxFollowup, r.observedDays)
   }
   // Cannot estimate horizon from a shorter follow-up window. Never extend
   // the last event's KM step indefinitely as a supported horizon estimate.
-  if (rows.length < minSample || terminations < minTerminations ||
-      maxFollowup < horizonDays) return null
+  if (rows.length < minSample || eventsByHorizon < minTerminations ||
+      atRiskAtHorizon < 5 || maxFollowup < horizonDays) return null
 
   let atRisk = rows.length
   let survival = 1

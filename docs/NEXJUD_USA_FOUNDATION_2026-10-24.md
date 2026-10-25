@@ -121,3 +121,19 @@ Provider notes confirmed in documentation:
 ### Release gates not satisfied
 
 Actual FJC download and license/use review, codebook mapping, file hash verification, representative source fixtures, RLS SQL migration on *new* US infrastructure, negative authorization tests, statistical dataset audit, model training, temporal backtesting, calibration and external professional review.
+
+
+## 2026-10-25 — offline source-integrity and temporal-cohort gates
+
+- Added `fjcVerifiedSnapshot.ts`: a bounded, strict UTF-8 JSON-converted extract reader that verifies SHA-256 **of the exact incoming bytes** before parsing and calling the existing FJC normalizer. It deliberately does **not** claim the native FJC distribution is JSON or that it is downloaded; a separately reviewed official-format converter is mandatory.
+- Added `fjcTemporalSplit.ts`: separates cases by filing date, excludes the temporal gap, and re-censors **training** case terminations known only after the training cutoff. Validation follow-up remains limited to the frozen source snapshot. Repeated case IDs, snapshot/revision mixing, contradictory event flags and impossible dates fail closed.
+- Added tests for substituted JSON, hash mismatches, future dispositions, malformed UTF-8, post-cutoff case closures, temporal gap exclusion and cohort duplicates.
+
+**Research caveat**: Re-censoring a later extract does **not** recreate the exact historical data available at the training cutoff. Revisions, deleted/delayed filings, case transfers and historical cohort membership remain sources of selection bias. Only separately archived and independently audited release snapshots can support a stronger historical-as-of claim.
+
+**Official references**:
+- https://www.fjc.gov/research/idb
+- https://catalog.data.gov/dataset/federal-court-cases-integrated-database-series
+- https://www.uscourts.gov/data-table-topics/civil
+
+**Still missing:** signed/archived real source files, format/codebook confirmation, historical snapshot reconstruction, cohort representativeness assessment, temporal backtests, statistical modeling, calibrations and attorney safety review. No trained predictor or live database has been created.

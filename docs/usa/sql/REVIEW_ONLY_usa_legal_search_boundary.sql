@@ -10,6 +10,19 @@
 
 begin;
 
+-- An additional deliberate operational safety interlock. The reviewer must
+-- authorize the NEW isolated US session first using
+-- SET LOCAL app.alternative_ventures_usa = 'ISOLATED_US_APPROVED';
+-- The default is to RAISE an exception and roll back without any DDL.
+do $usa_guard$
+begin
+  if current_setting('app.alternative_ventures_usa', true)
+      is distinct from 'ISOLATED_US_APPROVED' then
+    raise exception 'USA migration draft is DISARMED; do not run on a Brazilian environment';
+  end if;
+end
+$usa_guard$;
+
 create table if not exists public.usa_legal_tenants (
   id uuid primary key default gen_random_uuid(),
   display_name text not null check (char_length(display_name) between 1 and 120),

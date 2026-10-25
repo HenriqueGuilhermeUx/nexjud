@@ -56,6 +56,8 @@ describe("descriptive Kaplan-Meier FJC baseline (synthetic ONLY)", () => {
       ...r, terminationObserved: i < 9 ? 1 as const : 0 as const,
     })), 20)).toBeNull()
     expect(estimateUSCivilDurationBaseline(synthetic(), 21)).toBeNull()
+    // Events only AFTER a selected horizon do not support an estimate there.
+    expect(estimateUSCivilDurationBaseline(synthetic(), 5)).toBeNull()
   })
 
   it("rejects fabricated event flags, duplicate cases, negative days, and bad horizons", () => {

@@ -7,6 +7,8 @@ on:
       - 'src/enterprise/legislationSourcePilot.test.ts'
       - 'src/enterprise/legislationBatchStaging.ts'
       - 'src/enterprise/legislationBatchStaging.test.ts'
+      - 'src/enterprise/legislationArticleExtract.ts'
+      - 'src/enterprise/legislationArticleExtract.test.ts'
       - '.github/workflows/legislation-pilot-ci.yml'
   push:
     branches: ['feat/legislation-source-pilot-20261025']
@@ -15,6 +17,8 @@ on:
       - 'src/enterprise/legislationSourcePilot.test.ts'
       - 'src/enterprise/legislationBatchStaging.ts'
       - 'src/enterprise/legislationBatchStaging.test.ts'
+      - 'src/enterprise/legislationArticleExtract.ts'
+      - 'src/enterprise/legislationArticleExtract.test.ts'
       - '.github/workflows/legislation-pilot-ci.yml'
 
 permissions:
@@ -34,4 +38,4 @@ jobs:
       - name: TypeScript
         run: npx tsc -b
       - name: Legislation parser and batch staging tests
-        run: npx vitest run src/enterprise/legislationSourcePilot.test.ts src/enterprise/legislationBatchStaging.test.ts
+        run: npx vitest run src/enterprise/legislationSourcePilot.test.ts src/enterprise/legislationBatchStaging.test.ts src/enterprise/legislationArticleExtract.test.ts

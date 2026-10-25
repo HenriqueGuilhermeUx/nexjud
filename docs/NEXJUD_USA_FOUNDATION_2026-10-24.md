@@ -148,3 +148,15 @@ Actual FJC download and license/use review, codebook mapping, file hash verifica
 - The FJC guide also specifies that a case identity is formed using circuit/district, office and docket components and that quarterly replacement can overwrite information. Our single `recordId` field therefore requires a reviewed composite-key mapping from original source data and a proven archival/snapshot protocol.
 
 Reference: https://www.fjc.gov/sites/default/files/IDB-Research-Guide.pdf and https://www.fjc.gov/research/idb
+
+
+## 2026-10-25 — descriptive, right-censored baseline (not legal AI predictor)
+
+- `src/intelligence/usa/fjcDescriptiveSurvival.ts` implements **Kaplan–Meier** nontermination survival steps with same-day event/censor handling and restricted mean follow-up days up to an explicit horizon. It consumes ONLY the already audited time-split `TemporalCohortRow` contract; it does not train personalized legal outcome probabilities.
+- `src/intelligence/usa/fjcDescriptiveSurvival.test.ts` uses wholly synthetic duration rows to check risk sets, censoring, tie handling, area under the curve, unknown median, duplicate/invalid case denial, and conservative abstention.
+- The estimator returns null for fewer than 30 rows, fewer than 10 observed terminations **within the requested horizon**, fewer than 5 with follow-up reaching that horizon, or when the chosen horizon exceeds all follow-up. Such minimums are engineering safety guards, **not** a guarantee of statistical power.
+- All outputs explicitly set `predictiveModelValidated=false`, `dataProvenanceAudited=false`, and `assumptionsVerified=false`. The method assumes independent censoring, which is unverified for FJC IDB and may fail because court-specific administrative data coverage is not random.
+- A descriptive KM curve is not prospective prediction. Even on real data it needs audited sampling, interval estimates, subgroup analyses, temporal validation, risks of court heterogeneity, rights/terms review and professional legal review before any user-facing display.
+- In particular: termination means the case ended, not who prevailed; a judge-level win rate cannot be inferred from FJC IDB.
+
+NO live source was queried or downloaded; all estimator tests are synthetic.

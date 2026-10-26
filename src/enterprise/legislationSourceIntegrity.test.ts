@@ -37,5 +37,12 @@ describe("legislation source bytes versus staging hash", () => {
     const altered = {...staged, record: {...staged.record, title: "Outro título"}};
     await expect(verifyLegislationStagedSource(altered, markdown))
       .rejects.toThrow(/METADATA_MISMATCH/);
+    const statusTampered = {
+      ...staged,
+      record: {...staged.record, revokedReported: true, retrievedAt: "2026-10-25"},
+    };
+    await expect(verifyLegislationStagedSource(statusTampered, markdown))
+      .rejects.toThrow(/METADATA_MISMATCH/);
+
   });
 });

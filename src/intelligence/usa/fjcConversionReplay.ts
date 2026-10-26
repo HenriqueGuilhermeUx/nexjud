@@ -68,6 +68,8 @@ export async function verifyUSFJCByteIdenticalConversionReplay(
   // converter could mutate arrays the subsequent parser will read.
   const source = originalReleaseBytes.slice()
   const expected = expectedConvertedBytes.slice()
+  const reviewedArtifact = request.reviewedConverterArtifactBytes.slice()
+  const pinnedConverterDigest = packet.converterProcedureSha256
   for (let i=0; i<2; i++) {
     const fresh = source.slice()
     let converted: Uint8Array
@@ -81,6 +83,8 @@ export async function verifyUSFJCByteIdenticalConversionReplay(
         !exactBytes(fresh, source) ||
         !exactBytes(originalReleaseBytes, source) ||
         !exactBytes(expectedConvertedBytes, expected) ||
+        !exactBytes(request.reviewedConverterArtifactBytes, reviewedArtifact) ||
+        packet.converterProcedureSha256 !== pinnedConverterDigest ||
         !exactBytes(converted, expected)) return fail()
   }
   return {

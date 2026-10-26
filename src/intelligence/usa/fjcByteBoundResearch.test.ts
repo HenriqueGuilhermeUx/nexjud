@@ -67,6 +67,10 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
       prospectiveValidationComplete: false,
     })
     expect(out.fixedHorizonResearchBacktest.outOfTimeBrier).toBeNull()
+    expect(out.multiGroupFeatureResearch).toMatchObject({
+      status: "ABSTAIN_INSUFFICIENT_OR_UNSEEN_GROUP",
+      fittedFeatureModel: false, individualForecastEnabled: false,
+    })
   })
 
   it("refuses any source substitution even when new JSON remains valid", async () => {
@@ -128,6 +132,40 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
     expect(out.fixedHorizonResearchBacktest.fittedHistoricalGroupRate).toBeCloseTo(1/3,10)
     expect(out.fixedHorizonResearchBacktest.outOfTimeBrier).toBeCloseTo(5/18,10)
     expect(out.fixedHorizonResearchBacktest.individualCaseForecastPermitted).toBe(false)
+  })
+
+  it("trains a deterministic feature model only through independently pinned source-byte chain", async () => {
+    const syntheticRows: typeof rows = []
+    for (const [prefix, filed, count, high, low] of [
+      ["train", "2024-01-01", 40, 32, 8],
+      ["holdout", "2025-01-01", 30, 24, 6],
+    ] as const) {
+      for (const district of ["NYSD", "CAND"]) for (const nos of ["190", "440"]) {
+        const ended = district === "NYSD" ? high : low
+        for (let i=0;i<count;i++) syntheticRows.push({
+          CASE:prefix+"-"+district+"-"+nos+"-"+i, DISTRICT:district,
+          NOS:nos, FILED:filed, CLOSED:i<ended ? "2024-02-01" : null,
+        })
+      }
+    }
+    // Validation rows cannot have a 2024 termination: keep all terminations
+    // after their filing date while retaining the same label patterns.
+    const corrected = syntheticRows.map(row => ({
+      ...row, CLOSED:row.CLOSED
+        ? row.FILED === "2025-01-01" ? "2025-02-01" : "2024-02-01"
+        : null,
+    }))
+    const f=await fixture(corrected)
+    const output=await buildUSByteBoundCivilResearch(
+      f.bytes, f.manifest, "2024-12-31", "2025-01-01",
+      { ...f.expected, horizonDays:90 },
+    )
+    expect(output.sourceIntegrityChecked).toBe(true)
+    expect(output.multiGroupFeatureResearch.status).toBe("RESEARCH_FEATURE_MODEL")
+    expect(output.multiGroupFeatureResearch.fittedFeatureModel).toBe(true)
+    expect(output.multiGroupFeatureResearch.heldoutImprovementBrier).toBeGreaterThan(.05)
+    expect(output.multiGroupFeatureResearch.realFJCSourceAuthenticated).toBe(false)
+    expect(output.multiGroupFeatureResearch.individualForecastEnabled).toBe(false)
   })
 
   it("rejects invalid dates, overlapping filing windows and future case dispositions", async () => {

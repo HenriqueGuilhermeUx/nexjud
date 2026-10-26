@@ -12,7 +12,7 @@ import type { FJCTemporalSplit, TemporalCohortRow } from "./fjcTemporalSplit"
 
 export interface USFJCTerminationFeatureBenchmark {
   kind: "synthetic_first_fjc_termination_feature_benchmark"
-  status: "RESEARCH_FEATURE_MODEL" | "ABSTAIN_INCOMPLETE_FOLLOWUP" | "ABSTAIN_INSUFFICIENT_OR_UNSEEN_GROUP"
+  status: "RESEARCH_FEATURE_MODEL" | "ABSTAIN_INCOMPLETE_FOLLOWUP" | "ABSTAIN_INSUFFICIENT_OR_UNSEEN_GROUP" | "ABSTAIN_SPARSE_INTERSECTION" | "ABSTAIN_TEMPORAL_DRIFT"
   horizonDays: number
   trainingN: number
   holdoutN: number
@@ -30,6 +30,12 @@ export interface USFJCTerminationFeatureBenchmark {
   /** Null unless at least two populated bins each contain >=15 cases. */
   holdoutExpectedCalibrationError5: number | null
   calibrationDiagnosticStatus: "SUPPRESSED" | "DESCRIPTIVE_HOLDOUT_ONLY"
+  /** Retrospective engineering checks, not a certificate of transportability. */
+  temporalDriftStatus: "NOT_ASSESSED" | "ABSTAIN_SPARSE_INTERSECTION" | "ABSTAIN_TEMPORAL_DRIFT" | "NO_GATE_BREACH_DESCRIPTIVE_ONLY"
+  /** Largest absolute training/holdout shift in marginal category share. */
+  maxTemporalFeatureMixShift: number | null
+  /** Largest absolute training/holdout shift in category termination-by-H rate. */
+  maxTemporalGroupOutcomeShift: number | null
   outOfTimeEvaluationPerformed: boolean
   featureSet: readonly ["courtCode", "natureOfSuit"]
   outcome: "administrative_termination_by_horizon_not_case_win"
@@ -115,6 +121,53 @@ export function benchmarkUSFJCTerminationFeatureModel(
     split.training.filter(x => x.natureOfSuit === n).length,
     split.validation.filter(x => x.natureOfSuit === n).length,
   ])]
+  // Post-hoc OUT-OF-TIME drift diagnostics. These deliberately use only
+  // categorical filing-time features and observable termination-by-H labels.
+  // Thresholds are conservative engineering refusal gates, NOT scientific
+  // validation, user-facing calibration or a legal-case approval rule.
+  let temporalDriftStatus: USFJCTerminationFeatureBenchmark["temporalDriftStatus"] = "NOT_ASSESSED"
+  let maxTemporalFeatureMixShift: number | null = null
+  let maxTemporalGroupOutcomeShift: number | null = null
+  if (!trainUnavailable && !validUnavailable && !unseen &&
+      split.training.length >= 120 && split.validation.length >= 80) {
+    const aggregate = (rows: TemporalCohortRow[], ys: (0 | 1 | null)[]) => {
+      const cells = new Map<string, number>()
+      const groups = new Map<string, {n: number; positives: number}>()
+      rows.forEach((r, i) => {
+        const cell = JSON.stringify([r.courtCode, r.natureOfSuit])
+        cells.set(cell, (cells.get(cell) ?? 0) + 1)
+        for (const key of ["court:" + r.courtCode, "suit:" + r.natureOfSuit]) {
+          const stats = groups.get(key) ?? {n: 0, positives: 0}
+          stats.n++
+          stats.positives += ys[i] as 0 | 1
+          groups.set(key, stats)
+        }
+      })
+      return {cells, groups}
+    }
+    const train = aggregate(split.training, trainingLabels)
+    const holdout = aggregate(split.validation, validationLabels)
+    const pairs = new Set([...train.cells.keys(), ...holdout.cells.keys()])
+    // Marginal coverage alone can hide a new or vanishing court/NOS cell.
+    // For now, every observed intersection needs 10+ cases in EACH cohort.
+    if ([...pairs].some(key => (train.cells.get(key) ?? 0) < 10 ||
+                                (holdout.cells.get(key) ?? 0) < 10)) {
+      temporalDriftStatus = "ABSTAIN_SPARSE_INTERSECTION"
+    } else {
+      let mix = 0, outcome = 0
+      for (const [key, a] of train.groups) {
+        const b = holdout.groups.get(key)
+        if (!b || !a.n || !b.n) throw new Error("Unseen FJC drift group")
+        mix = Math.max(mix, Math.abs(a.n / split.training.length - b.n / split.validation.length))
+        outcome = Math.max(outcome, Math.abs(a.positives / a.n - b.positives / b.n))
+      }
+      maxTemporalFeatureMixShift = mix
+      maxTemporalGroupOutcomeShift = outcome
+      // Strict > avoids classifying floating-point equality as a breach.
+      temporalDriftStatus = mix > 0.20 || outcome > 0.25
+        ? "ABSTAIN_TEMPORAL_DRIFT" : "NO_GATE_BREACH_DESCRIPTIVE_ONLY"
+    }
+  }
   // Conservative ENGINEERING gates, not scientific validation. No unknown
   // categories and no single-class fitting or validation allowed.
   const adequate = split.training.length >= 120 && split.validation.length >= 80 &&
@@ -123,7 +176,11 @@ export function benchmarkUSFJCTerminationFeatureModel(
     coverage.every(([a,b]) => a >= 20 && b >= 15)
   const status: USFJCTerminationFeatureBenchmark["status"] =
     trainUnavailable || validUnavailable ? "ABSTAIN_INCOMPLETE_FOLLOWUP"
-    : adequate ? "RESEARCH_FEATURE_MODEL" : "ABSTAIN_INSUFFICIENT_OR_UNSEEN_GROUP"
+    : !adequate ? "ABSTAIN_INSUFFICIENT_OR_UNSEEN_GROUP"
+    : temporalDriftStatus === "ABSTAIN_SPARSE_INTERSECTION" ? "ABSTAIN_SPARSE_INTERSECTION"
+    : temporalDriftStatus === "ABSTAIN_TEMPORAL_DRIFT" ? "ABSTAIN_TEMPORAL_DRIFT"
+    : temporalDriftStatus === "NO_GATE_BREACH_DESCRIPTIVE_ONLY" ? "RESEARCH_FEATURE_MODEL"
+    : "ABSTAIN_INSUFFICIENT_OR_UNSEEN_GROUP"
 
   const blank: USFJCTerminationFeatureBenchmark = {
     kind: "synthetic_first_fjc_termination_feature_benchmark",
@@ -134,6 +191,7 @@ export function benchmarkUSFJCTerminationFeatureModel(
     heldoutFeatureModelBrier: null, heldoutImprovementBrier: null,
     historicalUnconditionalLogLoss: null, heldoutFeatureModelLogLoss: null,
     holdoutExpectedCalibrationError5: null, calibrationDiagnosticStatus: "SUPPRESSED",
+    temporalDriftStatus, maxTemporalFeatureMixShift, maxTemporalGroupOutcomeShift,
     outOfTimeEvaluationPerformed: false, featureSet: ["courtCode","natureOfSuit"],
     outcome: "administrative_termination_by_horizon_not_case_win",
     independentExternalValidationComplete: false,

@@ -17,11 +17,13 @@ import {
   type USCivilResearchSelection,
 } from "./fjcCivilResearchMemo"
 import type { FJCCivilManifest } from "./fjcCivilCohort"
+import { benchmarkUSFJCTerminationFeatureModel, type USFJCTerminationFeatureBenchmark } from "./fjcFeatureLogisticResearch"
 import { evaluateUSFJCFixedHorizonBacktest, type USFixedHorizonBacktest } from "./fjcHorizonBacktest"
 
 export interface USByteBoundFJCReport {
   research: USCivilResearchMemo
   fixedHorizonResearchBacktest: USFixedHorizonBacktest
+  multiGroupFeatureResearch: USFJCTerminationFeatureBenchmark
   sourceIntegrityChecked: true
   expectedDigestMatched: true
   sourceAuthenticityCertified: false
@@ -66,9 +68,13 @@ export async function buildUSByteBoundCivilResearch(
   const fixedHorizonResearchBacktest = evaluateUSFJCFixedHorizonBacktest(
     split, expected.courtCode, expected.natureOfSuit, expected.horizonDays,
   )
+  const multiGroupFeatureResearch = benchmarkUSFJCTerminationFeatureModel(
+    split, expected.horizonDays,
+  )
   return {
     research,
     fixedHorizonResearchBacktest,
+    multiGroupFeatureResearch,
     sourceIntegrityChecked: true,
     expectedDigestMatched: true,
     sourceAuthenticityCertified: false,

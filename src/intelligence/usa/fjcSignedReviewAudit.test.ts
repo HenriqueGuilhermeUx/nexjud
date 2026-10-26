@@ -103,6 +103,9 @@ describe("signed FJC audit revision / trusted service reviewer keys — syntheti
     const f=await fixture()
     await expect(verify(f,{previousDigest:"b".repeat(64)})).rejects.toThrow(/signed review registry/)
     await expect(verify(f,{sequence:8})).rejects.toThrow(/signed review registry/)
+    await expect(verify(f,{...({legalValidityEstablished:true} as object)}))
+      .rejects.toThrow(/signed review registry/)
+
     await expect(verify(f,{}, {...f.registry,expectedPreviousDigest:"b".repeat(64)}))
       .rejects.toThrow(/signed review registry/)
     await expect(verify(f,{}, {...f.registry,expectedSequence:8}))
@@ -129,6 +132,12 @@ describe("signed FJC audit revision / trusted service reviewer keys — syntheti
     await expect(verify(f,{}, {...f.registry,keys:[
       {...f.keys[0],reviewerId:f.keys[1].reviewerId},f.keys[1],f.keys[2],
     ]})).rejects.toThrow(/signed review registry/)
+    // A key ID alone is insufficient separation if two roles pin one SPKI.
+    await expect(verify(f,{}, {...f.registry,keys:[
+      f.keys[0],{...f.keys[1],spkiBytes:f.keys[0].spkiBytes,
+        pinnedSpkiSha256:f.keys[0].pinnedSpkiSha256},f.keys[2],
+    ]})).rejects.toThrow(/signed review registry/)
+
   })
   it("refuses expired, revoked, future, or malformed key epochs and server clock",async()=>{
     const f=await fixture()

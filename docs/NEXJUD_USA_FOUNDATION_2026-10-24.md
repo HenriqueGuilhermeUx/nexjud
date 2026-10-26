@@ -160,3 +160,11 @@ Reference: https://www.fjc.gov/sites/default/files/IDB-Research-Guide.pdf and ht
 - In particular: termination means the case ended, not who prevailed; a judge-level win rate cannot be inferred from FJC IDB.
 
 NO live source was queried or downloaded; all estimator tests are synthetic.
+
+
+## 2026-10-25 — public-opinion citation dossier, research discovery only
+
+- `src/intelligence/usa/caseLawCitationDossier.ts`: prepares deduplicated case-law research citation cards from the existing US CourtListener metadata normalizer; preserves source IDs, court, reported citation and safe official opinion links only. Invalid/malformed cases fail closed, URLs that do not match the trusted CourtListener origin/path are suppressed.
+- `src/intelligence/usa/caseLawCitationDossier.test.ts`: synthetic cases for spoofed URLs, malicious labels, duplicate opinion clusters, invalid decision dates and fabricated outcome flags.
+- Every card marks `hasVerifiedOpinionText=false`, `subsequentTreatmentChecked=false`, `bindingAuthorityDetermined=false`, and `legalOutcomeVerified=false`. CourtListener search results are **not a citator** or proof that an opinion is good law. Lawyers must inspect full decisions and citation treatment using lawful/licensed sources before any case-specific assertion.
+- Does not add public predictive probabilities, court hierarchy inference, judge rankings or real provider requests. Data source commercial-use approval is still pending.

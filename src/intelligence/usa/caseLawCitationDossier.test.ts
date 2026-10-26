@@ -39,9 +39,19 @@ describe("NexJud USA discovery-only CourtListener citation dossier", () => {
       "http://www.courtlistener.com/opinion/1234/",
       "https://www.courtlistener.com/not-an-opinion/1234/",
       "https://www.courtlistener.com/opinion/1234/#frag",
+      "https://www.courtlistener.com/opinion/4321/different-case/",
     ]) {
       expect(buildUSUnverifiedCitationDossier([{ ...hit, sourceUrl }]).cards[0].officialOpinionUrl).toBeNull()
     }
+  })
+
+  it("disables mismatched source URLs even when the hostname is official", () => {
+    const card = buildUSUnverifiedCitationDossier([{
+      ...hit, sourceUrl: "https://www.courtlistener.com/opinion/4321/looks-similar/",
+    }]).cards[0]
+    expect(card.evidenceId).toBe("1234")
+    expect(card.officialOpinionUrl).toBeNull()
+    expect(card.legalOutcomeVerified).toBe(false)
   })
 
   it("refuses invalid dates and fabricated outcome verification flags", () => {

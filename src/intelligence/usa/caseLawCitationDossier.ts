@@ -40,13 +40,14 @@ function strictDate(s: unknown): boolean {
   const t = Date.parse(s + "T00:00:00Z")
   return Number.isFinite(t) && new Date(t).toISOString().slice(0,10) === s
 }
-function trustedOpinionUrl(url: string | undefined): string | null {
+function trustedOpinionUrl(url: string | undefined, expectedRecordId: string): string | null {
   if (typeof url !== "string") return null
   try {
     const u = new URL(url)
+    const m = u.pathname.match(/^\/opinion\/([1-9]\d*)(?:\/[A-Za-z0-9._%-]+)?\/?$/)
     return u.protocol === "https:" && u.hostname === "www.courtlistener.com" &&
       !u.username && !u.password && !u.hash && !u.search &&
-      /^\/opinion\/[1-9]\d*(?:\/[A-Za-z0-9._%-]+)?\/?$/.test(u.pathname)
+      m?.[1] === expectedRecordId && !u.pathname.includes("..")
       ? u.href : null
   } catch { return null }
 }
@@ -77,7 +78,7 @@ export function buildUSUnverifiedCitationDossier(
     seen.add(row.sourceRecordId)
     // Missing/unsafe provider URLs stay null; they never become open links.
     // Never promote a snippet into proof of published precedent.
-    const url = trustedOpinionUrl(row.sourceUrl)
+    const url = trustedOpinionUrl(row.sourceUrl, row.sourceRecordId)
     if (!Array.isArray(row.citation) ||
         row.citation.some(c => !safeLabel(c, 500)) ||
         (row.decidedAt !== undefined && !strictDate(row.decidedAt))) {

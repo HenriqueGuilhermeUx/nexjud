@@ -45,6 +45,10 @@ export async function verifyLegislationStagedSource(
       parsed.number !== staged.record.number ||
       parsed.instrumentType !== staged.record.instrumentType ||
       parsed.date !== staged.record.date ||
+      parsed.state !== staged.record.state ||
+      parsed.statusReported !== staged.record.statusReported ||
+      parsed.revokedReported !== staged.record.revokedReported ||
+      parsed.retrievedAt !== staged.record.retrievedAt ||
       parsed.urn !== staged.record.urn ||
       parsed.sourceUrl !== staged.record.sourceUrl ||
       parsed.text !== staged.record.text ||

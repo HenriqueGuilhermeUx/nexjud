@@ -19,6 +19,7 @@ import {
 import type { FJCCivilManifest } from "./fjcCivilCohort"
 import { benchmarkUSFJCTerminationFeatureModel, type USFJCTerminationFeatureBenchmark } from "./fjcFeatureLogisticResearch"
 import { evaluateUSFJCFixedHorizonBacktest, type USFixedHorizonBacktest } from "./fjcHorizonBacktest"
+import { preflightUSFJCIndependentReleaseLineage, type USFJCSourceLineageInput } from "./fjcSourceLineagePreflight"
 
 export interface USByteBoundFJCReport {
   research: USCivilResearchMemo
@@ -26,6 +27,8 @@ export interface USByteBoundFJCReport {
   multiGroupFeatureResearch: USFJCTerminationFeatureBenchmark
   sourceIntegrityChecked: true
   expectedDigestMatched: true
+  /** Optional independent review packet is hash-checked, never authenticated. */
+  sourceLineagePreflightStatus: "NOT_SUBMITTED" | "DECLARED_REVIEW_PACKET_HASHES_MATCH"
   sourceAuthenticityCertified: false
   modelTrained: false
   individualCasePredictionAvailable: false
@@ -43,6 +46,8 @@ export async function buildUSByteBoundCivilResearch(
   trainingFiledThrough: string,
   validationFiledFrom: string,
   expected: USCivilResearchSelection,
+  /** Optional review packet and original bytes must come from a trusted backend. */
+  lineage?: USFJCSourceLineageInput,
 ): Promise<USByteBoundFJCReport> {
   if (!manifest || !expected ||
       manifest.datasetId !== expected.sourceDatasetId ||
@@ -52,6 +57,14 @@ export async function buildUSByteBoundCivilResearch(
       expected.sourceAuditApproved !== true) {
     throw new Error("Unpinned or mismatched US federal civil research source")
   }
+  // When supplied, independently cross-check original release bytes, the
+  // converter artifact, manifest and external review packet. Do not mistake
+  // these checks for the source issuer\'s signature or legal authorization.
+  const sourceLineage = lineage === undefined ? null :
+    await preflightUSFJCIndependentReleaseLineage(
+      lineage.originalReleaseBytes, exactExtractBytes, manifest, expected,
+      lineage.independentReviewPacket,
+    )
   // Digest verified on EXACT bytes before parsing/normalizing; no network.
   const snapshot = await loadVerifiedFJCJsonSnapshot(exactExtractBytes, manifest)
   if (snapshot.sourceSha256 !== expected.sourceSha256.toLowerCase() ||
@@ -77,6 +90,7 @@ export async function buildUSByteBoundCivilResearch(
     multiGroupFeatureResearch,
     sourceIntegrityChecked: true,
     expectedDigestMatched: true,
+    sourceLineagePreflightStatus: sourceLineage?.status ?? "NOT_SUBMITTED",
     sourceAuthenticityCertified: false,
     modelTrained: false,
     individualCasePredictionAvailable: false,

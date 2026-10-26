@@ -116,6 +116,32 @@ describe("FJC frozen converter replay: SYNTHETIC, no publisher attestation", () 
       },
     )).rejects.toThrow(/replay verification failed/)
   })
+  it("rejects mutation of the reviewed converter artifact during conversion",async()=>{
+    const f=await fixture()
+    await expect(verifyUSFJCByteIdenticalConversionReplay(
+      f.raw,f.converted,f.packet,{
+        reviewedConverterArtifactBytes:f.artifact,
+        replayConverter:async bytes=>{
+          const out=await f.reproducible(bytes)
+          f.artifact[0]=0
+          return out
+        },
+      },
+    )).rejects.toThrow(/replay verification failed/)
+  })
+  it("rejects mutation of the pinned procedure digest during conversion",async()=>{
+    const f=await fixture()
+    await expect(verifyUSFJCByteIdenticalConversionReplay(
+      f.raw,f.converted,f.packet,{
+        reviewedConverterArtifactBytes:f.artifact,
+        replayConverter:async bytes=>{
+          const out=await f.reproducible(bytes)
+          f.packet.converterProcedureSha256="a".repeat(64)
+          return out
+        },
+      },
+    )).rejects.toThrow(/replay verification failed/)
+  })
   it("rejects converter exceptions, no bytes, or overlarge artifacts",async()=>{
     const f=await fixture()
     await expect(verifyUSFJCByteIdenticalConversionReplay(

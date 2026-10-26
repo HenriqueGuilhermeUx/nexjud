@@ -24,6 +24,12 @@ export interface USFJCTerminationFeatureBenchmark {
   historicalUnconditionalBrier: number | null
   heldoutFeatureModelBrier: number | null
   heldoutImprovementBrier: number | null
+  /** Strictly descriptive holdout log loss, NOT legal outcome calibration. */
+  historicalUnconditionalLogLoss: number | null
+  heldoutFeatureModelLogLoss: number | null
+  /** Null unless at least two populated bins each contain >=15 cases. */
+  holdoutExpectedCalibrationError5: number | null
+  calibrationDiagnosticStatus: "SUPPRESSED" | "DESCRIPTIVE_HOLDOUT_ONLY"
   outOfTimeEvaluationPerformed: boolean
   featureSet: readonly ["courtCode", "natureOfSuit"]
   outcome: "administrative_termination_by_horizon_not_case_win"
@@ -126,6 +132,8 @@ export function benchmarkUSFJCTerminationFeatureModel(
     courtCategories: courts.length, natureOfSuitCategories: suits.length,
     fittedFeatureModel: false, historicalUnconditionalBrier: null,
     heldoutFeatureModelBrier: null, heldoutImprovementBrier: null,
+    historicalUnconditionalLogLoss: null, heldoutFeatureModelLogLoss: null,
+    holdoutExpectedCalibrationError5: null, calibrationDiagnosticStatus: "SUPPRESSED",
     outOfTimeEvaluationPerformed: false, featureSet: ["courtCode","natureOfSuit"],
     outcome: "administrative_termination_by_horizon_not_case_win",
     independentExternalValidationComplete: false,
@@ -160,20 +168,43 @@ export function benchmarkUSFJCTerminationFeatureModel(
   if (weights.some(w => !Number.isFinite(w))) throw new Error("Divergent fitted research model")
   const baseRate = trainYes / split.training.length
   let baselineSum = 0, fittedSum = 0
+  let baselineLogLoss = 0, fittedLogLoss = 0
+  const bins = Array.from({length: 5}, () => ({n: 0, predicted: 0, observed: 0}))
+  const safeLogLoss = (p: number, y: 0|1) => {
+    const bounded = Math.min(1 - 1e-12, Math.max(1e-12, p))
+    return -(y * Math.log(bounded) + (1 - y) * Math.log(1 - bounded))
+  }
   for (let i = 0; i < split.validation.length; i++) {
     const [court,suit] = positions(split.validation[i])
     const prob = sigmoid(weights[0] + weights[court] + weights[suit])
     const y = validationLabels[i] as 0|1
     baselineSum += (baseRate - y) ** 2
     fittedSum += (prob - y) ** 2
+    baselineLogLoss += safeLogLoss(baseRate, y)
+    fittedLogLoss += safeLogLoss(prob, y)
+    const bin = bins[Math.min(4, Math.floor(prob * 5))]
+    bin.n += 1
+    bin.predicted += prob
+    bin.observed += y
   }
   const baseline = baselineSum / split.validation.length
   const fitted = fittedSum / split.validation.length
+  const populated = bins.filter(bin => bin.n > 0)
+  // Suppress diagnostics from tiny prediction buckets: even aggregate ECE
+  // on very small synthetic bins invites spurious "well calibrated" claims.
+  const diagnosticSafe = populated.length >= 2 && populated.every(bin => bin.n >= 15)
+  const ece = diagnosticSafe ? populated.reduce((sum, bin) =>
+    sum + (bin.n / split.validation.length) *
+      Math.abs(bin.predicted / bin.n - bin.observed / bin.n), 0) : null
   return {
     ...blank, fittedFeatureModel: true,
     historicalUnconditionalBrier: baseline,
     heldoutFeatureModelBrier: fitted,
     heldoutImprovementBrier: baseline - fitted,
+    historicalUnconditionalLogLoss: baselineLogLoss / split.validation.length,
+    heldoutFeatureModelLogLoss: fittedLogLoss / split.validation.length,
+    holdoutExpectedCalibrationError5: ece,
+    calibrationDiagnosticStatus: diagnosticSafe ? "DESCRIPTIVE_HOLDOUT_ONLY" : "SUPPRESSED",
     outOfTimeEvaluationPerformed: true,
   }
 }

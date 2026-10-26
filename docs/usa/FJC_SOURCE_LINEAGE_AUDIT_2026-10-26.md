@@ -56,3 +56,16 @@ Arquivo `src/intelligence/usa/fjcConversionReplay.ts`, integrado como `lineage.c
 6. Não foi implementado um executor isolado que possa atestar que o código efetivamente executado corresponde aos bytes de artefato revisados. Também não foram autenticados arquivos reais do FJC, identidades dos auditores, direitos de uso ou snapshots históricos. Assim, `executedConverterArtifactAttested` permanece false.
 
 **Invariantes:** nenhum dataset real é baixado, nenhum segredo é acessado, nenhuma previsão individual é divulgada e a PR permanece draft. Os testes novos são sintéticos e incluem adulteração dos arquivos, resultado não determinístico, exceções da conversão e mutação dos buffers.
+
+
+## Revisões criptográficas de auditoria (incremento offline)
+
+Implementação `src/intelligence/usa/fjcSignedReviewAudit.ts` — **não é serviço de identidade, não assina em produção e não escreve em banco**.
+
+- A revisão vinculada a um pacote FJC congelado tem sequência inteira positiva, digest anterior e data de assinatura UTC. O `expectedSequence` e `expectedPreviousDigest` devem vir de um registro independente controlado no servidor; **não podem ser aceitos a partir do pedido do usuário**. Nenhum ledger real foi provisionado.
+- Três *service reviewer keys* ECDSA P-256/SHA-256 distintas, para `source`, `mapping` e `rights`, são verificadas sobre bytes canônicos versionados que incluem o pacote integral, revisão, digest anterior, data, função do revisor, ID e ID de chave. A correspondência de cada chave pública com um hash SPKI aprovado é verificada.
+- A ingestão exige chaves ativas no instante de observação do servidor, sem expiração ou revogação, além de datas de assinatura válidas. Qualquer divergência de função, identidade declarada, SHA, revisão, link anterior, assinatura ou chave bloqueia a operação (*fail closed*).
+- A saída `linkedRecordDigest` é somente impressão digital do registro. **Não é prova de escrita imutável, consenso ou publicação.** A verificação afirma que chaves públicas de serviço previamente fixadas validaram as mensagens; **não comprova identidades humanas**, revisão efetiva ou direitos legais.
+- O parâmetro opcional `lineage.signedReview` em `buildUSByteBoundCivilResearch` preserva os testes sintéticos legados. Quando fornecido, evidência inválida **bloqueia** o relatório. A resposta identifica `signedReviewStatus: NOT_SUBMITTED` ou `THREE_PINNED_REVIEW_SIGNATURES_VERIFIED`. Isso não habilita previsão individual ou validação jurídica.
+
+Próximas dependências externas: registro de chaves controlado por operadores independentes, comprovação de identidade/mandato dos revisores, rotação e revogação auditáveis, ledger append-only com checkpoints assinados, aquisição oficial autenticada do FJC, revisão de direitos e validação estatística externa. **Sem merge, deploy ou migração produtiva nesta etapa.**

@@ -77,7 +77,7 @@ const date = (s: unknown): s is string => {
 const timestamp = (s: unknown): number | null => {
   if (typeof s !== "string" || !UTC.test(s)) return null
   const value = Date.parse(s)
-  return Number.isFinite(value) && new Date(value).toISOString() === s.replace(".000Z","Z").replace("Z",".000Z")
+  return Number.isFinite(value) && new Date(value).toISOString().slice(0,19) + "Z" === s
     ? value : null
 }
 

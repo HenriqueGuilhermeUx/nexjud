@@ -100,7 +100,7 @@ export function buildUSFJCReviewSigningBytes(
 ): Uint8Array {
   if (!record || !Number.isSafeInteger(record.sequence) || record.sequence<1 ||
       !HEX64.test(record.previousDigest) || timestamp(record.signedAt)===null ||
-      !ROLES.includes(signature?.role) ||
+      !ROLES.some(role=>role===signature?.role) ||
       typeof signature.reviewerId!=="string" || !ID.test(signature.reviewerId) ||
       typeof signature.keyId!=="string" || !ID.test(signature.keyId)) return fail()
   return textEncoder.encode(JSON.stringify([

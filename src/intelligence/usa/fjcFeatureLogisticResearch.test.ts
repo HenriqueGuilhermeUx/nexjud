@@ -45,6 +45,12 @@ describe("fitted FJC court/NOS terminations - synthetic out-of-time research",()
     expect(a.historicalUnconditionalBrier).toBeCloseTo(.25,10)
     expect(a.heldoutFeatureModelBrier).toBeLessThan(.20)
     expect(a.heldoutImprovementBrier).toBeGreaterThan(.05)
+    expect(a.historicalUnconditionalLogLoss).toBeCloseTo(Math.log(2), 9)
+    expect(a.heldoutFeatureModelLogLoss).toBeLessThan(a.historicalUnconditionalLogLoss!)
+    expect(a.holdoutExpectedCalibrationError5).not.toBeNull()
+    expect(a.holdoutExpectedCalibrationError5!).toBeGreaterThanOrEqual(0)
+    expect(a.holdoutExpectedCalibrationError5!).toBeLessThanOrEqual(1)
+    expect(a.calibrationDiagnosticStatus).toBe("DESCRIPTIVE_HOLDOUT_ONLY")
     expect(a).toEqual(b)
     expect(JSON.stringify(a)).not.toContain("train-NYSD")
   })
@@ -56,6 +62,9 @@ describe("fitted FJC court/NOS terminations - synthetic out-of-time research",()
     expect(a.holdoutUnobservedN).toBe(1)
     expect(a.fittedFeatureModel).toBe(false)
     expect(a.heldoutFeatureModelBrier).toBeNull()
+    expect(a.heldoutFeatureModelLogLoss).toBeNull()
+    expect(a.holdoutExpectedCalibrationError5).toBeNull()
+    expect(a.calibrationDiagnosticStatus).toBe("SUPPRESSED")
   })
   it("abstains when validation includes a category unseen at training time",()=>{
     const f=fixture()
@@ -73,6 +82,25 @@ describe("fitted FJC court/NOS terminations - synthetic out-of-time research",()
     x.training=x.training.map(r=>({...r,terminationObserved:1 as const,observedDays:30}))
     expect(benchmarkUSFJCTerminationFeatureModel(x,90).status)
       .toBe("ABSTAIN_INSUFFICIENT_OR_UNSEEN_GROUP")
+  })
+  it("suppresses a falsely precise calibration report when predictions occupy only one bin", () => {
+    const f=fixture()
+    f.training=f.training.map(r=>{
+      const index=Number(r.caseId.split("-").at(-1))
+      return {...r, terminationObserved: index < 20 ? 1 as const : 0 as const,
+        observedDays: index < 20 ? 30 : 180}
+    })
+    f.validation=f.validation.map(r=>{
+      const index=Number(r.caseId.split("-").at(-1))
+      return {...r, terminationObserved: index < 15 ? 1 as const : 0 as const,
+        observedDays: index < 15 ? 30 : 180}
+    })
+    const report=benchmarkUSFJCTerminationFeatureModel(f,90)
+    expect(report.fittedFeatureModel).toBe(true)
+    expect(report.holdoutExpectedCalibrationError5).toBeNull()
+    expect(report.calibrationDiagnosticStatus).toBe("SUPPRESSED")
+    expect(report.heldoutFeatureModelLogLoss).toBeCloseTo(Math.log(2),2)
+    expect(report.individualForecastEnabled).toBe(false)
   })
   it("refuses duplicate records, temporal leakage and impossible case dates",()=>{
     const a=fixture()

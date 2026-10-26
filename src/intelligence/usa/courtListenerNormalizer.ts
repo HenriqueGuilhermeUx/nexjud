@@ -44,20 +44,36 @@ export interface USAOpinionEvidence {
 }
 
 const STRING_MAX = 500
-const sanitize = (value: unknown): string | undefined =>
-  typeof value === "string" && value.trim()
-    ? value.trim().slice(0, STRING_MAX)
-    : undefined
-
-const isIsoDate = (value: string | undefined): value is string =>
-  Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-    !Number.isNaN(Date.parse(value + "T00:00:00Z")))
-
-function safeCourtListenerUrl(raw: unknown): string | undefined {
-  if (typeof raw !== "string" || !/^\/opinion\/\d+\//.test(raw)) return undefined
+const sanitize = (value: unknown): string | undefined => {
+  if (typeof value !== "string") return undefined
+  const s = value.trim()
+  // Never clip metadata to form a misleading legal name or citation.
+  if (!s || s.length > STRING_MAX || /[\x00-\x1f\x7f<>]/.test(s)) return undefined
+  return s
+}
+const isIsoDate = (value: string | undefined): value is string => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const ts = Date.parse(value + "T00:00:00Z")
+  return Number.isFinite(ts) && new Date(ts).toISOString().slice(0,10) === value
+}
+function validCollectionTime(raw: unknown): boolean {
+  if (typeof raw !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(raw)) {
+    return false
+  }
+  const ts = Date.parse(raw)
+  return Number.isFinite(ts) && new Date(ts).toISOString().replace(".000Z","Z") === raw
+}
+function safeCourtListenerUrl(raw: unknown, expectedClusterId: number): string | undefined {
+  if (typeof raw !== "string" || raw.length > 300 ||
+      !/^\/opinion\/[1-9]\d*\/(?:[A-Za-z0-9._-]+\/?)?$/.test(raw) ||
+      raw.includes("..")) return undefined
+  const parts = raw.split("/")
+  if (parts[2] !== String(expectedClusterId)) return undefined
   try {
     const url = new URL(raw, "https://www.courtlistener.com")
-    if (url.origin !== "https://www.courtlistener.com") return undefined
+    if (url.origin !== "https://www.courtlistener.com" ||
+        url.search || url.hash || url.username || url.password ||
+        url.pathname !== raw) return undefined
     return url.href
   } catch {
     return undefined
@@ -71,7 +87,7 @@ export function normalizeCourtListenerOpinion(
   if (!Number.isSafeInteger(hit.cluster_id) || (hit.cluster_id ?? 0) <= 0) return null
   const caseName = sanitize(hit.caseName)
   const court = sanitize(hit.court)
-  if (!caseName || !court || !collectedAt || Number.isNaN(Date.parse(collectedAt))) return null
+  if (!caseName || !court || !validCollectionTime(collectedAt)) return null
 
   const filed = sanitize(hit.dateFiled)
   const citations = Array.isArray(hit.citation)
@@ -95,7 +111,7 @@ export function normalizeCourtListenerOpinion(
     citation: citations,
     publicationStatus: sanitize(hit.status),
     opinionIds,
-    sourceUrl: safeCourtListenerUrl(hit.absolute_url),
+    sourceUrl: safeCourtListenerUrl(hit.absolute_url, hit.cluster_id!),
     collectedAt,
     observedOutcome: null,
     outcomeVerified: false,

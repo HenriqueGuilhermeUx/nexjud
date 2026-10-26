@@ -20,6 +20,7 @@ import type { FJCCivilManifest } from "./fjcCivilCohort"
 import { benchmarkUSFJCTerminationFeatureModel, type USFJCTerminationFeatureBenchmark } from "./fjcFeatureLogisticResearch"
 import { evaluateUSFJCFixedHorizonBacktest, type USFixedHorizonBacktest } from "./fjcHorizonBacktest"
 import { preflightUSFJCIndependentReleaseLineage, type USFJCSourceLineageInput } from "./fjcSourceLineagePreflight"
+import { verifyUSFJCByteIdenticalConversionReplay, type USFJCConversionReplayRequest } from "./fjcConversionReplay"
 
 export interface USByteBoundFJCReport {
   research: USCivilResearchMemo
@@ -29,6 +30,8 @@ export interface USByteBoundFJCReport {
   expectedDigestMatched: true
   /** Optional independent review packet is hash-checked, never authenticated. */
   sourceLineagePreflightStatus: "NOT_SUBMITTED" | "DECLARED_REVIEW_PACKET_HASHES_MATCH"
+  /** Two-run deterministic replay; this is NOT executable provenance. */
+  conversionReplayStatus: "NOT_RUN" | "REPLAY_BYTE_IDENTICAL"
   sourceAuthenticityCertified: false
   modelTrained: false
   individualCasePredictionAvailable: false
@@ -47,7 +50,10 @@ export async function buildUSByteBoundCivilResearch(
   validationFiledFrom: string,
   expected: USCivilResearchSelection,
   /** Optional review packet and original bytes must come from a trusted backend. */
-  lineage?: USFJCSourceLineageInput,
+  lineage?: USFJCSourceLineageInput & {
+    /** Optional trusted offline converter replay. Invalid replay aborts. */
+    conversionReplay?: USFJCConversionReplayRequest
+  },
 ): Promise<USByteBoundFJCReport> {
   if (!manifest || !expected ||
       manifest.datasetId !== expected.sourceDatasetId ||
@@ -64,6 +70,13 @@ export async function buildUSByteBoundCivilResearch(
     await preflightUSFJCIndependentReleaseLineage(
       lineage.originalReleaseBytes, exactExtractBytes, manifest, expected,
       lineage.independentReviewPacket,
+    )
+  // Never run a converter before its raw-to-converted lineage preflight.
+  // A matching converter artifact hash does NOT attest executable identity.
+  const conversionReplay = lineage?.conversionReplay === undefined ? null :
+    await verifyUSFJCByteIdenticalConversionReplay(
+      lineage.originalReleaseBytes, exactExtractBytes,
+      lineage.independentReviewPacket, lineage.conversionReplay,
     )
   // Digest verified on EXACT bytes before parsing/normalizing; no network.
   const snapshot = await loadVerifiedFJCJsonSnapshot(exactExtractBytes, manifest)
@@ -91,6 +104,7 @@ export async function buildUSByteBoundCivilResearch(
     sourceIntegrityChecked: true,
     expectedDigestMatched: true,
     sourceLineagePreflightStatus: sourceLineage?.status ?? "NOT_SUBMITTED",
+    conversionReplayStatus: conversionReplay?.status ?? "NOT_RUN",
     sourceAuthenticityCertified: false,
     modelTrained: false,
     individualCasePredictionAvailable: false,

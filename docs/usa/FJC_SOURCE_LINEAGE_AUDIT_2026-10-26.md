@@ -42,3 +42,17 @@ All flags for certified publisher authenticity, legal-use certification, histori
 - Isolation of US storage/identity plus privacy/security review, before any production environment is considered.
 
 **Not authorized:** merge, deploy, changes to Brazilian systems, use of real personal or client data, provision of paid PACER services, or public case-specific predictions.
+
+
+## Increment: replay determinístico da conversão (26/10/2026)
+
+Arquivo `src/intelligence/usa/fjcConversionReplay.ts`, integrado como `lineage.conversionReplay` no relatório offline `buildUSByteBoundCivilResearch`.
+
+1. O preflight anterior **deve aprovar primeiro** correspondência entre bytes originais, convertidos, revisão e pacote de auditoria. Uma falha impede qualquer execução do conversor.
+2. O adaptador offline fornece o artefato de implementação auditado, cujo SHA-256 precisa coincidir com `converterProcedureSha256`. O artefato é tratado apenas como evidência estrutural de integridade.
+3. Uma função de conversão injetada por serviço **confiável** é executada duas vezes, recebendo cópias independentes dos mesmos bytes originais. Ambas devem produzir uma saída **idêntica byte a byte** ao arquivo convertido congelado, sem modificar entrada nem artefato de referência.
+4. Se a função falhar, alterar os bytes de entrada, produzir uma saída intermitente ou divergir do resultado esperado, o relatório inteiro falha, antes de gerar pesquisa.
+5. A resposta distingue `conversionReplayStatus: NOT_RUN` de `REPLAY_BYTE_IDENTICAL`. O último estado significa **somente consistência de reprodução no mesmo adaptador injetado**; não é uma implementação independente de outro fornecedor.
+6. Não foi implementado um executor isolado que possa atestar que o código efetivamente executado corresponde aos bytes de artefato revisados. Também não foram autenticados arquivos reais do FJC, identidades dos auditores, direitos de uso ou snapshots históricos. Assim, `executedConverterArtifactAttested` permanece false.
+
+**Invariantes:** nenhum dataset real é baixado, nenhum segredo é acessado, nenhuma previsão individual é divulgada e a PR permanece draft. Os testes novos são sintéticos e incluem adulteração dos arquivos, resultado não determinístico, exceções da conversão e mutação dos buffers.

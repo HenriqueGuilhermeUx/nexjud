@@ -60,6 +60,13 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
       modelTrained: false, individualCaseForecastAvailable: false,
     })
     expect(out.research.estimatedNonterminationAtHorizon).toBeCloseTo(23/35, 12)
+    expect(out.fixedHorizonResearchBacktest).toMatchObject({
+      status: "ABSTAIN_INSUFFICIENT_EVIDENCE",
+      caseFeatureModelTrained: false,
+      individualCaseForecastPermitted: false,
+      prospectiveValidationComplete: false,
+    })
+    expect(out.fixedHorizonResearchBacktest.outOfTimeBrier).toBeNull()
   })
 
   it("refuses any source substitution even when new JSON remains valid", async () => {
@@ -99,6 +106,28 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
     expect(out.research.cohortSize).toBe(20)
     expect(out.research.status).toBe("INSUFFICIENT_EVIDENCE")
     expect(out.research.estimatedNonterminationAtHorizon).toBeNull()
+  })
+
+  it("runs source-bound held-out backtest only when both periods have sufficient mature cases", async () => {
+    const cases = [
+      ...Array.from({length: 60}, (_, i) => ({
+        CASE:"training-mature-"+i, DISTRICT:"NYSD", NOS:"190",
+        FILED:"2024-01-01", CLOSED:i<20?"2024-02-01":null,
+      })),
+      ...Array.from({length: 60}, (_, i) => ({
+        CASE:"validation-mature-"+i, DISTRICT:"NYSD", NOS:"190",
+        FILED:"2025-02-01", CLOSED:i<30?"2025-03-01":null,
+      })),
+    ]
+    const f=await fixture(cases)
+    const out=await buildUSByteBoundCivilResearch(
+      f.bytes, f.manifest, "2024-12-31", "2025-01-01",
+      {...f.expected, horizonDays:90},
+    )
+    expect(out.fixedHorizonResearchBacktest.status).toBe("RESEARCH_BENCHMARK_ONLY")
+    expect(out.fixedHorizonResearchBacktest.fittedHistoricalGroupRate).toBeCloseTo(1/3,10)
+    expect(out.fixedHorizonResearchBacktest.outOfTimeBrier).toBeCloseTo(5/18,10)
+    expect(out.fixedHorizonResearchBacktest.individualCaseForecastPermitted).toBe(false)
   })
 
   it("rejects invalid dates, overlapping filing windows and future case dispositions", async () => {

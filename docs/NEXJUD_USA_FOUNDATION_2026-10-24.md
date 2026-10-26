@@ -168,3 +168,12 @@ NO live source was queried or downloaded; all estimator tests are synthetic.
 - `src/intelligence/usa/caseLawCitationDossier.test.ts`: synthetic cases for spoofed URLs, malicious labels, duplicate opinion clusters, invalid decision dates and fabricated outcome flags.
 - Every card marks `hasVerifiedOpinionText=false`, `subsequentTreatmentChecked=false`, `bindingAuthorityDetermined=false`, and `legalOutcomeVerified=false`. CourtListener search results are **not a citator** or proof that an opinion is good law. Lawyers must inspect full decisions and citation treatment using lawful/licensed sources before any case-specific assertion.
 - Does not add public predictive probabilities, court hierarchy inference, judge rankings or real provider requests. Data source commercial-use approval is still pending.
+
+
+## 2026-10-26 — digest-bound FJC research lineage, synthetic validation
+
+- `src/intelligence/usa/fjcByteBoundResearch.ts` now connects exact converted FJC JSON bytes, a codebook-reviewed manifest, an **externally pinned** dataset/revision/SHA-256/as-of selection, a re-censored temporal split and a separate held-out-period descriptive duration memo in one execution path.
+- The verified SHA-256 is computed over bytes **before parsing**. Substitution of a case, hash, revision, dataset identifier, snapshot date or review flag fails closed; it never borrows older/training court records into the selected validation cohort.
+- `fjcByteBoundResearch.test.ts` includes 70 synthetic cases, hash substitution, pinned-manifest mismatch, a separated foreign-court cohort, overlapping filing periods and a future termination date.
+- Source authenticity remains `false` because anyone can hash their own file: **an independent authenticated FJC download, independently controlled expected digest, legitimate rights and reviewed codebook are still required**. The historical split is reconstructed retrospectively and is **NOT** a genuinely archived as-of-time snapshot. No fitted model, legal outcomes or judge-level probabilities.
+- Last confirmed exact-head GitHub Actions: isolated USA tests, web TypeScript/build, intelligence and NexOffice bridge passed on `10593fd`.

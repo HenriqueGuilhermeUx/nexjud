@@ -83,7 +83,7 @@ export function buildUSUnverifiedCitationDossier(
         (row.decidedAt !== undefined && !strictDate(row.decidedAt))) {
       throw new Error("Malformed legal citation evidence")
     }
-    const citation = [...new Set(row.citation)]
+    const citation: string[] = [...new Set<string>(row.citation as string[])]
     cards.push({
       evidenceId: row.sourceRecordId,
       caseName: row.caseName,

@@ -17,9 +17,11 @@ import {
   type USCivilResearchSelection,
 } from "./fjcCivilResearchMemo"
 import type { FJCCivilManifest } from "./fjcCivilCohort"
+import { evaluateUSFJCFixedHorizonBacktest, type USFixedHorizonBacktest } from "./fjcHorizonBacktest"
 
 export interface USByteBoundFJCReport {
   research: USCivilResearchMemo
+  fixedHorizonResearchBacktest: USFixedHorizonBacktest
   sourceIntegrityChecked: true
   expectedDigestMatched: true
   sourceAuthenticityCertified: false
@@ -61,8 +63,12 @@ export async function buildUSByteBoundCivilResearch(
   // Evaluate held-out filing-period cases only; never silently pool older
   // training cases with newer validation when computing a descriptive report.
   const research = buildUSFederalCivilResearchMemo(split.validation, expected)
+  const fixedHorizonResearchBacktest = evaluateUSFJCFixedHorizonBacktest(
+    split, expected.courtCode, expected.natureOfSuit, expected.horizonDays,
+  )
   return {
     research,
+    fixedHorizonResearchBacktest,
     sourceIntegrityChecked: true,
     expectedDigestMatched: true,
     sourceAuthenticityCertified: false,

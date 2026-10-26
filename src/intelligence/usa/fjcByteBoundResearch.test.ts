@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { buildUSByteBoundCivilResearch } from "./fjcByteBoundResearch"
+import { buildUSFJCReviewSigningBytes } from "./fjcSignedReviewAudit"
+import type {
+  USFJCSignedReviewRecord, USFJCIndependentReviewRegistry,
+} from "./fjcSignedReviewAudit"
 import type { FJCCivilManifest } from "./fjcCivilCohort"
 import type { USCivilResearchSelection } from "./fjcCivilResearchMemo"
 
@@ -53,6 +57,8 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
       sourceAuthenticityCertified: false,
       sourceLineagePreflightStatus: "NOT_SUBMITTED",
       conversionReplayStatus: "NOT_RUN",
+      signedReviewStatus: "NOT_SUBMITTED",
+      signedReviewRecordDigest: null,
       temporalReconstructionIsHistoricalSnapshot: false,
       modelTrained: false, individualCasePredictionAvailable: false,
     })
@@ -104,6 +110,52 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
     const ok=await buildUSByteBoundCivilResearch(...args,{
       originalReleaseBytes:upstream,independentReviewPacket:packet,
     })
+    // Synthetic service-signing keys: no claim of reviewer human identity.
+    const roles = ["source","mapping","rights"] as const
+    const ids = [packet.sourceReviewerId,packet.mappingReviewerId,packet.rightsReviewerId]
+    const unsigned: USFJCSignedReviewRecord = {
+      sequence:2,previousDigest:"0".repeat(64),
+      signedAt:"2026-10-25T12:00:00Z",signatures:[],
+    }
+    const keys: USFJCIndependentReviewRegistry["keys"][number][] = []
+    const sigs: Array<USFJCSignedReviewRecord["signatures"][number]> = []
+    for(let i=0;i<3;i++){
+      const pair=await crypto.subtle.generateKey(
+        {name:"ECDSA",namedCurve:"P-256"},true,["sign","verify"],
+      )
+      const spki=new Uint8Array(await crypto.subtle.exportKey("spki",pair.publicKey))
+      const spkiDigest=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",spki)))
+        .map(x=>x.toString(16).padStart(2,"0")).join("")
+      const signer={role:roles[i],reviewerId:ids[i],keyId:"test-key-"+i}
+      keys.push({...signer,spkiBytes:spki,pinnedSpkiSha256:spkiDigest,
+        activatedAt:"2026-10-01T00:00:00Z",expiresAt:"2026-11-01T00:00:00Z",
+        revokedAt:null})
+      const msg=buildUSFJCReviewSigningBytes(packet,unsigned,signer)
+      const signature=new Uint8Array(await crypto.subtle.sign(
+        {name:"ECDSA",hash:"SHA-256"},pair.privateKey,msg,
+      ))
+      sigs.push({...signer,signatureHex:Array.from(signature)
+        .map(x=>x.toString(16).padStart(2,"0")).join("")})
+    }
+    const record={...unsigned,signatures:sigs}
+    const registry:USFJCIndependentReviewRegistry={
+      expectedSequence:2,expectedPreviousDigest:"0".repeat(64),keys,
+    }
+    const signedReport=await buildUSByteBoundCivilResearch(...args,{
+      originalReleaseBytes:upstream,independentReviewPacket:packet,
+      signedReview:{record,registry,serverReceivedAt:"2026-10-25T12:30:00Z"},
+    })
+    expect(signedReport.signedReviewStatus)
+      .toBe("THREE_PINNED_REVIEW_SIGNATURES_VERIFIED")
+    expect(signedReport.signedReviewRecordDigest).toMatch(/^[0-9a-f]{64}$/)
+    expect(signedReport.sourceAuthenticityCertified).toBe(false)
+    await expect(buildUSByteBoundCivilResearch(...args,{
+      originalReleaseBytes:upstream,independentReviewPacket:packet,
+      signedReview:{
+        record:{...record,previousDigest:"f".repeat(64)},
+        registry,serverReceivedAt:"2026-10-25T12:30:00Z",
+      },
+    })).rejects.toThrow(/signed review registry/)
     expect(ok.sourceLineagePreflightStatus).toBe("DECLARED_REVIEW_PACKET_HASHES_MATCH")
     expect(ok.conversionReplayStatus).toBe("NOT_RUN")
     let replayRuns=0

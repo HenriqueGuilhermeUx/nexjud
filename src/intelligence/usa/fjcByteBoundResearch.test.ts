@@ -51,6 +51,7 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
       trainingCaseCount: 35, validationCaseCount: 35,
       sourceIntegrityChecked: true, expectedDigestMatched: true,
       sourceAuthenticityCertified: false,
+      sourceLineagePreflightStatus: "NOT_SUBMITTED",
       temporalReconstructionIsHistoricalSnapshot: false,
       modelTrained: false, individualCasePredictionAvailable: false,
     })
@@ -71,6 +72,45 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
       status: "ABSTAIN_INSUFFICIENT_OR_UNSEEN_GROUP",
       fittedFeatureModel: false, individualForecastEnabled: false,
     })
+  })
+
+  it("binds declared external release review to EXACT original and converted bytes without certifying publisher", async () => {
+    const f=await fixture()
+    const upstream=new TextEncoder().encode("SYNTHETIC original; not from FJC")
+    const rawHash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",upstream)))
+      .map(x=>x.toString(16).padStart(2,"0")).join("")
+    const packet = {
+      datasetId:f.manifest.datasetId,revision:f.manifest.revision,
+      asOfDate:f.manifest.asOfDate,
+      declaredPublisherReleaseUrl:f.manifest.sourceUrl,
+      codebookUrl:f.manifest.codebookUrl,
+      originalReleaseSha256:rawHash,convertedExtractSha256:f.manifest.releaseSha256,
+      converterProcedureSha256:"1".repeat(64),codebookRevision:"synthetic-book-v1",
+      originalCaptureEvidenceSha256:"2".repeat(64),
+      fieldMappingReviewEvidenceSha256:"3".repeat(64),
+      rightsReviewEvidenceSha256:"4".repeat(64),
+      conversionOperatorId:"converter-operator",
+      sourceReviewerId:"source-auditor",mappingReviewerId:"mapping-auditor",
+      rightsReviewerId:"rights-auditor",
+      rightsDisposition:"OFFLINE_RESEARCH_REVIEWED" as const,
+      sourceObservedAt:"2026-10-24T12:00:00Z",
+      reviewRecordedAt:"2026-10-25T12:00:00Z",
+    }
+    const args=[f.bytes,f.manifest,"2024-12-31","2025-01-01",f.expected] as const
+    const ok=await buildUSByteBoundCivilResearch(...args,{
+      originalReleaseBytes:upstream,independentReviewPacket:packet,
+    })
+    expect(ok.sourceLineagePreflightStatus).toBe("DECLARED_REVIEW_PACKET_HASHES_MATCH")
+    expect(ok.sourceAuthenticityCertified).toBe(false)
+    expect(ok.individualCasePredictionAvailable).toBe(false)
+    await expect(buildUSByteBoundCivilResearch(...args,{
+      originalReleaseBytes:new TextEncoder().encode("tampered original"),
+      independentReviewPacket:packet,
+    })).rejects.toThrow(/lineage/)
+    await expect(buildUSByteBoundCivilResearch(...args,{
+      originalReleaseBytes:upstream,
+      independentReviewPacket:{...packet,sourceReviewerId:packet.conversionOperatorId},
+    })).rejects.toThrow(/lineage/)
   })
 
   it("refuses any source substitution even when new JSON remains valid", async () => {

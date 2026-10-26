@@ -52,6 +52,7 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
       sourceIntegrityChecked: true, expectedDigestMatched: true,
       sourceAuthenticityCertified: false,
       sourceLineagePreflightStatus: "NOT_SUBMITTED",
+      conversionReplayStatus: "NOT_RUN",
       temporalReconstructionIsHistoricalSnapshot: false,
       modelTrained: false, individualCasePredictionAvailable: false,
     })
@@ -76,8 +77,11 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
 
   it("binds declared external release review to EXACT original and converted bytes without certifying publisher", async () => {
     const f=await fixture()
-    const upstream=new TextEncoder().encode("SYNTHETIC original; not from FJC")
+    const upstream=new TextEncoder().encode("source:"+new TextDecoder().decode(f.bytes))
+    const converterArtifact=new TextEncoder().encode("reviewed synthetic converter artifact")
     const rawHash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",upstream)))
+      .map(x=>x.toString(16).padStart(2,"0")).join("")
+    const converterHash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",converterArtifact)))
       .map(x=>x.toString(16).padStart(2,"0")).join("")
     const packet = {
       datasetId:f.manifest.datasetId,revision:f.manifest.revision,
@@ -85,7 +89,7 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
       declaredPublisherReleaseUrl:f.manifest.sourceUrl,
       codebookUrl:f.manifest.codebookUrl,
       originalReleaseSha256:rawHash,convertedExtractSha256:f.manifest.releaseSha256,
-      converterProcedureSha256:"1".repeat(64),codebookRevision:"synthetic-book-v1",
+      converterProcedureSha256:converterHash,codebookRevision:"synthetic-book-v1",
       originalCaptureEvidenceSha256:"2".repeat(64),
       fieldMappingReviewEvidenceSha256:"3".repeat(64),
       rightsReviewEvidenceSha256:"4".repeat(64),
@@ -101,6 +105,31 @@ describe("bitwise FJC descriptive source-to-report research chain: SYNTHETIC ONL
       originalReleaseBytes:upstream,independentReviewPacket:packet,
     })
     expect(ok.sourceLineagePreflightStatus).toBe("DECLARED_REVIEW_PACKET_HASHES_MATCH")
+    expect(ok.conversionReplayStatus).toBe("NOT_RUN")
+    let replayRuns=0
+    const replayed=await buildUSByteBoundCivilResearch(...args,{
+      originalReleaseBytes:upstream,independentReviewPacket:packet,
+      conversionReplay:{
+        reviewedConverterArtifactBytes:converterArtifact,
+        replayConverter:async raw=>{
+          replayRuns++
+          const text=new TextDecoder("utf-8",{fatal:true}).decode(raw)
+          if(!text.startsWith("source:")) throw new Error("Unrecognized test bytes")
+          return new TextEncoder().encode(text.slice(7))
+        },
+      },
+    })
+    expect(replayRuns).toBe(2)
+    expect(replayed.conversionReplayStatus).toBe("REPLAY_BYTE_IDENTICAL")
+    expect(replayed.sourceAuthenticityCertified).toBe(false)
+    expect(replayed.individualCasePredictionAvailable).toBe(false)
+    await expect(buildUSByteBoundCivilResearch(...args,{
+      originalReleaseBytes:upstream,independentReviewPacket:packet,
+      conversionReplay:{
+        reviewedConverterArtifactBytes:converterArtifact,
+        replayConverter:async()=>new TextEncoder().encode('{"forged":true}'),
+      },
+    })).rejects.toThrow(/replay verification failed/)
     expect(ok.sourceAuthenticityCertified).toBe(false)
     expect(ok.individualCasePredictionAvailable).toBe(false)
     await expect(buildUSByteBoundCivilResearch(...args,{

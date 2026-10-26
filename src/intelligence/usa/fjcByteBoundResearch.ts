@@ -21,6 +21,10 @@ import { benchmarkUSFJCTerminationFeatureModel, type USFJCTerminationFeatureBenc
 import { evaluateUSFJCFixedHorizonBacktest, type USFixedHorizonBacktest } from "./fjcHorizonBacktest"
 import { preflightUSFJCIndependentReleaseLineage, type USFJCSourceLineageInput } from "./fjcSourceLineagePreflight"
 import { verifyUSFJCByteIdenticalConversionReplay, type USFJCConversionReplayRequest } from "./fjcConversionReplay"
+import {
+  verifyUSFJCPinnedSignedReview, type USFJCIndependentReviewRegistry,
+  type USFJCSignedReviewRecord,
+} from "./fjcSignedReviewAudit"
 
 export interface USByteBoundFJCReport {
   research: USCivilResearchMemo
@@ -32,6 +36,9 @@ export interface USByteBoundFJCReport {
   sourceLineagePreflightStatus: "NOT_SUBMITTED" | "DECLARED_REVIEW_PACKET_HASHES_MATCH"
   /** Two-run deterministic replay; this is NOT executable provenance. */
   conversionReplayStatus: "NOT_RUN" | "REPLAY_BYTE_IDENTICAL"
+  /** Optional cryptographic reviewer proof, never human identity attestation. */
+  signedReviewStatus: "NOT_SUBMITTED" | "THREE_PINNED_REVIEW_SIGNATURES_VERIFIED"
+  signedReviewRecordDigest: string | null
   sourceAuthenticityCertified: false
   modelTrained: false
   individualCasePredictionAvailable: false
@@ -53,6 +60,12 @@ export async function buildUSByteBoundCivilResearch(
   lineage?: USFJCSourceLineageInput & {
     /** Optional trusted offline converter replay. Invalid replay aborts. */
     conversionReplay?: USFJCConversionReplayRequest
+    /** Trusted, externally pinned reviewer registry. No live identity service. */
+    signedReview?: {
+      record: USFJCSignedReviewRecord
+      registry: USFJCIndependentReviewRegistry
+      serverReceivedAt: string
+    }
   },
 ): Promise<USByteBoundFJCReport> {
   if (!manifest || !expected ||
@@ -70,6 +83,14 @@ export async function buildUSByteBoundCivilResearch(
     await preflightUSFJCIndependentReleaseLineage(
       lineage.originalReleaseBytes, exactExtractBytes, manifest, expected,
       lineage.independentReviewPacket,
+    )
+  // Cryptographic signature verification is optional for backwards-compatible
+  // synthetic research, but any submitted bad reviewer proof fails CLOSED.
+  // Identity of the actual reviewer and persistent checkpoint remain unproved.
+  const signedReview = lineage?.signedReview === undefined ? null :
+    await verifyUSFJCPinnedSignedReview(
+      lineage.independentReviewPacket, lineage.signedReview.record,
+      lineage.signedReview.registry, lineage.signedReview.serverReceivedAt,
     )
   // Never run a converter before its raw-to-converted lineage preflight.
   // A matching converter artifact hash does NOT attest executable identity.
@@ -105,6 +126,8 @@ export async function buildUSByteBoundCivilResearch(
     expectedDigestMatched: true,
     sourceLineagePreflightStatus: sourceLineage?.status ?? "NOT_SUBMITTED",
     conversionReplayStatus: conversionReplay?.status ?? "NOT_RUN",
+    signedReviewStatus: signedReview?.status ?? "NOT_SUBMITTED",
+    signedReviewRecordDigest: signedReview?.linkedRecordDigest ?? null,
     sourceAuthenticityCertified: false,
     modelTrained: false,
     individualCasePredictionAvailable: false,

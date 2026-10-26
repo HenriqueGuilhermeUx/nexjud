@@ -102,6 +102,63 @@ describe("fitted FJC court/NOS terminations - synthetic out-of-time research",()
     expect(report.heldoutFeatureModelLogLoss).toBeCloseTo(Math.log(2),2)
     expect(report.individualForecastEnabled).toBe(false)
   })
+  it("reports a descriptive temporal gate even for an otherwise strong synthetic model", () => {
+    const report = benchmarkUSFJCTerminationFeatureModel(fixture(),90)
+    expect(report.temporalDriftStatus).toBe("NO_GATE_BREACH_DESCRIPTIVE_ONLY")
+    expect(report.maxTemporalFeatureMixShift).toBe(0)
+    expect(report.maxTemporalGroupOutcomeShift).toBeCloseTo(0, 10)
+    expect(report.individualForecastEnabled).toBe(false)
+    expect(report.calibratedLegalCasePrediction).toBe(false)
+  })
+  it("abstains on observed court-specific outcome reversal despite adequate total samples", () => {
+    const f=fixture()
+    f.validation=f.validation.map(r=>{
+      const i=Number(r.caseId.split("-").at(-1))
+      const events=r.courtCode==="NYSD" ? 6 : 24
+      return {...r,terminationObserved:i<events?1 as const:0 as const,
+        observedDays:i<events?30:180}
+    })
+    const report=benchmarkUSFJCTerminationFeatureModel(f,90)
+    expect(report.status).toBe("ABSTAIN_TEMPORAL_DRIFT")
+    expect(report.temporalDriftStatus).toBe("ABSTAIN_TEMPORAL_DRIFT")
+    expect(report.maxTemporalGroupOutcomeShift).toBeGreaterThan(.25)
+    expect(report.maxTemporalFeatureMixShift).toBe(0)
+    expect(report.fittedFeatureModel).toBe(false)
+    expect(report.heldoutFeatureModelBrier).toBeNull()
+    expect(report.holdoutExpectedCalibrationError5).toBeNull()
+    expect(report.individualForecastEnabled).toBe(false)
+  })
+  it("abstains on changed cohort category mix even when within-court rates are similar", () => {
+    const f=fixture()
+    let shifted=0
+    f.validation=f.validation.map(r=>{
+      if(r.courtCode==="CAND" && shifted++ < 30) {
+        return {...r,courtCode:"NYSD"}
+      }
+      return r
+    })
+    const report=benchmarkUSFJCTerminationFeatureModel(f,90)
+    expect(report.status).toBe("ABSTAIN_TEMPORAL_DRIFT")
+    expect(report.temporalDriftStatus).toBe("ABSTAIN_TEMPORAL_DRIFT")
+    expect(report.maxTemporalFeatureMixShift).toBeGreaterThan(.2)
+    expect(report.fittedFeatureModel).toBe(false)
+  })
+  it("refuses rare court-by-nature intersections hidden by adequate marginal coverage", () => {
+    const f=fixture()
+    let shifted=0
+    f.validation=f.validation.map(r=>{
+      if(r.courtCode==="CAND" && r.natureOfSuit==="190" && shifted++ < 22) {
+        return {...r,courtCode:"NYSD"}
+      }
+      return r
+    })
+    const report=benchmarkUSFJCTerminationFeatureModel(f,90)
+    expect(report.status).toBe("ABSTAIN_SPARSE_INTERSECTION")
+    expect(report.temporalDriftStatus).toBe("ABSTAIN_SPARSE_INTERSECTION")
+    expect(report.maxTemporalFeatureMixShift).toBeNull()
+    expect(report.maxTemporalGroupOutcomeShift).toBeNull()
+    expect(report.outOfTimeEvaluationPerformed).toBe(false)
+  })
   it("refuses duplicate records, temporal leakage and impossible case dates",()=>{
     const a=fixture()
     a.validation[0]={...a.validation[0],caseId:a.training[0].caseId}

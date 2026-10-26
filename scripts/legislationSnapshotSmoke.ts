@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { stageLegislationSourceBatch } from "../src/enterprise/legislationBatchStaging";
+import { verifyLegislationStagedSource } from "../src/enterprise/legislationSourceIntegrity";
 import {
   exportLegislationDraftSnapshot, importLegislationDraftSnapshot,
 } from "../src/enterprise/legislationSnapshot";
@@ -21,6 +22,9 @@ async function main() {
   }]);
   if (result.accepted.length !== 1 || result.pendingReview.length)
     throw new Error("LEGAL_SNAPSHOT_SMOKE_INVALID_SOURCE");
+  const verified = await verifyLegislationStagedSource(result.accepted[0], markdown);
+  if (!verified.originalSourceContentVerified || verified.safeToCiteAsOfficial !== false)
+    throw new Error("LEGAL_SNAPSHOT_SMOKE_SOURCE_INTEGRITY_FAILED");
   const json = await exportLegislationDraftSnapshot(result.accepted);
   const loaded = await importLegislationDraftSnapshot(json);
   const hits = loaded.index.search("animais domésticos", 5);

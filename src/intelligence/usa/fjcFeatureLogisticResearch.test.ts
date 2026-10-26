@@ -130,9 +130,9 @@ describe("fitted FJC court/NOS terminations - synthetic out-of-time research",()
   })
   it("abstains on changed cohort category mix even when within-court rates are similar", () => {
     const f=fixture()
-    let shifted=0
     f.validation=f.validation.map(r=>{
-      if(r.courtCode==="CAND" && shifted++ < 30) {
+      const i=Number(r.caseId.split("-").at(-1))
+      if(r.courtCode==="CAND" && i < 15) {
         return {...r,courtCode:"NYSD"}
       }
       return r

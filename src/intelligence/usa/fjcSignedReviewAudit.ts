@@ -123,7 +123,9 @@ export async function verifyUSFJCPinnedSignedReview(
 ): Promise<USFJCSignedReviewResult> {
   const received=timestamp(serverReceivedAt)
   const signed=timestamp(record?.signedAt)
-  if (!record || !registry || received===null || signed===null || signed>received ||
+  if (!exactFields(record,["sequence","previousDigest","signedAt","signatures"]) ||
+      !exactFields(registry,["expectedSequence","expectedPreviousDigest","keys"]) ||
+      received===null || signed===null || signed>received ||
       !Number.isSafeInteger(registry.expectedSequence) || registry.expectedSequence<1 ||
       record.sequence!==registry.expectedSequence ||
       !HEX64.test(registry.expectedPreviousDigest) ||
@@ -141,6 +143,7 @@ export async function verifyUSFJCPinnedSignedReview(
 
   const digestEntries: string[][]=[]
   const seenKeys=new Set<string>()
+  const seenSpki=new Set<string>()
   for (let index=0;index<3;index++) {
     const role=ROLES[index]
     const signature=record.signatures[index]
@@ -167,7 +170,8 @@ export async function verifyUSFJCPinnedSignedReview(
         (revoked!==null && (revoked<from || signed>=revoked || received>=revoked))) return fail()
 
     const pinned=await digest(key.spkiBytes)
-    if (pinned!==key.pinnedSpkiSha256.toLowerCase()) return fail()
+    if (pinned!==key.pinnedSpkiSha256.toLowerCase() || seenSpki.has(pinned)) return fail()
+    seenSpki.add(pinned)
     let valid=false
     try {
       const publicKey=await crypto.subtle.importKey("spki",key.spkiBytes,{
@@ -180,6 +184,8 @@ export async function verifyUSFJCPinnedSignedReview(
     if (!valid) return fail()
     digestEntries.push([role,signature.reviewerId,signature.keyId,signature.signatureHex.toLowerCase()])
   }
+  // Reject changes to the submitted packet while async crypto operations ran.
+  if (JSON.stringify(packetArray(packet))!==JSON.stringify(values)) return fail()
   // Integrity fingerprint ONLY: no actual append-only storage or finality.
   const fingerprint=textEncoder.encode(JSON.stringify([
     "NEXJUD_USA_FJC_REVIEW_LINK_V1",record.sequence,

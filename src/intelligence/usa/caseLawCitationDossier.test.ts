@@ -46,8 +46,8 @@ describe("NexJud USA discovery-only CourtListener citation dossier", () => {
 
   it("refuses invalid dates and fabricated outcome verification flags", () => {
     expect(() => buildUSUnverifiedCitationDossier([{ ...hit, decidedAt: "2026-02-30" }])).toThrow()
-    expect(() => buildUSUnverifiedCitationDossier([{ ...hit, outcomeVerified: true }])).toThrow()
-    expect(() => buildUSUnverifiedCitationDossier([{ ...hit, predictionEligible: true }])).toThrow()
+    expect(() => buildUSUnverifiedCitationDossier([{ ...hit, outcomeVerified: true as false }])).toThrow()
+    expect(() => buildUSUnverifiedCitationDossier([{ ...hit, predictionEligible: true as false }])).toThrow()
     expect(() => buildUSUnverifiedCitationDossier([{ ...hit, observedOutcome: "win" as never }])).toThrow()
   })
 

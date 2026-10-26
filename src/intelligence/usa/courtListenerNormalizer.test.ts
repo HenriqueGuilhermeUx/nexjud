@@ -53,4 +53,34 @@ describe("NexJud USA: CourtListener search evidence", () => {
     expect(records[0].sourceUrl).toBeUndefined()
     expect(records[1].sourceRecordId).toBe("6613687")
   })
+
+  it("rejects impossible opinion dates and collection instants", () => {
+    const bad = normalizeCourtListenerOpinion({ ...sample, dateFiled: "2026-02-30" }, collectedAt)
+    expect(bad?.decidedAt).toBeUndefined()
+    expect(normalizeCourtListenerOpinion(sample, "2026-02-30T16:00:00Z")).toBeNull()
+    expect(normalizeCourtListenerOpinion(sample, "2026-10-24")).toBeNull()
+  })
+
+  it("rejects HTML/control characters and clipped legal labels rather than trusting them", () => {
+    expect(normalizeCourtListenerOpinion({ ...sample, caseName: "<script>alert(1)</script>" }, collectedAt)).toBeNull()
+    expect(normalizeCourtListenerOpinion({ ...sample, court: "Court\nInjected" }, collectedAt)).toBeNull()
+    expect(normalizeCourtListenerOpinion({ ...sample, caseName: "A".repeat(501) }, collectedAt)).toBeNull()
+    const cited = normalizeCourtListenerOpinion({ ...sample, citation: ["A\nB", "101 Haw. 235"] }, collectedAt)
+    expect(cited?.citation).toEqual(["101 Haw. 235"])
+  })
+
+  it("rejects mismatched opinion IDs, traversal, query and suspicious encoded URLs", () => {
+    for (const url of [
+      "/opinion/9999999/someone-else/",
+      "/opinion/6613686/../other/",
+      "/opinion/6613686/hello/?token=secret",
+      "/opinion/6613686/foo%2fbar/",
+      "/opinion/6613686/hello/#frag",
+    ]) {
+      const record = normalizeCourtListenerOpinion({ ...sample, absolute_url: url }, collectedAt)
+      expect(record?.sourceUrl).toBeUndefined()
+      expect(record?.predictionEligible).toBe(false)
+    }
+  })
+
 })

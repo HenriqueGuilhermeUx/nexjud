@@ -47,6 +47,10 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-usa-proposal.sql
       - name: Test US membership/entitlement RLS, cross-tenant denial, quota limit
         run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-usa-contract-tests.sql
+      - name: Install admin-only US tenant onboarding in disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-provisioning-proposal.sql
+      - name: Test denied client writes and safely disabled operator onboarding
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-provisioning-contract-tests.sql
       - name: Race two authorized US requests against one remaining quota
         shell: bash
         run: |

@@ -1,9 +1,13 @@
-name: NexJud USA — Isolated Netlify Public Preview
+name: NexJud USA — Git-based Netlify Site Safety
 
 on:
   push:
     branches:
       - feature/usa-courtlistener-predictive-foundation-20261024
+    paths:
+      - 'usa-public/**'
+      - '.github/workflows/usa-netlify-public-preview.yml'
+  pull_request:
     paths:
       - 'usa-public/**'
       - '.github/workflows/usa-netlify-public-preview.yml'
@@ -13,60 +17,41 @@ permissions:
   contents: read
 
 concurrency:
-  group: nexjud-usa-netlify-public
+  group: nexjud-usa-public-static-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy-usa-preview:
-    name: Deploy static USA preview only — no Brazilian build
+  static-us-site:
+    name: Static US release safety (Netlify Git CD publishes)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      NETLIFY_SITE_ID: 10f4b195-c1cc-45d0-a427-2daedcce6890
-      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+    timeout-minutes: 8
     steps:
-      - name: Checkout USA isolated development branch
+      - name: Checkout isolated U.S. source
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Verify release boundary (no app, credentials or API)
+      - name: Validate deployment scope, documents and private boundaries
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html privacy.html disclaimer.html favicon.svg robots.txt _headers netlify.toml; do
-            test -f "usa-public/$file"
+          test -f usa-public/netlify.toml
+          for asset in index.html privacy.html disclaimer.html favicon.svg robots.txt _headers; do
+            test -s "usa-public/$asset"
           done
-          ! grep -Eiq 'VITE_SUPABASE_(URL|ANON_KEY)|SUPABASE_SERVICE_ROLE|NEXT_PUBLIC_.*KEY|NETLIFY_AUTH_TOKEN' usa-public/index.html
           grep -q 'ILLUSTRATIVE DATA' usa-public/index.html
           grep -q 'noindex, nofollow' usa-public/index.html
-          grep -q 'noindex,nofollow' usa-public/disclaimer.html
-          test ! -d usa-public/netlify/functions
-          echo 'USA static-only scope verified'
-      - name: Package self-contained Netlify Drop archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd usa-public
-          zip -q -r ../nexjud-usa-static.zip index.html privacy.html disclaimer.html favicon.svg robots.txt _headers netlify.toml
-      - name: Save ready-to-upload NexJud USA static ZIP
-        uses: actions/upload-artifact@v4
-        with:
-          name: nexjud-usa-netlify-drop
-          path: nexjud-usa-static.zip
-          if-no-files-found: error
-          retention-days: 14
-      - name: Publish only usa-public to dedicated Netlify site if token exists
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${NETLIFY_AUTH_TOKEN:-}" ]; then
-            echo 'NETLIFY_AUTH_TOKEN not configured: NO DEPLOY PERFORMED.'
-            echo 'Connect the existing NexJud USA Netlify project to GitHub or configure its credential.'
-            echo 'The isolated static files are ready in usa-public/.'
-            exit 0
+          grep -q 'User-agent:' usa-public/robots.txt
+          grep -q 'Content-Security-Policy:' usa-public/_headers
+          if grep -R -E -i '(service_role|secret_key|sk_live_|NETLIFY_AUTH_TOKEN|VITE_SUPABASE_URL|VITE_SUPABASE_ANON_KEY|localhost:5432)'             usa-public/index.html usa-public/privacy.html usa-public/disclaimer.html; then
+            echo "Sensitive/backend references found in public site" >&2
+            exit 1
           fi
-          npx --yes netlify-cli@23.11.0 deploy --prod \
-            --dir usa-public \
-            --site "$NETLIFY_SITE_ID" \
-            --message "NexJud USA static research preview ${GITHUB_SHA}"
-          echo 'Netlify CLI completed; verify the published URL and response headers.'
+          test ! -d usa-public/netlify/functions
+          echo "PASS: publish only usa-public, never Brazilian dist or research functions"
+      - name: Confirm Netlify Git-CD configuration (no token or ZIP)
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'publish = "."' usa-public/netlify.toml
+          echo "Netlify must link site nexjud-usa to this GitHub branch with base directory usa-public."
+          echo "This workflow tests the source; Netlify's native Git integration builds and publishes it."

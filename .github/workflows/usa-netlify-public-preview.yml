@@ -1,0 +1,59 @@
+name: NexJud USA — Isolated Netlify Public Preview
+
+on:
+  push:
+    branches:
+      - feature/usa-courtlistener-predictive-foundation-20261024
+    paths:
+      - 'usa-public/**'
+      - '.github/workflows/usa-netlify-public-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexjud-usa-netlify-public
+  cancel-in-progress: true
+
+jobs:
+  deploy-usa-preview:
+    name: Deploy static USA preview only — no Brazilian build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NETLIFY_SITE_ID: 10f4b195-c1cc-45d0-a427-2daedcce6890
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+    steps:
+      - name: Checkout USA isolated development branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify release boundary (no app, credentials or API)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in index.html privacy.html disclaimer.html favicon.svg robots.txt _headers netlify.toml; do
+            test -f "usa-public/$file"
+          done
+          ! grep -Eiq 'VITE_SUPABASE_(URL|ANON_KEY)|SUPABASE_SERVICE_ROLE|NEXT_PUBLIC_.*KEY|NETLIFY_AUTH_TOKEN' usa-public/index.html
+          grep -q 'ILLUSTRATIVE DATA' usa-public/index.html
+          grep -q 'noindex, nofollow' usa-public/index.html
+          grep -q 'noindex,nofollow' usa-public/disclaimer.html
+          test ! -d usa-public/netlify/functions
+          echo 'USA static-only scope verified'
+      - name: Publish only usa-public to dedicated Netlify site if token exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${NETLIFY_AUTH_TOKEN:-}" ]; then
+            echo 'NETLIFY_AUTH_TOKEN not configured: NO DEPLOY PERFORMED.'
+            echo 'Connect the existing NexJud USA Netlify project to GitHub or configure its credential.'
+            echo 'The isolated static files are ready in usa-public/.'
+            exit 0
+          fi
+          npx --yes netlify-cli@23.11.0 deploy --prod \
+            --dir usa-public \
+            --site "$NETLIFY_SITE_ID" \
+            --message "NexJud USA static research preview ${GITHUB_SHA}"
+          echo 'Netlify CLI completed; verify the published URL and response headers.'

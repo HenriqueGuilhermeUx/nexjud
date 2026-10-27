@@ -36,6 +36,7 @@ The USA CourtListener Edge Function is still disabled and undeployed. Before ena
 ```text
 USA_BACKEND_MODE=shared_nexjud_partition
 USA_EXPECTED_SUPABASE_PROJECT_REF=<approved_existing_project_ref>
+USA_PROTECTED_BRAZIL_PROJECT_REF=<approved_existing_project_ref>
 USA_SHARED_PARTITION_REVIEWED=true
 USA_SHARED_SCOPE_APPROVED=true
 USA_SUPABASE_URL=https://<approved_existing_project_ref>.supabase.co

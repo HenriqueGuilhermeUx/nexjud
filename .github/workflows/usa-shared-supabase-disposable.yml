@@ -1,0 +1,72 @@
+name: NexJud USA Shared Supabase — Disposable Tenant Isolation
+
+on:
+  push:
+    branches:
+      - feature/usa-courtlistener-predictive-foundation-20261024
+    paths:
+      - 'docs/usa/postgres/shared-supabase-*.sql'
+      - '.github/workflows/usa-shared-supabase-disposable.yml'
+  pull_request:
+    paths:
+      - 'docs/usa/postgres/shared-supabase-*.sql'
+      - '.github/workflows/usa-shared-supabase-disposable.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  usa-partition:
+    name: USA RLS / Auth tenancy / atomic quota — synthetic PG17
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGPASSWORD: ci-only
+    steps:
+      - name: Checkout isolated source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install fake Auth only in disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-fixture.sql
+      - name: Install US-prefixed schema ONLY in disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-usa-proposal.sql
+      - name: Test US membership/entitlement RLS, cross-tenant denial, quota limit
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-usa-contract-tests.sql
+      - name: Race two authorized US requests against one remaining quota
+        shell: bash
+        run: |
+          set -euo pipefail
+          sql="begin; set role authenticated; select pg_catalog.set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',true); select public.usa_legal_search_consume_quota('11111111-1111-4111-8111-111111111111'); commit;"
+          psql -X -At -v ON_ERROR_STOP=1 -c "$sql" > /tmp/usa-first.txt &
+          p1=$!
+          psql -X -At -v ON_ERROR_STOP=1 -c "$sql" > /tmp/usa-second.txt &
+          p2=$!
+          wait "$p1"
+          wait "$p2"
+          wins=$( (grep -xc 't' /tmp/usa-first.txt || true; grep -xc 't' /tmp/usa-second.txt || true) | awk '{s+=$1} END {print s+0}')
+          if [ "$wins" != "1" ]; then
+            cat /tmp/usa-first.txt /tmp/usa-second.txt
+            echo "FAIL: expected precisely one successful quota consume; got $wins"
+            exit 1
+          fi
+          remaining=$(psql -X -At -v ON_ERROR_STOP=1 -c             "select remaining from public.usa_legal_search_quotas where tenant_id='11111111-1111-4111-8111-111111111111'")
+          if [ "$remaining" != "0" ]; then
+            echo "FAIL: quota count out of sync ($remaining)"
+            exit 1
+          fi
+          echo "PASS: one authorized US quota request consumed the last token"

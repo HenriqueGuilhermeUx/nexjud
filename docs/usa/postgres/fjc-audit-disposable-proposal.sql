@@ -73,7 +73,8 @@ declare
   v_i integer;
   v_n integer;
 begin
-  if p_kind not in ('register_key','revoke_key','commit_review')
+  if p_kind is null or p_payload is null or p_expected_previous_digest is null
+     or p_kind not in ('register_key','revoke_key','commit_review')
      or jsonb_typeof(p_payload) <> 'object'
      or p_expected_sequence is null or p_expected_sequence < 1
      or p_expected_previous_digest !~ '^[0-9a-f]{64}$' then
@@ -96,8 +97,8 @@ begin
       (p_payload->>'key_id') !~ '^[A-Za-z0-9_.:-]{3,120}$' or
       (p_payload->>'pinned_spki_sha256') !~ '^[0-9a-f]{64}$' or
       (p_payload->>'review_evidence_sha256') !~ '^[0-9a-f]{64}$' or
-      (p_payload->>'activated_at') !~ '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$' or
-      (p_payload->>'expires_at') !~ '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$'
+      (p_payload->>'activated_at') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' or
+      (p_payload->>'expires_at') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$'
     then raise exception 'fjc_audit_invalid_key_registration'; end if;
     v_start := (p_payload->>'activated_at')::timestamptz;
     v_end := (p_payload->>'expires_at')::timestamptz;

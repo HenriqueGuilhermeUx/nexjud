@@ -85,13 +85,21 @@ begin
   if not raised then raise exception 'duplicate revision accepted'; end if;
 
   -- Authorization checking: no public grants, no anon or authenticated schema access.
-  if pg_catalog.has_schema_privilege('public','usa_fjc_audit_lab','USAGE') then
-    raise exception 'PUBLIC schema access';
-  end if;
-  if pg_catalog.has_function_privilege('public',
-    'usa_fjc_audit_lab.append_event(text,jsonb,bigint,text)','EXECUTE') then
-    raise exception 'PUBLIC append access';
-  end if;
+  if exists (
+    select 1 from pg_catalog.pg_namespace n,
+      lateral pg_catalog.aclexplode(coalesce(
+        n.nspacl, pg_catalog.acldefault('n',n.nspowner))) a
+    where n.nspname='usa_fjc_audit_lab' and a.grantee=0
+      and a.privilege_type='USAGE'
+  ) then raise exception 'PUBLIC schema access'; end if;
+  if exists (
+    select 1 from pg_catalog.pg_proc p
+      join pg_catalog.pg_namespace n on n.oid=p.pronamespace,
+      lateral pg_catalog.aclexplode(coalesce(
+        p.proacl,pg_catalog.acldefault('f',p.proowner))) a
+    where n.nspname='usa_fjc_audit_lab' and p.proname='append_event'
+      and a.grantee=0 and a.privilege_type='EXECUTE'
+  ) then raise exception 'PUBLIC append access'; end if;
 
   -- SQL itself does not verify ECDSA! Reject fake claims in structure only.
   raised:=false;

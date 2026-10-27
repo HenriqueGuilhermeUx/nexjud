@@ -5,7 +5,7 @@
 -- be independently administered, credentialed and audited before deployment.
 
 create role usa_legal_provisioner nologin;
-revoke all on role usa_legal_provisioner from public;
+-- NOLOGIN defaults to no memberships/privileges. No GRANT on public tables.
 
 -- The role has NO US-table rights and NO Brazilian table grants. It can
 -- invoke only an explicit SECURITY DEFINER onboarding function.

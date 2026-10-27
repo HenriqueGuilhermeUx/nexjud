@@ -98,9 +98,38 @@ begin
      where tenant_id='33333333-3333-4333-8333-333333333333')<>false
  or (select remaining from public.usa_legal_search_quotas
      where tenant_id='33333333-3333-4333-8333-333333333333')<>0
+ or (select approval_evidence_sha256 from usa_legal_internal.provisioning_events
+     where tenant_id='33333333-3333-4333-8333-333333333333')<>repeat('a',64)
+ or (select count(*) from usa_legal_internal.provisioning_events)<>1
  then raise exception 'Onboarding did not fail closed or wrote partial rows'; end if;
 end
 $$;
+
+-- Operator cannot rewrite the approval digest or erase audit history.
+do $
+declare
+  blocked boolean:=false;
+begin
+  begin
+    update usa_legal_internal.provisioning_events
+       set approval_evidence_sha256=repeat('f',64)
+     where tenant_id='33333333-3333-4333-8333-333333333333';
+  exception when others then
+    if sqlerrm<>'usa_provisioning_history_append_only' then raise; end if;
+    blocked:=true;
+  end;
+  if not blocked then raise exception 'Provisioning audit update permitted'; end if;
+  blocked:=false;
+  begin
+    delete from usa_legal_internal.provisioning_events
+     where tenant_id='33333333-3333-4333-8333-333333333333';
+  exception when others then
+    if sqlerrm<>'usa_provisioning_history_append_only' then raise; end if;
+    blocked:=true;
+  end;
+  if not blocked then raise exception 'Provisioning audit delete permitted'; end if;
+end
+$;
 
 -- Check user still cannot use US feature with pending and disabled state.
 set role authenticated;

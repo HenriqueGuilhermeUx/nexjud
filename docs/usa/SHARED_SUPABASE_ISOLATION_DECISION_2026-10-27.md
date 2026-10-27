@@ -73,3 +73,11 @@ and does not require Supabase credentials.
 
 This is **not** approval to deploy unfinished legal prediction features or
 intermix U.S./Brazil records.
+
+## Operator-only onboarding prototype (not applied to production)
+
+- `docs/usa/postgres/shared-supabase-provisioning-proposal.sql` adds a narrowly scoped **NOLOGIN** `usa_legal_provisioner` operator role and a private, explicitly authorized `SECURITY DEFINER` function. These are proposal-only SQL objects in ephemeral PostgreSQL, **not live Supabase roles or grants**.
+- `provision_disabled_tenant` checks that a synthetic Auth user exists and a 64-character approval-evidence SHA-256 was supplied, then atomically creates a **disabled** US tenant, **pending** owner membership, **disabled** research entitlement, **zero** initial quota and a private provisioning evidence record. None of these steps activates a feature or authenticates a human reviewer.
+- A private `usa_legal_internal.provisioning_events` table retains the approval-evidence digest, linked tenant and declared owner. An UPDATE/DELETE trigger rejects routine changes; DB administrators retain power to alter storage, so no claim of independently immutable audit custody is made.
+- No `anon` or `authenticated` role can execute onboarding, and the operator has no direct DML grants on USA or Brazilian public tables. The workflow tests explicit denials, duplicate onboarding, invalid evidence, unknown user, atomicity, disabled account visibility and audit mutation refusal.
+- A future production administrator identity, restricted connection credential, independently reviewed onboarding evidence, rollback strategy and external audit storage are still mandatory. Do not apply these proposal files to the live Brazilian Supabase or expose the operator function through REST.

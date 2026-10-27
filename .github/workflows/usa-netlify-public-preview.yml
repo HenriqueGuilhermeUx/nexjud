@@ -42,6 +42,19 @@ jobs:
           grep -q 'noindex,nofollow' usa-public/disclaimer.html
           test ! -d usa-public/netlify/functions
           echo 'USA static-only scope verified'
+      - name: Package self-contained Netlify Drop archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd usa-public
+          zip -q -r ../nexjud-usa-static.zip index.html privacy.html disclaimer.html favicon.svg robots.txt _headers netlify.toml
+      - name: Save ready-to-upload NexJud USA static ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexjud-usa-netlify-drop
+          path: nexjud-usa-static.zip
+          if-no-files-found: error
+          retention-days: 14
       - name: Publish only usa-public to dedicated Netlify site if token exists
         shell: bash
         run: |

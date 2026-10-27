@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#070d1b">
+  <meta name="description" content="NexJud USA — a research-first legal intelligence workspace built for the complexity of U.S. federal and state law. Private pilot in development.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="NexJud USA | Legal intelligence, built for the U.S.">
+  <meta property="og:description" content="A transparent, research-first legal workspace for U.S. legal professionals. Preview only.">
+  <title>NexJud USA — Legal intelligence, built for the U.S.</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root{color-scheme:dark;--bg:#080e1d;--panel:#0e1930;--muted:#a7b5cc;--line:#293951;--cyan:#67d9e8;--blue:#8facff;--ink:#eff6ff;--serif:Georgia,serif}
+    *,*::before,*::after{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6;overflow-x:hidden}a{color:inherit;text-decoration:none}
+    button{font:inherit}.shell{max-width:1160px;margin:auto;padding:0 28px}
+    .ambient{position:absolute;z-index:-1;pointer-events:none;inset:0 0 auto;height:780px;background:radial-gradient(ellipse 45% 48% at 68% 32%,#2854a240,transparent 90%),radial-gradient(ellipse 35% 38% at 5% 25%,#17b5bb14,transparent 80%),linear-gradient(#111c33 0%,#080e1d 95%)}
+    header{border-bottom:1px solid #ffffff12;position:sticky;top:0;z-index:20;background:#080e1de8;backdrop-filter:blur(20px)}
+    .top{display:flex;align-items:center;justify-content:space-between;min-height:76px;gap:18px}.brand{display:flex;align-items:center;gap:12px;font-size:22px;font-weight:850;letter-spacing:-1px}.mark{display:inline-grid;place-items:center;width:37px;height:37px;border-radius:12px;background:linear-gradient(135deg,#70e9e5,#517dff);box-shadow:0 0 32px #3bade038;color:#051120;font-weight:900;font-size:22px}.brand small{font-size:10px;font-weight:800;color:#9fe4ed;border:1px solid #376075;padding:2px 6px;border-radius:5px;letter-spacing:1.5px;margin-left:3px;vertical-align:middle}
+    nav{display:flex;align-items:center;gap:26px}nav a{font-size:13px;color:#b1c0d8;font-weight:600}nav a:hover,nav a:focus-visible{color:white}.nav-cta{border:1px solid #52647f;border-radius:10px;padding:10px 15px;background:#172841}
+    .hero{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:60px;padding-top:96px;padding-bottom:100px}.eyebrow{text-transform:uppercase;letter-spacing:2.5px;font-size:11px;font-weight:800;color:var(--cyan);display:flex;align-items:center;gap:10px}.eyebrow::before{content:"";width:18px;height:2px;background:var(--cyan)}
+    h1,h2,h3,p{margin-top:0}h1{font-weight:830;font-size:clamp(44px,5.1vw,72px);line-height:1.065;letter-spacing:-3.4px;margin:25px 0}.gradient{background:linear-gradient(110deg,#a5f6f0,#90aaff 75%);color:transparent;background-clip:text}.intro{font-size:17px;color:#bdc9da;line-height:1.85;max-width:550px}.actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:30px 0}.btn{padding:13px 20px;border-radius:11px;border:1px solid #465974;background:#172640;display:inline-flex;gap:9px;align-items:center;font-size:14px;font-weight:750;transition:transform .15s,background .15s}.btn:hover{transform:translateY(-2px);background:#243857}.btn.primary{color:#0b1828;background:linear-gradient(120deg,#79dce7,#99abff);border:0}.btn.primary:hover{background:#c3f5ff}
+    .meta{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:#91a1b7}.meta span{display:flex;gap:7px;align-items:center}.meta span::before{content:"";width:6px;height:6px;background:#62cec3;border-radius:50%}
+    .console{border:1px solid #364961;border-radius:17px;background:linear-gradient(145deg,#142540,#0b162b);padding:17px;box-shadow:0 25px 90px #0007,0 0 0 6px #ffffff04;transform:rotate(1.2deg)}.console-top{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #ffffff15;padding:0 3px 15px}.dots{display:flex;gap:5px}.dots i{width:8px;height:8px;border-radius:50%;background:#60758c}.dots i:first-child{background:#ec8586}.dots i:nth-child(2){background:#eccb81}.dots i:nth-child(3){background:#72d2b1}.console-top .tag{color:#c1cee0;font-size:11px;font-weight:750}.demo-label{display:inline-block;padding:4px 8px;border-radius:5px;background:#2d3555;color:#bbceec;font-size:10px;letter-spacing:.8px;font-weight:750}
+    .console-body{padding:22px 8px 8px}.console h3{font-size:20px;letter-spacing:-.5px;margin:10px 0}.console-desc{color:#96acc9;font-size:12px;margin:0 0 16px}.case-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.mini{background:#0d1a30;border:1px solid #293b55;border-radius:9px;padding:13px}.mini span{color:#96adc6;text-transform:uppercase;font-size:9px;letter-spacing:1.1px}.mini strong{display:block;font-size:15px;margin-top:3px}.full{grid-column:1 / -1}.timeline{margin-top:16px;padding:14px;border:1px solid #2a3d56;border-radius:9px;background:#0b1729}.event{display:flex;gap:12px;align-items:flex-start;color:#ccdaeb;font-size:11px;padding:8px 2px}.event::before{content:"";width:8px;height:8px;flex:0 0 8px;margin-top:5px;border:2px solid #6ad5e2;border-radius:50%}.event small{display:block;color:#7795b5}.console-foot{font-size:10px;color:#9bb1c5;text-align:center;padding:16px 0 1px}
+    section{scroll-margin-top:98px}.section-top{max-width:650px;margin-bottom:38px}.kicker{font-size:11px;font-weight:800;color:var(--cyan);letter-spacing:2px;text-transform:uppercase}.section-top h2,.section-heading{font-size:clamp(32px,3.7vw,48px);line-height:1.14;letter-spacing:-1.8px;margin:14px 0}.section-top p,.section-lead{color:var(--muted);font-size:15px;line-height:1.8}
+    .capabilities{padding:72px 0 100px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.card{border:1px solid var(--line);background:linear-gradient(165deg,#15233a,#101a2d);padding:27px;border-radius:16px;min-height:260px}.glyph{width:42px;height:42px;display:grid;place-items:center;font-size:23px;border-radius:11px;background:#29445d;margin-bottom:24px}.card h3{letter-spacing:-.5px;font-size:20px;margin:0 0 10px}.card p{color:#a7b9cc;font-size:13px;line-height:1.9}.step-tag{border:1px solid #354b5f;color:#a6e4e9;padding:5px 9px;border-radius:20px;font-size:10px;display:inline-block;margin-top:12px}
+    .approach{border-top:1px solid #27364a;border-bottom:1px solid #27364a;padding:85px 0;background:linear-gradient(180deg,#0d182a,#0b1423)}.approach-layout{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}.steps{border-left:1px solid #36516c;padding-left:24px}.step{padding:0 0 25px;position:relative}.step:last-child{padding-bottom:0}.step:before{content:"";width:11px;height:11px;position:absolute;left:-30px;top:4px;background:#74d6e3;border:3px solid #0d182a;border-radius:50%;box-sizing:content-box}.step h3{font-size:16px;margin:0 0 6px}.step p{font-size:13px;color:var(--muted);line-height:1.8;margin:0}
+    .responsible{padding:90px 0}.principles{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}.principle{border-top:1px solid #39516a;padding-top:20px}.principle b{font-size:17px}.principle p{font-size:13px;color:#aebdd0;line-height:1.8}
+    .footer-panel{background:linear-gradient(115deg,#153758,#192952);border:1px solid #416486;border-radius:20px;padding:49px 50px;margin-bottom:70px;display:flex;align-items:center;justify-content:space-between;gap:30px}.footer-panel h2{font-size:32px;line-height:1.15;letter-spacing:-1px;margin:0 0 12px}.footer-panel p{color:#b4cadb;font-size:14px;max-width:600px;margin:0}.footer{border-top:1px solid #29384c;padding:28px 0 40px;color:#8395ad;font-size:12px}.footer-inner{display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap}.footer-links{display:flex;gap:18px}.footer-links a:hover{color:white}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}a:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+    @media(max-width:980px){.hero{gap:34px}.console{transform:none}.approach-layout{gap:45px}h1{letter-spacing:-2.2px}}@media(max-width:780px){.shell{padding:0 20px}header nav a:not(.nav-cta){display:none}.top{min-height:68px}.hero{grid-template-columns:1fr;padding-top:58px;padding-bottom:68px}.hero h1{max-width:610px}.console{max-width:560px;width:100%;margin:0 auto}.cards{grid-template-columns:1fr 1fr}.approach-layout{grid-template-columns:1fr;gap:35px}.footer-panel{padding:32px;display:block}.footer-panel .btn{margin-top:25px}}@media(max-width:520px){.cards,.principles{grid-template-columns:1fr}.card{min-height:auto}.top .nav-cta{font-size:11px;padding:9px 10px}.brand{font-size:19px}.brand small{font-size:8px}.hero h1{font-size:44px}.footer-panel h2{font-size:27px}.case-grid{grid-template-columns:1fr 1fr}.console-body{padding:15px 1px 0}.mini{padding:9px}.mini strong{font-size:13px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
+  </style>
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <header>
+    <div class="shell top">
+      <a class="brand" href="#top" aria-label="NexJud USA home"><span class="mark" aria-hidden="true">N</span> NexJud <small>USA</small></a>
+      <nav aria-label="Main navigation">
+        <a href="#capabilities">Platform</a><a href="#approach">Approach</a><a href="#trust">Trust</a>
+        <a class="nav-cta" href="#preview">Explore the preview</a>
+      </nav>
+    </div>
+  </header>
+  <main id="top">
+    <div class="shell hero">
+      <div>
+        <div class="eyebrow">Legal intelligence · United States</div>
+        <h1>Clarity for every <span class="gradient">legal decision.</span></h1>
+        <p class="intro">A research-first legal intelligence workspace designed for the U.S. federal and state court landscape. We’re building tools that connect case research, evidence and transparent analytical workflows—without pretending that an algorithm can decide a case.</p>
+        <div class="actions"><a href="#capabilities" class="btn primary">Explore the platform <span aria-hidden="true">↗</span></a><a href="#approach" class="btn">Our research approach <span aria-hidden="true">→</span></a></div>
+        <div class="meta"><span>Private pilot in development</span><span>Federal-first research</span><span>Human-reviewed AI</span></div>
+      </div>
+      <div class="console" id="preview" aria-label="Illustrative legal research workspace mockup">
+        <div class="console-top"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><span class="tag">NEXJUD / RESEARCH WORKSPACE</span><span class="demo-label">ILLUSTRATIVE DATA</span></div>
+        <div class="console-body">
+          <div class="kicker">Case research overview</div>
+          <h3>Build a verifiable research trail</h3>
+          <p class="console-desc">Sample interface · no live court search or case predictions</p>
+          <div class="case-grid">
+            <div class="mini"><span>Jurisdiction</span><strong>U.S. Federal</strong></div>
+            <div class="mini"><span>Research scope</span><strong>Civil matters</strong></div>
+            <div class="mini full"><span>Evidence confidence</span><strong>Source and citation checks required</strong></div>
+          </div>
+          <div class="timeline">
+            <div class="event"><div>Identify relevant authorities <small>Research step 01 · planned workflow</small></div></div>
+            <div class="event"><div>Review dates, jurisdiction and citations <small>Research step 02 · planned workflow</small></div></div>
+            <div class="event"><div>Record attorney decisions and sources <small>Research step 03 · planned workflow</small></div></div>
+          </div>
+          <div class="console-foot">This display is a concept—not a connected court-data product.</div>
+        </div>
+      </div>
+    </div>
+    <section class="capabilities" id="capabilities">
+      <div class="shell">
+        <div class="section-top"><div class="kicker">One connected workspace</div><h2>Legal research, with a clearer chain of reasoning.</h2><p>NexJud USA is being adapted for American legal practice through isolated research and engineering. These are the capabilities under development—not a claim of general availability.</p></div>
+        <div class="cards">
+          <article class="card"><div class="glyph" aria-hidden="true">⚖</div><h3>U.S. case law research</h3><p>Research workflows designed for jurisdiction-aware discovery, precedent review and attribution across federal and state systems.</p><span class="step-tag">Under development</span></article>
+          <article class="card"><div class="glyph" aria-hidden="true">▤</div><h3>Docket intelligence</h3><p>Structured case histories and procedural timelines with a focus on traceability, court-specific context and verifiable sources.</p><span class="step-tag">Research integration</span></article>
+          <article class="card"><div class="glyph" aria-hidden="true">◈</div><h3>Evidence and analytics</h3><p>Research-grade statistical methods, source-audit records and conservative abstention gates when evidence is insufficient.</p><span class="step-tag">Experimental only</span></article>
+        </div>
+      </div>
+    </section>
+    <section class="approach" id="approach">
+      <div class="shell approach-layout">
+        <div><div class="kicker">Research before prediction</div><h2 class="section-heading">Built to explain its sources, not make unsupported promises.</h2><p class="section-lead">Our technical foundation explores public federal-civil research materials and court-data connectors. Historical administrative case termination is not a legal win or loss, and a retrospective benchmark is not a forecast of your case.</p></div>
+        <div class="steps">
+          <div class="step"><h3>01 · Source provenance</h3><p>Pin original dataset bytes and conversions to independently reviewed research records.</p></div>
+          <div class="step"><h3>02 · Context and jurisdiction</h3><p>Check court, proceeding, dates and authority before presenting evidence in context.</p></div>
+          <div class="step"><h3>03 · Conservative analytics</h3><p>Abstain when data coverage, stability or external validation cannot support a conclusion.</p></div>
+          <div class="step"><h3>04 · Professional review</h3><p>Keep legal interpretation, strategic choices and client advice in qualified human hands.</p></div>
+        </div>
+      </div>
+    </section>
+    <section class="responsible" id="trust">
+      <div class="shell">
+        <div class="section-top"><div class="kicker">Responsible by design</div><h2>Trust must be earned, then verified.</h2><p>Our U.S. research foundation is isolated from existing Brazilian operations, and its experimental tools are not exposed here as professional legal services.</p></div>
+        <div class="principles">
+          <div class="principle"><b>Traceable sources</b><p>Citations, jurisdiction and versioned research materials matter more than a confident-looking answer.</p></div>
+          <div class="principle"><b>Bounded AI</b><p>No individual win probabilities, judicial rankings or guarantees of legal outcomes are offered on this website.</p></div>
+          <div class="principle"><b>Privacy-conscious launch</b><p>This website has no accounts, client-case intake forms, analytics scripts or third-party advertising trackers.</p></div>
+          <div class="principle"><b>Human accountability</b><p>Software can support research; it does not replace counsel, independent investigation or court verification.</p></div>
+        </div>
+      </div>
+    </section>
+    <section class="shell" aria-label="Upcoming private pilot">
+      <div class="footer-panel"><div><div class="kicker">Private preview</div><h2>Building the next chapter<br>of legal intelligence.</h2><p>NexJud USA is preparing a restricted research pilot. Public-facing product access and authenticated integrations are not available yet.</p></div><a class="btn primary" href="#top">Back to overview ↑</a></div>
+    </section>
+  </main>
+  <footer class="footer"><div class="shell footer-inner"><span>© <span id="year">2026</span> NexJud USA · An Alternative Ventures initiative</span><div class="footer-links"><a href="privacy.html">Privacy</a><a href="disclaimer.html">Legal disclaimer</a><a href="#top">Back to top</a></div></div></footer>
+  <script>document.getElementById("year").textContent=String(new Date().getFullYear())</script>
+</body>
+</html>

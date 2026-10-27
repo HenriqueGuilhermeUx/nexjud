@@ -4,6 +4,7 @@ const valid:USBackendSettings={
   mode:"shared_nexjud_partition",
   url:"https://abcdefghijklmnopqrst.supabase.co",
   expectedProjectRef:"abcdefghijklmnopqrst",
+  protectedBrazilProjectRef:"abcdefghijklmnopqrst",
   publishableKey:"sb_publishable_synthetic_for_offline_test",
   sharedPartitionReviewed:"true",
   sharedScopeApproved:"true",
@@ -16,6 +17,7 @@ describe("USA shared Supabase backend enable gate — no real credentials",()=>{
   it("fails closed for no approval, unknown mode and wrong ref",()=>{
     for(const patch of [
       {sharedPartitionReviewed:"false"}, {sharedScopeApproved:"false"},
+      {protectedBrazilProjectRef:"anotherprojectref123"},
       {sharedPartitionReviewed:""},{sharedScopeApproved:""},
       {mode:"shared"}, {mode:""}, {expectedProjectRef:"br-project"},
       {url:"https://otherproject1234567.supabase.co"},
@@ -33,6 +35,9 @@ describe("USA shared Supabase backend enable gate — no real credentials",()=>{
   it("does not accept a relabeled dedicated mode with shared approvals",()=>{
     expect(isUSBackendConfigurationApproved({...valid,mode:"dedicated_us_project"})).toBe(false)
     expect(isUSBackendConfigurationApproved({...valid,mode:"dedicated_us_project",
+      sharedPartitionReviewed:"false",sharedScopeApproved:"false"})).toBe(false)
+    expect(isUSBackendConfigurationApproved({...valid,mode:"dedicated_us_project",
+      protectedBrazilProjectRef:"abcdefghijklmnopqrsu",
       sharedPartitionReviewed:"false",sharedScopeApproved:"false"})).toBe(true)
   })
 })

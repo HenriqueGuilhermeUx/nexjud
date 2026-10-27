@@ -11,6 +11,7 @@
  * USA_COURTLISTENER_TOKEN, USA_SUPABASE_URL, USA_SUPABASE_PUBLISHABLE_KEY,
  * USA_ALLOWED_WEB_ORIGIN,
  * USA_BACKEND_MODE, USA_EXPECTED_SUPABASE_PROJECT_REF,
+ * USA_PROTECTED_BRAZIL_PROJECT_REF,
  * USA_SHARED_PARTITION_REVIEWED, USA_SHARED_SCOPE_APPROVED
  */
 import { createClient } from "jsr:@supabase/supabase-js@2"
@@ -53,6 +54,7 @@ Deno.serve(async req => {
     url: usUrl,
     publishableKey: usKey,
     expectedProjectRef: env("USA_EXPECTED_SUPABASE_PROJECT_REF"),
+    protectedBrazilProjectRef: env("USA_PROTECTED_BRAZIL_PROJECT_REF"),
     sharedPartitionReviewed: env("USA_SHARED_PARTITION_REVIEWED"),
     sharedScopeApproved: env("USA_SHARED_SCOPE_APPROVED"),
   })

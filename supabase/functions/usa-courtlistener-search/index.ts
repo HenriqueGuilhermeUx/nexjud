@@ -1,17 +1,21 @@
 /**
  * NexJud USA / CourtListener v4 (ISOLATED DRAFT ONLY).
  *
- * Not deployed. Defaults OFF. Must run in a distinct US Supabase project,
- * with audited US-only RLS policies and an atomic quota RPC before enabling.
- * Never configure these values using the Brazilian Supabase project.
+ * Not deployed. Defaults OFF. Default architecture is a dedicated US project.
+ * A shared NexJud Supabase project is allowed ONLY after independent
+ * tenant/RLS/quota/isolation approval and strict server-owned backend flags.
+ * This does not authorize changing the current Brazilian production schema.
  *
  * Environment (server secrets / no VITE_ prefix):
  * USA_COURTLISTENER_ENABLED, USA_COURTLISTENER_COMMERCIAL_APPROVED,
  * USA_COURTLISTENER_TOKEN, USA_SUPABASE_URL, USA_SUPABASE_PUBLISHABLE_KEY,
- * USA_ALLOWED_WEB_ORIGIN
+ * USA_ALLOWED_WEB_ORIGIN,
+ * USA_BACKEND_MODE, USA_EXPECTED_SUPABASE_PROJECT_REF,
+ * USA_SHARED_PARTITION_REVIEWED, USA_SHARED_SCOPE_APPROVED
  */
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { runUSOpinionSearch, USLegalSearchDenied, type VerifiedUSPrincipal } from "../../../src/intelligence/usa/usOpinionSearchGate.ts"
+import { isUSBackendConfigurationApproved } from "../../../src/intelligence/usa/sharedBackendConfig.ts"
 import { searchCourtListenerOpinions } from "../_shared/usa/courtListenerClient.ts"
 
 const env = (name: string) => Deno.env.get(name) || ""
@@ -44,7 +48,15 @@ Deno.serve(async req => {
   const usUrl = env("USA_SUPABASE_URL")
   const usKey = env("USA_SUPABASE_PUBLISHABLE_KEY")
   const providerToken = env("USA_COURTLISTENER_TOKEN")
-  if (!enabled || !commercialUseAuthorized || !usUrl || !usKey || !providerToken) {
+  const backendApproved = isUSBackendConfigurationApproved({
+    mode: env("USA_BACKEND_MODE"),
+    url: usUrl,
+    publishableKey: usKey,
+    expectedProjectRef: env("USA_EXPECTED_SUPABASE_PROJECT_REF"),
+    sharedPartitionReviewed: env("USA_SHARED_PARTITION_REVIEWED"),
+    sharedScopeApproved: env("USA_SHARED_SCOPE_APPROVED"),
+  })
+  if (!enabled || !commercialUseAuthorized || !usUrl || !usKey || !providerToken || !backendApproved) {
     return response({ error: "NOT_ENABLED" }, 503, origin)
   }
 

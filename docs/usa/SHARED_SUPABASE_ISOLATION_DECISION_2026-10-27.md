@@ -40,7 +40,7 @@ entitlements with the US application.
   decrementing. A Brazil user without US membership is denied.
 - `src/intelligence/usa/sharedBackendConfig.ts` and the existing
   US CourtListener Edge Function enforce exact Supabase project URL,
-  server-only publishable key and explicitly reviewed shared mode. If
+  server-only publishable key, a separately pinned Brazilian project reference (which must match in shared mode and differ in dedicated mode), and explicitly reviewed shared mode. If
   `USA_SHARED_PARTITION_REVIEWED` or `USA_SHARED_SCOPE_APPROVED`
   is not `true`, the integration fails closed.
 - The isolated CI `usa-shared-supabase-disposable.yml` uses a

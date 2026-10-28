@@ -74,6 +74,9 @@ jobs:
       - name: Race two pilot activators (exactly one must win)
         shell: bash
         run: |
+          # One concurrent writer must fail. Disable inherited bash -e only
+          # here, and explicitly assert the outcome of BOTH processes below.
+          set +e
           set -uo pipefail
           statement="set role usa_legal_pilot_activator; select usa_legal_internal.activate_pilot_only('44444444-4444-4444-8444-444444444444');"
           psql -X -At -v ON_ERROR_STOP=1 -c "$statement" > /tmp/usa-activation-a.log 2>&1 &

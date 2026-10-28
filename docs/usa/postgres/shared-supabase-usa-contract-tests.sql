@@ -34,6 +34,9 @@ do $$
 declare
  denied boolean := false;
 begin
+ if not public.usa_legal_pilot_access_ready() then
+  raise exception 'Active US user denied pilot readiness';
+ end if;
  if (select count(*) from public.usa_legal_memberships) <> 1 then
   raise exception 'USA membership RLS leaks other tenant';
  end if;
@@ -85,6 +88,9 @@ set role authenticated;
 select pg_catalog.set_config('request.jwt.claim.sub','cccccccc-cccc-4ccc-8ccc-ccccccccccc3',false);
 do $$
 begin
+ if public.usa_legal_pilot_access_ready() then
+  raise exception 'Non-US user gained pilot readiness';
+ end if;
  if (select count(*) from public.usa_legal_memberships)<>0 or
     (select count(*) from public.usa_legal_research_entitlements)<>0 or
     public.usa_legal_search_consume_quota('11111111-1111-4111-8111-111111111111')
@@ -102,6 +108,12 @@ begin
  exception when insufficient_privilege then denied:=true;
  end;
  if not denied then raise exception 'Anonymous quota execution allowed'; end if;
+ denied:=false;
+ begin
+  perform public.usa_legal_pilot_access_ready();
+ exception when insufficient_privilege then denied:=true;
+ end;
+ if not denied then raise exception 'Anonymous pilot access execution allowed'; end if;
 end
 $$;
 reset role;

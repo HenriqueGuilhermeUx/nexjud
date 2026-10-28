@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { verifiedUSPrincipalFromMembership } from "./usPrincipalMapping.ts"
-import { runUSOpinionSearch, USLegalSearchDenied, type VerifiedUSPrincipal } from "./usOpinionSearchGate.ts"
+import { runUSOpinionSearch } from "./usOpinionSearchGate.ts"
 
 const user="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1"
 const tenant="11111111-1111-4111-8111-111111111111"

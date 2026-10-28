@@ -35,14 +35,27 @@ jobs:
         run: |
           set -euo pipefail
           test -f usa-public/netlify.toml
-          for asset in index.html privacy.html disclaimer.html favicon.svg robots.txt _headers; do
+          for asset in index.html workspace.html privacy.html disclaimer.html favicon.svg robots.txt _headers; do
             test -s "usa-public/$asset"
           done
           grep -q 'ILLUSTRATIVE DATA' usa-public/index.html
+          grep -q 'DEMO ONLY' usa-public/workspace.html
+          grep -q 'Private pilot access is not yet enabled' usa-public/workspace.html
+          grep -q 'href="workspace.html"' usa-public/index.html
           grep -q 'noindex, nofollow' usa-public/index.html
+          grep -q 'noindex,nofollow' usa-public/workspace.html
+          # The public demo must never store user information or make network calls.
+          if grep -E -i '(fetch[[:space:]]*\(|XMLHttpRequest|WebSocket|sendBeacon|localStorage|sessionStorage|<form\b|<input[^>]+type="(text|email|password|file)")' usa-public/workspace.html; then
+            echo "Public demo includes a prohibited API, storage or personal-data form" >&2
+            exit 1
+          fi
+          if grep -E -i '(https?://[^" ]+\.(js|css)|src="https?://)' usa-public/workspace.html; then
+            echo "Public demo uses external runtime assets" >&2
+            exit 1
+          fi
           grep -q 'User-agent:' usa-public/robots.txt
           grep -q 'Content-Security-Policy:' usa-public/_headers
-          if grep -R -E -i '(service_role|secret_key|sk_live_|NETLIFY_AUTH_TOKEN|VITE_SUPABASE_URL|VITE_SUPABASE_ANON_KEY|localhost:5432)'             usa-public/index.html usa-public/privacy.html usa-public/disclaimer.html; then
+          if grep -R -E -i '(service_role|secret_key|sk_live_|NETLIFY_AUTH_TOKEN|VITE_SUPABASE_URL|VITE_SUPABASE_ANON_KEY|localhost:5432)'             usa-public/index.html usa-public/workspace.html usa-public/privacy.html usa-public/disclaimer.html; then
             echo "Sensitive/backend references found in public site" >&2
             exit 1
           fi

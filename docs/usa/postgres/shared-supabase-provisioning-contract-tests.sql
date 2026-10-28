@@ -136,6 +136,9 @@ set role authenticated;
 select pg_catalog.set_config('request.jwt.claim.sub','cccccccc-cccc-4ccc-8ccc-ccccccccccc3',false);
 do $$
 begin
+ if public.usa_legal_pilot_access_ready() then
+  raise exception 'Pending/disabled tenant gained pilot access';
+ end if;
  if (select count(*) from public.usa_legal_memberships)<>0
     or (select count(*) from public.usa_legal_research_entitlements)<>0
     or public.usa_legal_search_consume_quota(

@@ -2,6 +2,8 @@
 
 The NexJud USA preview is a **static, English, research-stage website**. It is separate from the Brazilian NexJud application, with no logged-in accounts, case submissions, predictions or live provider calls.
 
+The public landing now links to `workspace.html`, a **fully local, synthetic interactive preview** of source review, procedural analysis and an accessible checklist. The preview makes no network calls, stores no identifiers or case materials, and cannot be used for actual legal research. The pilot backend, tenant provisioning and CourtListener functions remain unavailable to site visitors. The static CI enforces this contract.
+
 ## Dedicated existing Netlify project (do not create another)
 
 - Netlify site: `nexjud-usa`

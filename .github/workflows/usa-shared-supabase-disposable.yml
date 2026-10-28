@@ -43,6 +43,13 @@ jobs:
           persist-credentials: false
       - name: Install fake Auth only in disposable PostgreSQL
         run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-fixture.sql
+      - name: Prove read-only US schema preflight fails safely before installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          result=$(psql -X -At -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-readonly-release-preflight.sql)
+          test "$result" = "NOT_INSTALLED_OR_INCOMPLETE"
+          echo 'PASS: absent US schema blocks pilot activation'
       - name: Install US-prefixed schema ONLY in disposable PostgreSQL
         run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-usa-proposal.sql
       - name: Test US membership/entitlement RLS, cross-tenant denial, quota limit
@@ -55,6 +62,13 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-pilot-activation-proposal.sql
       - name: Test security + release approval, privilege separation and no research activation
         run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-pilot-activation-contract-tests.sql
+      - name: Prove read-only US preflight sees installed synthetic schema, not production approval
+        shell: bash
+        run: |
+          set -euo pipefail
+          result=$(psql -X -At -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-readonly-release-preflight.sql)
+          test "$result" = "SCHEMA_PRESENT_REQUIRES_SECURITY_REVIEW"
+          echo 'PASS: synthetic schema present for independent security review; NOT a production approval'
       - name: Race two authorized US requests against one remaining quota
         shell: bash
         run: |

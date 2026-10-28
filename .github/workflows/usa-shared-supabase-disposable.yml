@@ -69,6 +69,53 @@ jobs:
           result=$(psql -X -At -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-readonly-release-preflight.sql)
           test "$result" = "SCHEMA_PRESENT_REQUIRES_SECURITY_REVIEW"
           echo 'PASS: synthetic schema present for independent security review; NOT a production approval'
+      - name: Prepare second reviewed synthetic pilot for activation race
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-pilot-concurrency-fixture.sql
+      - name: Race two pilot activators (exactly one must win)
+        shell: bash
+        run: |
+          set -uo pipefail
+          statement="set role usa_legal_pilot_activator; select usa_legal_internal.activate_pilot_only('44444444-4444-4444-8444-444444444444');"
+          psql -X -At -v ON_ERROR_STOP=1 -c "$statement" > /tmp/usa-activation-a.log 2>&1 &
+          p1=$!
+          psql -X -At -v ON_ERROR_STOP=1 -c "$statement" > /tmp/usa-activation-b.log 2>&1 &
+          p2=$!
+          wait "$p1"; rc1=$?
+          wait "$p2"; rc2=$?
+          successes=0
+          if [ "$rc1" -eq 0 ]; then successes=$((successes+1)); fi
+          if [ "$rc2" -eq 0 ]; then successes=$((successes+1)); fi
+          if [ "$successes" -ne 1 ]; then
+            cat /tmp/usa-activation-a.log /tmp/usa-activation-b.log
+            echo "Expected exactly one successful activation; got $successes"
+            exit 1
+          fi
+          if [ "$rc1" -ne 0 ] && ! grep -q 'usa_pilot_not_eligible' /tmp/usa-activation-a.log; then
+            cat /tmp/usa-activation-a.log
+            exit 1
+          fi
+          if [ "$rc2" -ne 0 ] && ! grep -q 'usa_pilot_not_eligible' /tmp/usa-activation-b.log; then
+            cat /tmp/usa-activation-b.log
+            exit 1
+          fi
+          status=$(psql -X -At -v ON_ERROR_STOP=1 -c "
+            select case when
+              (select status from public.usa_legal_tenants
+                where id='44444444-4444-4444-8444-444444444444')='active'
+              and (select status from public.usa_legal_memberships
+                where user_id='dddddddd-dddd-4ddd-8ddd-ddddddddddd4')='active'
+              and (select enabled from public.usa_legal_research_entitlements
+                where tenant_id='44444444-4444-4444-8444-444444444444')=false
+              and (select remaining from public.usa_legal_search_quotas
+                where tenant_id='44444444-4444-4444-8444-444444444444')=0
+              and (select count(*) from usa_legal_internal.pilot_activation_events
+                where tenant_id='44444444-4444-4444-8444-444444444444')=1
+            then 'PASS' else 'FAIL' end;")
+          if [ "$status" != "PASS" ]; then
+            echo "Activation race lost integrity: $status"
+            exit 1
+          fi
+          echo "PASS: exactly one pilot-shell activation, still no research entitlement"
       - name: Race two authorized US requests against one remaining quota
         shell: bash
         run: |

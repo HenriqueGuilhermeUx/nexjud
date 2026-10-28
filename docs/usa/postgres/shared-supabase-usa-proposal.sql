@@ -104,14 +104,14 @@ grant execute on function public.usa_legal_search_consume_quota(uuid) to authent
 -- tenant. A research entitlement and remaining quota are NOT implied. The
 -- database checks auth.uid(), not a user_id supplied by the caller.
 create or replace function usa_legal_internal.pilot_membership_active()
-returns boolean language sql stable security definer set search_path = '' as $
+returns boolean language sql stable security definer set search_path = '' as $$
   select (select auth.uid()) is not null and exists(
     select 1 from public.usa_legal_memberships m
     join public.usa_legal_tenants t on t.id = m.tenant_id
     where m.user_id = (select auth.uid())
       and m.status = 'active' and t.status = 'active'
   )
-$;
+$$;
 revoke all on function usa_legal_internal.pilot_membership_active()
   from public, anon;
 grant execute on function usa_legal_internal.pilot_membership_active()
@@ -119,9 +119,9 @@ grant execute on function usa_legal_internal.pilot_membership_active()
 
 -- Exposed invoker wrapper: no arguments, no arbitrarily chosen tenant ID.
 create or replace function public.usa_legal_pilot_access_ready()
-returns boolean language sql security invoker set search_path = '' as $
+returns boolean language sql security invoker set search_path = '' as $$
   select usa_legal_internal.pilot_membership_active()
-$;
+$$;
 revoke all on function public.usa_legal_pilot_access_ready()
   from public, anon;
 grant execute on function public.usa_legal_pilot_access_ready()

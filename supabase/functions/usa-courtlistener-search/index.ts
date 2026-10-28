@@ -15,8 +15,9 @@
  * USA_SHARED_PARTITION_REVIEWED, USA_SHARED_SCOPE_APPROVED
  */
 import { createClient } from "jsr:@supabase/supabase-js@2"
-import { runUSOpinionSearch, USLegalSearchDenied, type VerifiedUSPrincipal } from "../../../src/intelligence/usa/usOpinionSearchGate.ts"
+import { runUSOpinionSearch, USLegalSearchDenied } from "../../../src/intelligence/usa/usOpinionSearchGate.ts"
 import { isUSBackendConfigurationApproved } from "../../../src/intelligence/usa/sharedBackendConfig.ts"
+import { verifiedUSPrincipalFromMembership } from "../../../src/intelligence/usa/usPrincipalMapping.ts"
 import { searchCourtListenerOpinions } from "../_shared/usa/courtListenerClient.ts"
 
 const env = (name: string) => Deno.env.get(name) || ""
@@ -91,11 +92,9 @@ Deno.serve(async req => {
         const membership = await client.from("usa_legal_memberships")
           .select("tenant_id,role").eq("user_id", data.user.id).eq("status", "active").limit(2)
         if (membership.error || !membership.data || membership.data.length !== 1) return null
-        return {
-          userId: data.user.id,
-          tenantId: String(membership.data[0].tenant_id),
-          role: membership.data[0].role,
-        } as VerifiedUSPrincipal
+        // The database roles differ from the search authorization vocabulary.
+        // Never trust a client-supplied role, user_metadata, or a partial match.
+        return verifiedUSPrincipalFromMembership(data.user.id, membership.data)
       },
       entitled: async identity => {
         const { data, error } = await client.from("usa_legal_research_entitlements")

@@ -8,6 +8,8 @@ on:
     paths:
       - 'src/intelligence/usa/**'
       - 'supabase/functions/_shared/usa/**'
+      - 'supabase/functions/usa-courtlistener-search/**'
+      - 'supabase/functions/usa-pilot-access/**'
       - '.github/workflows/usa-courtlistener-ci.yml'
   workflow_dispatch:
 
@@ -43,3 +45,5 @@ jobs:
           deno-version: v2.x
       - name: Verify US Edge Function compiles without credentials
         run: deno check --config supabase/functions/usa-courtlistener-search/deno.json supabase/functions/usa-courtlistener-search/index.ts
+      - name: Verify US pilot access Edge Function compiles without credentials
+        run: deno check --config supabase/functions/usa-pilot-access/deno.json supabase/functions/usa-pilot-access/index.ts

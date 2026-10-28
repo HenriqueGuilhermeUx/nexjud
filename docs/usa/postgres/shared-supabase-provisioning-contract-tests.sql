@@ -106,7 +106,7 @@ end
 $$;
 
 -- Operator cannot rewrite the approval digest or erase audit history.
-do $
+do $$
 declare
   blocked boolean:=false;
 begin
@@ -129,7 +129,7 @@ begin
   end;
   if not blocked then raise exception 'Provisioning audit delete permitted'; end if;
 end
-$;
+$$;
 
 -- Check user still cannot use US feature with pending and disabled state.
 set role authenticated;

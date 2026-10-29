@@ -60,6 +60,7 @@ describe("NexJud USA private pilot authentication — never Brazilian app sessio
     })
     expect(deps.statusLookup).toHaveBeenCalledWith(
       config.supabaseUrl+"/functions/v1/usa-pilot-access","synthetic.short.lived.jwt",
+      {publishableKey:config.publishableKey},
     )
     expect(deps.auth.signOut).not.toHaveBeenCalled()
     await c.logout()

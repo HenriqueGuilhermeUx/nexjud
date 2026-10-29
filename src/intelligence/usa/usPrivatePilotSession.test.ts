@@ -1,5 +1,6 @@
 import {describe,expect,it,vi} from "vitest"
 import type {SupabaseClient} from "@supabase/supabase-js"
+import type {USPilotStatus} from "./usPilotStatusClient"
 import {createUSPrivatePilotSession, validUSPrivatePilotConfig} from "./usPrivatePilotSession"
 
 const config={
@@ -11,7 +12,7 @@ const config={
   currentOrigin:"https://pilot.nexjud-usa.example",
 }
 const good={state:"ACTIVE_PILOT",role:"lawyer",legalSearchAvailable:false,predictiveModelAvailable:false} as const
-function setup(lookupResult:unknown=good){
+function setup(lookupResult:USPilotStatus=good){
   const auth={
     signInWithPassword:vi.fn(async ()=>({data:{session:{access_token:"synthetic.short.lived.jwt"}},error:null})),
     signOut:vi.fn(async()=>({error:null})),

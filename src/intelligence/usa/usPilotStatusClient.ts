@@ -10,7 +10,7 @@ export type USPilotStatus =
 export async function fetchUSPilotStatus(
   endpoint: string,
   bearerToken: string,
-  options: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+  options: { fetchImpl?: typeof fetch; timeoutMs?: number; publishableKey?: string } = {},
 ): Promise<USPilotStatus> {
   const unavailable: USPilotStatus = { state: "UNAVAILABLE" }
   let target: URL
@@ -24,6 +24,8 @@ export async function fetchUSPilotStatus(
   } catch { return unavailable }
   if (typeof bearerToken !== "string" || !bearerToken ||
       bearerToken.length > 8000 || /\s/.test(bearerToken)) return unavailable
+  if (options.publishableKey !== undefined &&
+      !/^sb_publishable_[a-zA-Z0-9_-]{12,}$/.test(options.publishableKey)) return unavailable
   const timeoutMs = options.timeoutMs ?? 7000
   if (!Number.isInteger(timeoutMs) || timeoutMs < 500 || timeoutMs > 15000) return unavailable
   const controller = new AbortController()
@@ -37,6 +39,7 @@ export async function fetchUSPilotStatus(
       signal: controller.signal,
       headers: {
         Authorization: "Bearer " + bearerToken,
+        ...(options.publishableKey ? { apikey: options.publishableKey } : {}),
         Accept: "application/json",
       },
     })

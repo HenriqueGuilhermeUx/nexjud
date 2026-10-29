@@ -30,6 +30,8 @@ with required_tables as (
          and pg_catalog.to_regprocedure('usa_legal_internal.record_security_pilot_review(uuid,text)') is not null
          and pg_catalog.to_regprocedure('usa_legal_internal.record_release_pilot_review(uuid,text)') is not null
          and pg_catalog.to_regprocedure('usa_legal_internal.activate_pilot_only(uuid)') is not null
+         and pg_catalog.to_regprocedure('usa_legal_internal.suspend_pilot_only(uuid,text)') is not null
+         and pg_catalog.to_regclass('usa_legal_internal.pilot_suspension_events') is not null
          and pg_catalog.to_regclass('usa_legal_internal.provisioning_events') is not null
          and pg_catalog.to_regclass('usa_legal_internal.pilot_review_events') is not null
          and pg_catalog.to_regclass('usa_legal_internal.pilot_activation_events') is not null
@@ -41,7 +43,8 @@ with required_tables as (
       pg_catalog.to_regprocedure('usa_legal_internal.provision_disabled_tenant(uuid,uuid,text)'),
       pg_catalog.to_regprocedure('usa_legal_internal.record_security_pilot_review(uuid,text)'),
       pg_catalog.to_regprocedure('usa_legal_internal.record_release_pilot_review(uuid,text)'),
-      pg_catalog.to_regprocedure('usa_legal_internal.activate_pilot_only(uuid)')
+      pg_catalog.to_regprocedure('usa_legal_internal.activate_pilot_only(uuid)'),
+      pg_catalog.to_regprocedure('usa_legal_internal.suspend_pilot_only(uuid,text)')
     )
     and (pg_catalog.has_function_privilege('anon',p.oid,'EXECUTE')
          or pg_catalog.has_function_privilege('authenticated',p.oid,'EXECUTE'))

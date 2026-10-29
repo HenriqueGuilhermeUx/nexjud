@@ -142,3 +142,7 @@ jobs:
             exit 1
           fi
           echo "PASS: one authorized US quota request consumed the last token"
+      - name: Install emergency suspension role and private audit in disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-pilot-suspension-proposal.sql
+      - name: Verify emergency stop, privilege isolation, audit and immediate subsequent denial
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-pilot-suspension-contract-tests.sql

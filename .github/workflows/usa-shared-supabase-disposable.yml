@@ -1,0 +1,155 @@
+name: NexJud USA Shared Supabase — Disposable Tenant Isolation
+
+on:
+  push:
+    branches:
+      - feature/usa-courtlistener-predictive-foundation-20261024
+    paths:
+      - 'docs/usa/postgres/shared-supabase-*.sql'
+      - '.github/workflows/usa-shared-supabase-disposable.yml'
+  pull_request:
+    paths:
+      - 'docs/usa/postgres/shared-supabase-*.sql'
+      - '.github/workflows/usa-shared-supabase-disposable.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  usa-partition:
+    name: USA RLS / Auth tenancy / atomic quota — synthetic PG17
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGPASSWORD: ci-only
+    steps:
+      - name: Checkout isolated source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install fake Auth only in disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-fixture.sql
+      - name: Prove read-only US schema preflight fails safely before installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          result=$(psql -X -At -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-readonly-release-preflight.sql)
+          test "$result" = "NOT_INSTALLED_OR_INCOMPLETE"
+          echo 'PASS: absent US schema blocks pilot activation'
+      - name: Install US-prefixed schema ONLY in disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-usa-proposal.sql
+      - name: Test US membership/entitlement RLS, cross-tenant denial, quota limit
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-usa-contract-tests.sql
+      - name: Install admin-only US tenant onboarding in disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-provisioning-proposal.sql
+      - name: Test denied client writes and safely disabled operator onboarding
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-provisioning-contract-tests.sql
+      - name: Install private dual-review pilot activation in disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-pilot-activation-proposal.sql
+      - name: Test security + release approval, privilege separation and no research activation
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-pilot-activation-contract-tests.sql
+      - name: Prove pilot cannot launch without emergency suspension
+        shell: bash
+        run: |
+          set -euo pipefail
+          result=$(psql -X -At -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-readonly-release-preflight.sql)
+          test "$result" = "NOT_INSTALLED_OR_INCOMPLETE"
+          echo 'PASS: missing emergency stop prevents rollout'
+      - name: Prepare second reviewed synthetic pilot for activation race
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-pilot-concurrency-fixture.sql
+      - name: Race two pilot activators (exactly one must win)
+        shell: bash
+        run: |
+          # One concurrent writer must fail. Disable inherited bash -e only
+          # here, and explicitly assert the outcome of BOTH processes below.
+          set +e
+          set -uo pipefail
+          statement="set role usa_legal_pilot_activator; select usa_legal_internal.activate_pilot_only('44444444-4444-4444-8444-444444444444');"
+          psql -X -At -v ON_ERROR_STOP=1 -c "$statement" > /tmp/usa-activation-a.log 2>&1 &
+          p1=$!
+          psql -X -At -v ON_ERROR_STOP=1 -c "$statement" > /tmp/usa-activation-b.log 2>&1 &
+          p2=$!
+          wait "$p1"; rc1=$?
+          wait "$p2"; rc2=$?
+          successes=0
+          if [ "$rc1" -eq 0 ]; then successes=$((successes+1)); fi
+          if [ "$rc2" -eq 0 ]; then successes=$((successes+1)); fi
+          if [ "$successes" -ne 1 ]; then
+            cat /tmp/usa-activation-a.log /tmp/usa-activation-b.log
+            echo "Expected exactly one successful activation; got $successes"
+            exit 1
+          fi
+          if [ "$rc1" -ne 0 ] && ! grep -q 'usa_pilot_not_eligible' /tmp/usa-activation-a.log; then
+            cat /tmp/usa-activation-a.log
+            exit 1
+          fi
+          if [ "$rc2" -ne 0 ] && ! grep -q 'usa_pilot_not_eligible' /tmp/usa-activation-b.log; then
+            cat /tmp/usa-activation-b.log
+            exit 1
+          fi
+          status=$(psql -X -At -v ON_ERROR_STOP=1 -c "
+            select case when
+              (select status from public.usa_legal_tenants
+                where id='44444444-4444-4444-8444-444444444444')='active'
+              and (select status from public.usa_legal_memberships
+                where user_id='dddddddd-dddd-4ddd-8ddd-ddddddddddd4')='active'
+              and (select enabled from public.usa_legal_research_entitlements
+                where tenant_id='44444444-4444-4444-8444-444444444444')=false
+              and (select remaining from public.usa_legal_search_quotas
+                where tenant_id='44444444-4444-4444-8444-444444444444')=0
+              and (select count(*) from usa_legal_internal.pilot_activation_events
+                where tenant_id='44444444-4444-4444-8444-444444444444')=1
+            then 'PASS' else 'FAIL' end;")
+          if [ "$status" != "PASS" ]; then
+            echo "Activation race lost integrity: $status"
+            exit 1
+          fi
+          echo "PASS: exactly one pilot-shell activation, still no research entitlement"
+      - name: Race two authorized US requests against one remaining quota
+        shell: bash
+        run: |
+          set -euo pipefail
+          sql="begin; set role authenticated; select pg_catalog.set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',true); select public.usa_legal_search_consume_quota('11111111-1111-4111-8111-111111111111'); commit;"
+          psql -X -At -v ON_ERROR_STOP=1 -c "$sql" > /tmp/usa-first.txt &
+          p1=$!
+          psql -X -At -v ON_ERROR_STOP=1 -c "$sql" > /tmp/usa-second.txt &
+          p2=$!
+          wait "$p1"
+          wait "$p2"
+          wins=$( (grep -xc 't' /tmp/usa-first.txt || true; grep -xc 't' /tmp/usa-second.txt || true) | awk '{s+=$1} END {print s+0}')
+          if [ "$wins" != "1" ]; then
+            cat /tmp/usa-first.txt /tmp/usa-second.txt
+            echo "FAIL: expected precisely one successful quota consume; got $wins"
+            exit 1
+          fi
+          remaining=$(psql -X -At -v ON_ERROR_STOP=1 -c             "select remaining from public.usa_legal_search_quotas where tenant_id='11111111-1111-4111-8111-111111111111'")
+          if [ "$remaining" != "0" ]; then
+            echo "FAIL: quota count out of sync ($remaining)"
+            exit 1
+          fi
+          echo "PASS: one authorized US quota request consumed the last token"
+      - name: Install emergency suspension role and private audit in disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-pilot-suspension-proposal.sql
+      - name: Verify emergency stop, privilege isolation, audit and immediate subsequent denial
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-pilot-suspension-contract-tests.sql
+      - name: Prove read-only preflight sees full pilot lifecycle, not production approval
+        shell: bash
+        run: |
+          set -euo pipefail
+          result=$(psql -X -At -v ON_ERROR_STOP=1 -f docs/usa/postgres/shared-supabase-readonly-release-preflight.sql)
+          test "$result" = "SCHEMA_PRESENT_REQUIRES_SECURITY_REVIEW"
+          echo 'PASS: full US schema present for independent review; production NOT approved'

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080e1d">
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="Interactive offline demonstration of the NexJud USA legal research workflow. Synthetic data only.">
+<title>Research Workspace Preview | NexJud USA</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+:root{color-scheme:dark;--bg:#080e1d;--ink:#e9f3ff;--muted:#a7b6cc;--line:#293b58;--panel:#111e32;--cyan:#7bdce5;--blue:#9aaeff}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--ink);margin:0;font:15px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}button:focus-visible,a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}button:disabled{cursor:not-allowed;opacity:.55}
+.shell{max-width:1180px;margin:auto;padding:0 26px}header{border-bottom:1px solid #2d3b53;background:#0a1322}.bar{min-height:72px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}.brand{font-size:21px;font-weight:800;letter-spacing:-.7px}.brand b{border-radius:8px;background:linear-gradient(135deg,#78e4e1,#83a3ff);padding:4px 9px;color:#101d31;margin-right:10px}.brand small{font-size:11px;letter-spacing:1px;color:var(--cyan);margin-left:5px}.back{font-size:13px;color:#bed2e5}.back:hover{color:#fff}
+main{padding-top:42px;padding-bottom:70px}.topline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.pill{font-size:11px;font-weight:750;letter-spacing:.7px;text-transform:uppercase;padding:5px 10px;border:1px solid #3f6470;color:#b4f0f4;border-radius:30px;background:#173139}.pill.secondary{color:#cfdaed;background:#1e2c45;border-color:#374869}.hero h1{font-size:clamp(34px,4vw,49px);letter-spacing:-1.9px;line-height:1.1;margin:20px 0}.hero p{color:var(--muted);max-width:740px;margin:0 0 28px}.notice{border:1px solid #54728c;border-radius:12px;background:#153147;padding:16px 19px;color:#d2e8f6;font-size:13px;margin-bottom:30px}.notice strong{color:white}
+.layout{display:grid;grid-template-columns:minmax(260px,320px) 1fr;gap:20px}.card{background:linear-gradient(155deg,#14233a,#0e192b);border:1px solid var(--line);border-radius:15px;padding:23px}.side h2{font-size:18px;margin:0 0 12px}.eyebrow{font-size:10px;color:var(--cyan);font-weight:800;letter-spacing:1.3px;text-transform:uppercase}.side p{font-size:13px;color:var(--muted);margin:8px 0 21px}.side .datum{border-top:1px solid var(--line);padding:14px 0}.datum span{display:block;font-size:11px;color:#91a7be}.datum strong{font-size:14px}.muted{color:var(--muted)}.side .footnote{color:#87a0bb;font-size:11px;line-height:1.7;margin-top:17px}
+.maincard{min-height:490px}.tabs{display:flex;gap:5px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--line)}.tab{color:#c1d1e7;background:transparent;border:1px solid transparent;padding:9px 13px;border-radius:9px;font-weight:650;font-size:13px}.tab[aria-selected="true"]{background:#25405e;border-color:#406482;color:white}.tab:hover{background:#1f324b}.panel h2{font-size:22px;letter-spacing:-.4px;margin:24px 0 6px}.panel .lead{font-size:13px;color:var(--muted);margin-bottom:19px}.items{display:grid;gap:12px}.item{padding:17px 18px;border:1px solid #324860;background:#0d192b;border-radius:11px}.item small{display:block;color:#9bb2cb;font-size:11px;margin-top:7px}.item b{font-size:14px}.item p{font-size:13px;color:#b3c6dd;margin:6px 0 0}.item .fake{font-size:10px;font-weight:800;color:#e1c48e;text-transform:uppercase;letter-spacing:.6px}
+.step{display:flex;align-items:flex-start;gap:12px}.step input{accent-color:#83dce5;width:17px;height:17px;cursor:pointer;margin-top:3px}.step label{cursor:pointer;flex:1}.progress{display:flex;justify-content:space-between;gap:12px;margin:15px 0;color:#bbd3e5;font-size:12px}.progressbar{height:7px;background:#263a53;border-radius:5px;overflow:hidden}.progressbar span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#56c8d3,#9faeff);transition:width .2s}.actions{margin-top:20px;display:flex;gap:10px;flex-wrap:wrap}.btn{padding:10px 15px;border:1px solid #446078;background:#20354e;border-radius:9px;color:#f1f7ff;font-weight:650;font-size:12px}.btn:hover{background:#2e4866}
+.status{margin-top:24px;padding:20px;border:1px solid #364b66;border-radius:12px;background:#111e32;display:flex;gap:12px;align-items:flex-start}.dot{background:#ecc47b;width:9px;height:9px;border-radius:50%;margin-top:8px;flex-shrink:0}.status b{font-size:14px}.status p{font-size:12px;color:#aabfd6;margin:5px 0 0}.footer{margin-top:48px;border-top:1px solid var(--line);padding:26px 0;color:#8c9fb8;font-size:12px;display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
+[hidden]{display:none!important}@media(max-width:780px){.layout{grid-template-columns:1fr}.shell{padding:0 18px}main{padding-top:29px}.card{padding:18px}.maincard{min-height:0}.tabs{gap:3px}.tab{padding:9px 10px}}@media(prefers-reduced-motion:reduce){.progressbar span{transition:none}}
+</style>
+</head>
+<body>
+<header><div class="shell bar"><a class="brand" href="index.html" aria-label="NexJud USA home"><b>N</b>NexJud <small>USA</small></a><a class="back" href="index.html">← Back to NexJud USA</a></div></header>
+<main class="shell">
+<section class="hero" aria-label="Private pilot workspace demonstration">
+  <div class="topline"><span class="pill">Interactive product preview</span><span class="pill secondary">Not a live legal service</span></div>
+  <h1>Research workspace, <span style="color:var(--cyan)">made transparent.</span></h1>
+  <p>Explore the proposed NexJud USA workflow in a self-contained, synthetic demonstration. Switch between stages and check off a sample review plan. Nothing you do here is uploaded or saved.</p>
+</section>
+<div class="notice" role="note"><strong>DEMO ONLY:</strong> All sample identifiers, sources, dates, and review tasks below are fictional. No real cases, jurisdictions, dockets, PACER, CourtListener, legal analysis, or outcome predictions are queried. Do not provide confidential case information to this website.</div>
+<div class="layout">
+  <aside class="card side" aria-label="Example research context">
+    <div class="eyebrow">Illustrative matter</div><h2>Synthetic civil docket review</h2><p>A sample workspace structure—not a real client or court record.</p>
+    <div class="datum"><span>Sample reference</span><strong>DEMO-CIVIL-001</strong></div>
+    <div class="datum"><span>Jurisdiction focus</span><strong>U.S. federal civil procedure</strong></div>
+    <div class="datum"><span>Materials</span><strong>Fictional research notes only</strong></div>
+    <div class="datum"><span>Prediction status</span><strong>Not available</strong></div>
+    <div class="footnote">Preview data is compiled into this web page. There is no login, database connection, storage, session tracking, or external script.</div>
+  </aside>
+  <section class="card maincard" aria-label="Research workflow tabs">
+    <div class="tabs" role="tablist" aria-label="Research workflow">
+      <button class="tab" id="tab-sources" role="tab" aria-controls="panel-sources" aria-selected="true" data-target="sources">Sources</button>
+      <button class="tab" id="tab-procedure" role="tab" aria-controls="panel-procedure" aria-selected="false" tabindex="-1" data-target="procedure">Procedure</button>
+      <button class="tab" id="tab-review" role="tab" aria-controls="panel-review" aria-selected="false" tabindex="-1" data-target="review">Review plan</button>
+    </div>
+    <div class="panel" id="panel-sources" role="tabpanel" aria-labelledby="tab-sources">
+      <h2>Source provenance first</h2><p class="lead">A sample description of the checks we intend the real product to require.</p>
+      <div class="items"><div class="item"><span class="fake">Illustrative entry</span><br><b>Authority and jurisdiction</b><p>Confirm the issuing court, jurisdiction, decision type, and whether an authority is binding or persuasive.</p><small>External source verification: NOT RUN</small></div>
+      <div class="item"><span class="fake">Illustrative entry</span><br><b>Citation and currency</b><p>Locate the original opinion, verify pinpoint citations, subsequent history, and treatment by later decisions.</p><small>Original document retrieved: NO</small></div>
+      <div class="item"><span class="fake">Illustrative entry</span><br><b>Research record</b><p>Record reviewer identity, supporting source and research assumptions before any analytical claim is made.</p><small>Audit validation: DEMONSTRATION ONLY</small></div></div>
+    </div>
+    <div class="panel" id="panel-procedure" role="tabpanel" aria-labelledby="tab-procedure" hidden>
+      <h2>Procedural context matters</h2><p class="lead">Case timelines and administrative categories should not be mistaken for legal outcomes.</p>
+      <div class="items"><div class="item"><span class="fake">Synthetic stage</span><br><b>01 · Case initiation</b><p>Capture filing type and court identifiers only from verified material, with applicable court-specific rules.</p></div>
+      <div class="item"><span class="fake">Synthetic stage</span><br><b>02 · Motion and order history</b><p>Differentiate orders, notices, clerical events and judgments. Verify each item against original records.</p></div>
+      <div class="item"><span class="fake">Synthetic stage</span><br><b>03 · Disposition interpretation</b><p>Do not convert dataset termination codes into lawyer win rates or individual case success probabilities.</p></div></div>
+    </div>
+    <div class="panel" id="panel-review" role="tabpanel" aria-labelledby="tab-review" hidden>
+      <h2>Example human review checklist</h2><p class="lead">These sample checks update locally in your browser only. They do not assess a real case.</p>
+      <div class="progress"><span>Sample steps completed</span><b id="progress-text" aria-live="polite">0 of 4</b></div><div class="progressbar" role="progressbar" aria-label="Sample review progress" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" id="progress-bar"><span id="progress-fill"></span></div>
+      <div class="items" style="margin-top:19px">
+        <div class="item step"><input type="checkbox" id="check-1"><label for="check-1"><b>Confirm source authenticity</b><br><span class="muted">Verify the original document and issuing court outside this demo.</span></label></div>
+        <div class="item step"><input type="checkbox" id="check-2"><label for="check-2"><b>Verify citation and treatment</b><br><span class="muted">Review jurisdiction, dates, negative treatment and subsequent history.</span></label></div>
+        <div class="item step"><input type="checkbox" id="check-3"><label for="check-3"><b>Assess procedural differences</b><br><span class="muted">Account for venue, posture and record completeness.</span></label></div>
+        <div class="item step"><input type="checkbox" id="check-4"><label for="check-4"><b>Obtain human legal review</b><br><span class="muted">Qualified counsel validates interpretation and any actual advice.</span></label></div>
+      </div>
+      <div class="actions"><button type="button" class="btn" id="reset">Reset sample checklist</button></div>
+    </div>
+  </section>
+</div>
+<div class="status" role="status"><span class="dot" aria-hidden="true"></span><div><b>Private pilot access is not yet enabled</b><p>Authenticated U.S. tenant access, live case research, dossier history and predictive evaluation are in gated engineering validation. This interactive preview is informational and does not connect to NexJud Brazil or a live database.</p></div></div>
+<footer class="footer"><span>© <span id="year">2026</span> NexJud USA · Research-stage preview</span><span><a href="privacy.html">Privacy</a> · <a href="disclaimer.html">Legal disclaimer</a> · <a href="index.html">Home</a></span></footer>
+</main>
+<script>
+(function(){
+  "use strict";
+  document.getElementById("year").textContent=String(new Date().getFullYear());
+  const tabs=Array.from(document.querySelectorAll('[role="tab"]'));
+  function activate(tab,focus){
+    tabs.forEach(function(t){const active=t===tab;t.setAttribute("aria-selected",String(active));t.tabIndex=active?0:-1;document.getElementById("panel-"+t.dataset.target).hidden=!active;});
+    if(focus)tab.focus();
+  }
+  tabs.forEach(function(tab,index){
+    tab.addEventListener("click",function(){activate(tab,false)});
+    tab.addEventListener("keydown",function(event){
+      let next=index;
+      if(event.key==="ArrowRight")next=(index+1)%tabs.length;
+      else if(event.key==="ArrowLeft")next=(index+tabs.length-1)%tabs.length;
+      else if(event.key==="Home")next=0;
+      else if(event.key==="End")next=tabs.length-1;
+      else return;
+      event.preventDefault();activate(tabs[next],true);
+    });
+  });
+  const checks=Array.from(document.querySelectorAll('input[type="checkbox"]'));
+  function render(){
+    const count=checks.filter(function(c){return c.checked}).length;
+    document.getElementById("progress-text").textContent=count+" of "+checks.length;
+    document.getElementById("progress-bar").setAttribute("aria-valuenow",String(count));
+    document.getElementById("progress-fill").style.width=(count/checks.length*100)+"%";
+  }
+  checks.forEach(function(c){c.addEventListener("change",render)});
+  document.getElementById("reset").addEventListener("click",function(){checks.forEach(function(c){c.checked=false});render()});
+  render();
+})();
+</script>
+</body></html>

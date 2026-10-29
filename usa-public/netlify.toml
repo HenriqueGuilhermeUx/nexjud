@@ -1,0 +1,10 @@
+# This file is ONLY for a dedicated NexJud USA Netlify site.
+# Set the Netlify Git repository BASE DIRECTORY to "usa-public"
+# and the PRODUCTION BRANCH to "feature/usa-courtlistener-predictive-foundation-20261024".
+# Never configure these settings on the existing NexJud Brazil site.
+[build]
+  command = "echo 'NexJud USA static preview: no build or backend secrets'"
+  publish = "."
+
+[build.processing]
+  skip_processing = true

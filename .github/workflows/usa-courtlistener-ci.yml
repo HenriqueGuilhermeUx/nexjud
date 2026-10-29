@@ -1,0 +1,63 @@
+name: NexJud USA CourtListener Isolated Tests
+
+on:
+  push:
+    branches:
+      - feature/usa-courtlistener-predictive-foundation-20261024
+  pull_request:
+    paths:
+      - 'src/intelligence/usa/**'
+      - 'supabase/functions/_shared/usa/**'
+      - 'supabase/functions/usa-courtlistener-search/**'
+      - 'supabase/functions/usa-pilot-access/**'
+      - '.github/workflows/usa-courtlistener-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexjud-usa-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  courtlistener:
+    name: Mock contract + safety tests (no live API)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts=false
+      - name: CourtListener v4 contract and safety
+        run: npx vitest run src/intelligence/usa/courtListenerNormalizer.test.ts src/intelligence/usa/courtListenerClient.test.ts src/intelligence/usa/offlinePredictiveEvaluation.test.ts src/intelligence/usa/usOpinionSearchGate.test.ts src/intelligence/usa/fjcCivilCohort.test.ts src/intelligence/usa/fjcSnapshotDigest.test.ts src/intelligence/usa/fjcVerifiedSnapshot.test.ts src/intelligence/usa/fjcTemporalSplit.test.ts src/intelligence/usa/fjcVerifiedDelimitedSnapshot.test.ts src/intelligence/usa/fjcDescriptiveSurvival.test.ts src/intelligence/usa/fjcCivilResearchMemo.test.ts src/intelligence/usa/fjcDescriptiveUncertainty.test.ts src/intelligence/usa/caseLawCitationDossier.test.ts src/intelligence/usa/fjcCohortDiagnostics.test.ts src/intelligence/usa/fjcByteBoundResearch.test.ts src/intelligence/usa/fjcHorizonBacktest.test.ts src/intelligence/usa/fjcFeatureLogisticResearch.test.ts src/intelligence/usa/fjcSourceLineagePreflight.test.ts src/intelligence/usa/fjcConversionReplay.test.ts src/intelligence/usa/fjcSignedReviewAudit.test.ts src/intelligence/usa/sharedBackendConfig.test.ts src/intelligence/usa/usPrincipalMapping.test.ts src/intelligence/usa/usPilotStatusClient.test.ts src/intelligence/usa/usPrivatePilotSession.test.ts
+
+      - name: Build standalone USA private pilot sign-in (disabled by default)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx vite build --config usa-private/vite.config.ts
+          test -s usa-private/dist/index.html
+          test -d usa-private/dist/assets
+          test ! -e usa-public/pilot.html
+          test ! -d usa-public/assets
+          if grep -R -E 'sb_secret_[A-Za-z0-9_-]{16,}|sk_live_[A-Za-z0-9_-]{12,}|SUPABASE_SERVICE_ROLE_KEY=|USA_SHARED_SCOPE_APPROVED=true' usa-private/dist; then
+            echo "Restricted/private credentials leaked into pilot frontend" >&2
+            exit 1
+          fi
+          echo "PASS: standalone login bundle built; existing Netlify usa-public untouched"
+      - name: Set up Deno for static Edge bundling validation
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Verify US Edge Function compiles without credentials
+        run: deno check --config supabase/functions/usa-courtlistener-search/deno.json supabase/functions/usa-courtlistener-search/index.ts
+      - name: Verify US pilot access Edge Function compiles without credentials
+        run: deno check --config supabase/functions/usa-pilot-access/deno.json supabase/functions/usa-pilot-access/index.ts

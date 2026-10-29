@@ -21,6 +21,28 @@ describe("NexJud USA private pilot client refuses unverified capability claims",
       .toEqual({state:"ACTIVE_PILOT",role:"lawyer",legalSearchAvailable:false,predictiveModelAvailable:false})
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
+  it("sends only publishable apikey next to a JWT, never a secret or bearer API key",async()=>{
+    const publishableKey="sb_publishable_synthetic_pilot_key"
+    const fetchMock=vi.fn(async (_url:string,init?:RequestInit)=>{
+      expect(init?.headers).toMatchObject({
+        Authorization:"Bearer "+token, apikey:publishableKey,
+      })
+      return response(200,ok)
+    })
+    expect(await fetchUSPilotStatus(url,token,{
+      fetchImpl:fetchMock as unknown as typeof fetch,publishableKey,
+    })).toEqual({state:"ACTIVE_PILOT",role:"lawyer",
+      legalSearchAvailable:false,predictiveModelAvailable:false})
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const denied=vi.fn()
+    for(const badKey of ["sb_secret_very_sensitive_server_only",
+      "eyJlegacy-anon-jwt", "not-a-key", ""]) {
+      expect(await fetchUSPilotStatus(url,token,{
+        fetchImpl:denied, publishableKey:badKey,
+      })).toEqual({state:"UNAVAILABLE"})
+    }
+    expect(denied).not.toHaveBeenCalled()
+  })
   it("never calls network for untrusted endpoint, bad token or invalid timeout",async()=>{
     const call=vi.fn()
     for(const endpoint of [

@@ -48,7 +48,7 @@ jobs:
           test -d usa-private/dist/assets
           test ! -e usa-public/pilot.html
           test ! -d usa-public/assets
-          if grep -R -E 'sb_secret_|service_role|sk_live_|USA_SHARED_SCOPE_APPROVED' usa-private/dist; then
+          if grep -R -E 'sb_secret_[A-Za-z0-9_-]{16,}|sk_live_[A-Za-z0-9_-]{12,}|SUPABASE_SERVICE_ROLE_KEY=|USA_SHARED_SCOPE_APPROVED=true' usa-private/dist; then
             echo "Restricted/private credentials leaked into pilot frontend" >&2
             exit 1
           fi

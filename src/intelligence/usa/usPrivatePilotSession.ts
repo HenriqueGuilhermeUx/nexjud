@@ -95,6 +95,7 @@ export function createUSPrivatePilotSession(
         const us=await statusLookup(
           config.supabaseUrl+"/functions/v1/usa-pilot-access",
           result.data.session.access_token,
+          {publishableKey:config.publishableKey},
         )
         if(ownGeneration!==generation) {
           await safeLogout()

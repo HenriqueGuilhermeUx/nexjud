@@ -44,7 +44,7 @@ export function validUSPrivatePilotConfig(s: USPrivatePilotConfig): boolean {
 }
 
 type USAuthClient = Pick<SupabaseClient,"auth">
-type ClientFactory = (url:string,key:string,options:object)=>USAuthClient
+type ClientFactory = (url:string,key:string,options:Parameters<typeof createClient>[2])=>USAuthClient
 type StatusLookup = typeof fetchUSPilotStatus
 
 export function createUSPrivatePilotSession(

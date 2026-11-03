@@ -33,7 +33,7 @@ export function generateStrategicPdf(analysis: any) {
   const command = safeObj(analysis.legal_command_center)
 
   const list = (items: any[], prefix = "•") =>
-    safeArray(items).map((item: any) => `<li>${prefix} ${String(item)}</li>`).join("")
+    safeArray(items).map((item: any) => `<li>${esc(prefix)} ${esc(item)}</li>`).join("")
 
   win.document.write(`
     <html>

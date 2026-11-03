@@ -138,6 +138,31 @@ export default function Landing() {
         </div>
       </section>
 
+      <section id="solucoes" className="py-20 px-4 bg-[#0f0f14]">
+        <div className="max-w-7xl mx-auto">
+          <div className="max-w-3xl mb-10">
+            <p className="text-sm font-bold tracking-widest text-[#22d3ee] mb-4">DO PROFISSIONAL AUTÔNOMO À OPERAÇÃO JURÍDICA</p>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">Comece simples. Evolua com sua operação.</h2>
+            <p className="text-gray-400 text-lg">IA para ampliar a produtividade jurídica sem exigir uma grande equipe. Para operações maiores, avaliação de controles, integrações e fluxos de trabalho sob medida.</p>
+          </div>
+          <div className="grid lg:grid-cols-3 gap-5">
+            {[
+              { name: "Profissional e escritório pequeno", headline: "Do documento à primeira estratégia", description: "Analise documentos, consulte processos, organize argumentos e prepare minutas em um único workspace.", links: ["Análise assistida de documentos", "Pesquisa e contexto de processos", "Minutas para revisão profissional"] },
+              { name: "Escritório em crescimento", headline: "Mais trabalho, menos retrabalho", description: "Reaproveite contexto de casos, teste teses e estruture a produção jurídica com rotinas consistentes.", links: ["Memória e organização de casos", "Análise de riscos e cenários", "Acesso por web e Companion"] },
+              { name: "Departamento jurídico e Enterprise", headline: "Estrutura para escalar com controle", description: "Conheça uma trilha de implantação para equipes, auditoria e contencioso de volume. Recursos corporativos sujeitos a escopo e homologação.", links: ["Diagnóstico da operação", "Fluxos e permissões a validar", "Implantação assistida sob consulta"] },
+            ].map((segment) => (
+              <article key={segment.name} className="rounded-3xl border border-[#283347] bg-[#121821] p-7 flex flex-col">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#22d3ee]">{segment.name}</p>
+                <h3 className="text-2xl font-bold mt-3">{segment.headline}</h3>
+                <p className="text-gray-400 leading-relaxed mt-3">{segment.description}</p>
+                <ul className="mt-6 space-y-3 flex-1">{segment.links.map((item) => <li key={item} className="text-sm text-gray-300 flex gap-2"><CheckCircle size={17} className="text-[#818cf8] shrink-0 mt-0.5" />{item}</li>)}</ul>
+                <Link to="/pricing" className="mt-7 text-sm font-semibold text-[#a5b4fc] hover:underline inline-flex items-center gap-2">Ver opções de acesso <ArrowRight size={16} /></Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 px-4 bg-[#0f0f14]">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
           <div>
@@ -161,11 +186,11 @@ export default function Landing() {
       </section>
 
       <section id="planos" className="py-20 px-4">
-        <div className="max-w-5xl mx-auto text-center mb-12"><h2 className="text-4xl md:text-5xl font-bold mb-4">Comece com Trial Premium</h2><p className="text-gray-400 text-lg">Teste todos os recursos por 7 dias. Depois escolha o plano ideal.</p></div>
+        <div className="max-w-5xl mx-auto text-center mb-12"><h2 className="text-4xl md:text-5xl font-bold mb-4">Comece com Trial Premium</h2><p className="text-gray-400 text-lg">Conheça os planos, preços e recursos disponíveis na página de contratação. O trial segue as condições de elegibilidade.</p></div>
         <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
-          <Plan name="Trial Premium" price="7 dias grátis" badge="SEM CARTÃO" items={["Acesso completo", "Documentos e OCR", "Chat Jurídico", "Strategy Engine"]} />
-          <Plan name="Premium" price="R$ 179,90/mês" featured items={["Workspace + Companion", "IA com documentos", "Memória jurídica", "Geração de peças"]} />
-          <Plan name="Enterprise" price="Sob consulta" items={["Equipes", "War Room", "Dashboards executivos", "Customizações"]} />
+          <Plan name="Trial Premium" price="7 dias grátis" badge="SEM CARTÃO" items={["Conheça a experiência", "Documentos e IA jurídica", "Teste sujeito às condições do plano", "Consulte a página de acesso"]} />
+          <Plan name="Planos profissionais" price="Consulte os planos" featured items={["Acesso individual", "Ferramentas de produtividade", "Planos e valores atualizados no checkout", "Recursos conforme o plano contratado"]} />
+          <Plan name="Enterprise" price="Implantação sob consulta" items={["Diagnóstico de necessidades", "Escopo corporativo sujeito a homologação", "Integrações e permissões sob avaliação", "Atendimento comercial"]} />
         </div>
       </section>
 

@@ -21,7 +21,7 @@ export default function DashboardMetrics({
       </section>
 
       <section className="grid md:grid-cols-4 gap-4">
-        <Metric title="Chance média" value={`${stats.avgSuccess}%`} color="text-green-400" />
+        <Metric title="Probabilidade estatística" value="Não validada" color="text-amber-300" />
         <Metric title="Casos aceitos" value={String(stats.accepted)} color="text-primary" />
         <Metric title="Casos recusados" value={String(stats.rejected)} color="text-red-400" />
         <Metric

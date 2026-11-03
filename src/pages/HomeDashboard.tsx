@@ -131,7 +131,7 @@ const [realJurisprudence, setRealJurisprudence] = useState<any>(null)
 
 ${text}`)
 
-    alert("Jurimetria real DataJud adicionada ao caso.")
+    alert("Sinais processuais do DataJud adicionados. Movimentações não permitem calcular probabilidade de êxito.")
   } catch (error) {
     console.error(error)
     alert("Erro ao buscar jurisprudência real no DataJud.")
@@ -373,10 +373,8 @@ Assunto: ${datajudProcess.subject}`
 
               {analysisResult ? (
                 <>
-                  <div className="text-5xl font-bold text-green-400">
-                    {analysisResult.successProbability || 0}%
-                  </div>
-                  <p className="text-sm text-gray-400 mt-2">chance estratégica estimada</p>
+                  <div className="text-2xl font-bold text-amber-300">Sem taxa validada</div>
+                  <p className="text-sm text-gray-400 mt-2">Análise assistida: não é probabilidade de êxito</p>
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <MiniBox label="Risco" value={analysisResult.riskLevel || "-"} />
                     <MiniBox label="Prioridade" value={analysisResult.legalCommandCenter?.priority || "-"} />
@@ -470,7 +468,7 @@ Assunto: ${datajudProcess.subject}`
         ) : (
           <>
             <TrendingUp size={18} />
-            BUSCAR JURIMETRIA REAL
+            CONSULTAR SINAIS PROCESSUAIS
           </>
         )}
       </button>
@@ -572,7 +570,7 @@ Assunto: ${datajudProcess.subject}`
               </p>
 
               <div className="grid md:grid-cols-4 gap-4">
-                <MiniBox label="Êxito" value={`${analysisResult.successProbability || 0}%`} color="text-green-400" />
+                <MiniBox label="Estimativa estatística" value="Não validada" color="text-amber-300" />
                 <MiniBox label="Risco" value={analysisResult.riskLevel || "-"} />
                 <MiniBox label="Complexidade" value={analysisResult.complexity || "-"} />
                 <MiniBox label="Decisão" value={analysisResult.partnerDecision || "-"} color="text-primary" />
@@ -696,12 +694,12 @@ Assunto: ${datajudProcess.subject}`
             </section>
 
             <section className="grid lg:grid-cols-2 gap-6">
-              <CardTitle icon={<TrendingUp className="text-primary" />} title="Jurisprudência Preditiva™" highlight>
+              <CardTitle icon={<TrendingUp className="text-primary" />} title="Análise de cenários jurisprudenciais" highlight>
                 <div className="space-y-4">
                   <MiniBox
-                    label="Tendência estimada"
-                    value={`${analysisResult.jurisprudencePrediction?.favorableRate || 0}% favorável`}
-                    color="text-green-400"
+                    label="Probabilidade de êxito"
+                    value="Não validada"
+                    color="text-amber-300"
                   />
                   <p className="text-gray-300">
                     {analysisResult.jurisprudencePrediction?.thesisStrength || "-"}

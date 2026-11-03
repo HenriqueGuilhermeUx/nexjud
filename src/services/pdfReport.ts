@@ -67,7 +67,7 @@ export function generateStrategicPdf(analysis: any) {
         </div>
 
         <div class="grid">
-          <div class="card"><div class="label">Chance de Êxito</div><div class="value">${analysis.success_probability || 0}%</div></div>
+          <div class="card"><div class="label">Probabilidade de êxito</div><div class="value">Não validada</div></div>
           <div class="card"><div class="label">Risco</div><div class="value">${analysis.risk_level || "-"}</div></div>
           <div class="card"><div class="label">Potencial</div><div class="value">${analysis.financial_potential || "-"}</div></div>
           <div class="card"><div class="label">Sócio IA</div><div class="value">${analysis.partner_decision || "-"}</div></div>
@@ -85,9 +85,9 @@ export function generateStrategicPdf(analysis: any) {
         </div>
         <div class="box">${command.boardSummary || "-"}</div>
 
-        <h2>Jurisprudência Preditiva™</h2>
+        <h2>Análise de cenários jurisprudenciais</h2>
         <div class="grid2">
-          <div class="card success"><div class="label">Tendência Favorável Estimada</div><div class="value">${jurisprudence.favorableRate || 0}%</div></div>
+          <div class="card warning"><div class="label">Estimativa estatística</div><div class="value">Não validada</div></div>
           <div class="card"><div class="label">Tendência</div><div class="value">${jurisprudence.trend || "-"}</div></div>
         </div>
         <div class="box">${jurisprudence.thesisStrength || "-"}</div>
@@ -95,7 +95,7 @@ export function generateStrategicPdf(analysis: any) {
           <div class="box success"><h3>Fatores favoráveis</h3><ul>${list(jurisprudence.favorableFactors, "✓")}</ul></div>
           <div class="box danger"><h3>Fatores desfavoráveis</h3><ul>${list(jurisprudence.unfavorableFactors, "⚠️")}</ul></div>
         </div>
-        <div class="box warning">${jurisprudence.warning || "Predição estratégica sem consulta externa real."}</div>
+        <div class="box warning">Esta análise é assistida por IA e não representa predição estatística validada nem garantia de resultado. Revise os fundamentos e documentos de origem com profissional habilitado.</div>
 
         <h2>Financial Exposure™</h2>
         <div class="grid3">

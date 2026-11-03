@@ -1,3 +1,10 @@
+/** Escape untrusted AI/user text before injecting it into the printable HTML. */
+export function escapeReportHtml(value: unknown): string {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[char] || char))
+}
+
 export function generateStrategicPdf(analysis: any) {
   const win = window.open("", "_blank")
 
@@ -6,6 +13,7 @@ export function generateStrategicPdf(analysis: any) {
     return
   }
 
+  const esc = escapeReportHtml
   const safeArray = (value: any) => (Array.isArray(value) ? value : [])
   const safeObj = (value: any) => value || {}
 
@@ -68,29 +76,29 @@ export function generateStrategicPdf(analysis: any) {
 
         <div class="grid">
           <div class="card"><div class="label">Probabilidade de êxito</div><div class="value">Não validada</div></div>
-          <div class="card"><div class="label">Risco</div><div class="value">${analysis.risk_level || "-"}</div></div>
-          <div class="card"><div class="label">Potencial</div><div class="value">${analysis.financial_potential || "-"}</div></div>
-          <div class="card"><div class="label">Sócio IA</div><div class="value">${analysis.partner_decision || "-"}</div></div>
+          <div class="card"><div class="label">Risco</div><div class="value">${esc(analysis.risk_level || "-")}</div></div>
+          <div class="card"><div class="label">Potencial</div><div class="value">${esc(analysis.financial_potential || "-")}</div></div>
+          <div class="card"><div class="label">Sócio IA</div><div class="value">${esc(analysis.partner_decision || "-")}</div></div>
         </div>
 
         <h2>Resumo do Caso</h2>
-        <div class="case-box">${analysis.case_text || "-"}</div>
+        <div class="case-box">${esc(analysis.case_text || "-")}</div>
 
         <h2>Legal Command Center™</h2>
         <div class="grid">
-          <div class="card"><div class="label">Risco Geral</div><div class="value">${command.overallRisk || "-"}</div></div>
-          <div class="card"><div class="label">Prioridade</div><div class="value">${command.priority || "-"}</div></div>
-          <div class="card"><div class="label">Ação Imediata</div><div class="value">${command.actionNow || "-"}</div></div>
-          <div class="card"><div class="label">Decisão Executiva</div><div class="value">${command.executiveDecision || "-"}</div></div>
+          <div class="card"><div class="label">Risco Geral</div><div class="value">${esc(command.overallRisk || "-")}</div></div>
+          <div class="card"><div class="label">Prioridade</div><div class="value">${esc(command.priority || "-")}</div></div>
+          <div class="card"><div class="label">Ação Imediata</div><div class="value">${esc(command.actionNow || "-")}</div></div>
+          <div class="card"><div class="label">Decisão Executiva</div><div class="value">${esc(command.executiveDecision || "-")}</div></div>
         </div>
-        <div class="box">${command.boardSummary || "-"}</div>
+        <div class="box">${esc(command.boardSummary || "-")}</div>
 
         <h2>Análise de cenários jurisprudenciais</h2>
         <div class="grid2">
           <div class="card warning"><div class="label">Estimativa estatística</div><div class="value">Não validada</div></div>
-          <div class="card"><div class="label">Tendência</div><div class="value">${jurisprudence.trend || "-"}</div></div>
+          <div class="card"><div class="label">Tendência</div><div class="value">${esc(jurisprudence.trend || "-")}</div></div>
         </div>
-        <div class="box">${jurisprudence.thesisStrength || "-"}</div>
+        <div class="box">${esc(jurisprudence.thesisStrength || "-")}</div>
         <div class="grid2">
           <div class="box success"><h3>Fatores favoráveis</h3><ul>${list(jurisprudence.favorableFactors, "✓")}</ul></div>
           <div class="box danger"><h3>Fatores desfavoráveis</h3><ul>${list(jurisprudence.unfavorableFactors, "⚠️")}</ul></div>
@@ -99,13 +107,13 @@ export function generateStrategicPdf(analysis: any) {
 
         <h2>Financial Exposure™</h2>
         <div class="grid3">
-          <div class="card success"><div class="label">Melhor Cenário</div><div class="value">${exposure.bestCase || "-"}</div></div>
-          <div class="card warning"><div class="label">Cenário Provável</div><div class="value">${exposure.probableCase || "-"}</div></div>
-          <div class="card danger"><div class="label">Pior Cenário</div><div class="value">${exposure.worstCase || "-"}</div></div>
+          <div class="card success"><div class="label">Melhor Cenário</div><div class="value">${esc(exposure.bestCase || "-")}</div></div>
+          <div class="card warning"><div class="label">Cenário Provável</div><div class="value">${esc(exposure.probableCase || "-")}</div></div>
+          <div class="card danger"><div class="label">Pior Cenário</div><div class="value">${esc(exposure.worstCase || "-")}</div></div>
         </div>
-        <div class="box">${exposure.costRisk || "-"}</div>
-        <div class="box"><strong>Faixa de acordo:</strong> ${exposure.settlementRange || "-"}</div>
-        <div class="box">${exposure.financialRecommendation || "-"}</div>
+        <div class="box">${esc(exposure.costRisk || "-")}</div>
+        <div class="box"><strong>Faixa de acordo:</strong> ${esc(exposure.settlementRange || "-")}</div>
+        <div class="box">${esc(exposure.financialRecommendation || "-")}</div>
 
         <h2>AI Partner Council™</h2>
         <div class="grid2">
@@ -113,9 +121,9 @@ export function generateStrategicPdf(analysis: any) {
             .map(
               (p: any) => `
                 <div class="card">
-                  <div class="label">${p.partner || "Sócio IA"}</div>
-                  <div class="value">${p.decision || "-"}</div>
-                  <p>${p.reason || "-"}</p>
+                  <div class="label">${esc(p.partner || "Sócio IA")}</div>
+                  <div class="value">${esc(p.decision || "-")}</div>
+                  <p>${esc(p.reason || "-")}</p>
                 </div>
               `
             )
@@ -134,34 +142,34 @@ export function generateStrategicPdf(analysis: any) {
         <h2>Case DNA™</h2>
         <ul>
           ${Object.entries(caseDna)
-            .map(([key, value]) => `<li><strong>${key}:</strong> ${value}</li>`)
+            .map(([key, value]) => `<li><strong>${esc(key)}:</strong> ${esc(value)}</li>`)
             .join("")}
         </ul>
 
         <h2>Tribunal DNA™</h2>
-        <div class="card"><div class="label">Perfil estimado</div><div class="value">${tribunal.profile || "-"}</div></div>
+        <div class="card"><div class="label">Perfil estimado</div><div class="value">${esc(tribunal.profile || "-")}</div></div>
         <div class="grid2">
           <div class="box success"><h3>Valoriza</h3><ul>${list(tribunal.values, "✓")}</ul></div>
           <div class="box danger"><h3>Rejeita</h3><ul>${list(tribunal.rejects, "✗")}</ul></div>
         </div>
-        <div class="box">${tribunal.riskBehavior || "-"}</div>
-        <div class="box">${tribunal.strategicAdvice || "-"}</div>
+        <div class="box">${esc(tribunal.riskBehavior || "-")}</div>
+        <div class="box">${esc(tribunal.strategicAdvice || "-")}</div>
 
         <h2>Case Timeline™</h2>
         ${timeline
           .map(
             (t: any) => `
               <div class="box">
-                <strong>${t.date || "-"}</strong><br/>
-                ${t.event || "-"}<br/>
-                <span style="color:#6b7280;">${t.impact || "-"}</span>
+                <strong>${esc(t.date || "-")}</strong><br/>
+                ${esc(t.event || "-")}<br/>
+                <span style="color:#6b7280;">${esc(t.impact || "-")}</span>
               </div>
             `
           )
           .join("")}
 
         <h2>Auditor Jurídico™</h2>
-        <div class="card warning"><div class="label">Audit Score</div><div class="value">${auditor.auditScore || 0}/100</div></div>
+        <div class="card warning"><div class="label">Audit Score</div><div class="value">${esc(auditor.auditScore || 0)}/100</div></div>
         <div class="grid2">
           <div class="box danger"><h3>Riscos críticos</h3><ul>${list(auditor.criticalRisks, "🚨")}</ul></div>
           <div class="box warning"><h3>Inconsistências</h3><ul>${list(auditor.inconsistencies, "⚠️")}</ul></div>
@@ -171,21 +179,21 @@ export function generateStrategicPdf(analysis: any) {
 
         <h2>Due Diligence IA™</h2>
         <div class="grid2">
-          <div class="card success"><div class="label">Score</div><div class="value">${diligence.score || 0}/100</div></div>
-          <div class="card warning"><div class="label">Risco</div><div class="value">${diligence.riskLevel || "-"}</div></div>
+          <div class="card success"><div class="label">Score</div><div class="value">${esc(diligence.score || 0)}/100</div></div>
+          <div class="card warning"><div class="label">Risco</div><div class="value">${esc(diligence.riskLevel || "-")}</div></div>
         </div>
         <div class="box"><h3>Achados relevantes</h3><ul>${list(diligence.keyFindings, "✓")}</ul></div>
         <div class="box danger"><h3>Bloqueadores</h3><ul>${list(diligence.blockers, "⛔")}</ul></div>
-        <div class="box">${diligence.recommendation || "-"}</div>
+        <div class="box">${esc(diligence.recommendation || "-")}</div>
 
         <h2>Deal Breakers™</h2>
-        <ul>${dealBreakers.map((item: string) => `<li>❌ ${item}</li>`).join("")}</ul>
+        <ul>${dealBreakers.map((item: string) => `<li>❌ ${esc(item)}</li>`).join("")}</ul>
 
         <h2>Red Team™</h2>
-        <ul>${redTeam.map((item: string) => `<li>⚔️ ${item}</li>`).join("")}</ul>
+        <ul>${redTeam.map((item: string) => `<li>⚔️ ${esc(item)}</li>`).join("")}</ul>
 
         <h2>Strategy Engine™</h2>
-        <ul>${strategy.map((item: string) => `<li>✓ ${item}</li>`).join("")}</ul>
+        <ul>${strategy.map((item: string) => `<li>✓ ${esc(item)}</li>`).join("")}</ul>
 
         <h2>Conclusão Executiva</h2>
         <p>

@@ -48,6 +48,8 @@ describe("DJEN source review handoff", () => {
     expect(page).toContain("Confira o inteiro teor no tribunal")
     expect(page).toContain("await createPrecedent({")
     expect(dna).toContain("Revisar esta publicação na Biblioteca de Precedentes")
+    expect(dna).toContain('includes("revisão manual pendente")')
+    expect(page).toContain('"djenReview" in location.state')
     expect(dna).not.toContain("await createPrecedent(")
   })
 })

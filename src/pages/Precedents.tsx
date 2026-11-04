@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import { useLocation } from "react-router-dom"
+import { readDjenReviewHandoff } from "@/intelligence/djenReviewHandoff"
 import { Landmark, Plus, Search, Trash2 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import {
@@ -9,6 +11,8 @@ import {
 
 export default function Precedents() {
   const { user } = useAuth()
+  const location = useLocation()
+  const djenReview = readDjenReviewHandoff(location.state, user?.id)
 
   const [items, setItems] = useState<any[]>([])
   const [query, setQuery] = useState("")
@@ -26,6 +30,35 @@ export default function Precedents() {
   useEffect(() => {
     load()
   }, [user])
+
+  useEffect(() => {
+    if (!djenReview) {
+      // Never keep a handoff from a different account in editable fields.
+      if (location.state && typeof location.state === "object" && "djenReview" in location.state) {
+        setTitle("")
+        setTribunal("")
+        setTema("")
+        setNumero("")
+        setResumo("")
+        setFundamento("")
+        setImpacto("")
+        setTags("")
+      }
+      return
+    }
+    setTitle("Publicação DJEN para revisão — " + djenReview.processNumber)
+    setTribunal(djenReview.court)
+    setNumero(djenReview.processNumber)
+    setTema("")
+    setResumo("Publicação DJEN — metadados de origem, NÃO decisão validada. Órgão: " +
+      (djenReview.judgingBody || "não identificado") +
+      ". Tipo publicado: " + (djenReview.documentType || "não identificado") +
+      ". Conferir o documento original: " + djenReview.sourceUrl)
+    // Never prefill judicial reasoning/outcome/author from the publication.
+    setFundamento("")
+    setImpacto("")
+    setTags("DJEN, revisão manual pendente")
+  }, [location.state, user?.id])
 
   async function load(q = "") {
     if (!user?.id) return
@@ -136,6 +169,9 @@ export default function Precedents() {
               <h2 className="text-xl font-bold">Adicionar precedente</h2>
             </div>
 
+            {djenReview && <p role="status" className="mb-4 rounded-xl border border-amber-500/30 p-3 text-sm text-amber-200">
+              Comunicação DJEN importada como rascunho. Confira o inteiro teor no tribunal e escreva o fundamento antes de salvar. Após confirmar documentalmente, retire a tag "revisão manual pendente" para permitir o uso dessa referência na IA do DNA. Não atribua automaticamente o ato ao magistrado.
+            </p>}
             <div className="space-y-4">
               <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4" />
               <input value={tribunal} onChange={(e) => setTribunal(e.target.value)} placeholder="Tribunal: STF, STJ, TST..." className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4" />

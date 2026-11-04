@@ -8,7 +8,8 @@ export function normalizeDjenPublicPage(data, requestedProcess) {
   const requested = String(requestedProcess).replace(/\D/g, "")
   const seen = new Set()
   const items = []
-  for (const record of data.items.slice(0, 5)) {
+  // Filter first: the upstream page can contain unrelated or duplicated publications.
+  for (const record of data.items.slice(0, 100)) {
     if (!record || typeof record !== "object") continue
     const process = String(record.numero_processo || record.numeroProcesso || "").replace(/\D/g, "")
     if (process !== requested) continue
@@ -36,6 +37,7 @@ export function normalizeDjenPublicPage(data, requestedProcess) {
       identifiedJudge: false,
       sourceUrl,
     })
+    if (items.length === 5) break
   }
   return {
     source: "CNJ DJEN — comunicação pública",

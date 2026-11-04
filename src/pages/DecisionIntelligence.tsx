@@ -17,6 +17,7 @@ import { buildJudgeStrategyAdvice } from "@/intelligence/judgeStrategyAdvice"
 import { getPrecedents } from "@/services/precedentsService"
 import { runPrecedentIntelligenceAi } from "@/services/precedentIntelligenceService"
 import { buildDnaActionContext } from "@/intelligence/dnaActionHandoff"
+import { makeDjenReviewHandoff } from "@/intelligence/djenReviewHandoff"
 
 export default function DecisionIntelligence() {
   const { user, session } = useAuth()
@@ -110,7 +111,8 @@ export default function DecisionIntelligence() {
       setStrategySourceIds([])
       setSelectedPrecedents([])
       setStrategyLoading(false)
-      setAvailablePrecedents(items.filter((item: any) => item.id && (item.fundamento || item.resumo)))
+      setAvailablePrecedents(items.filter((item: any) => item.id && (item.fundamento || item.resumo) &&
+        !(Array.isArray(item.tags) && item.tags.some((tag: string) => tag.toLocaleLowerCase("pt-BR").includes("revisão manual pendente")))))
       setStrategyMessage(items.length ? "" : "Sua biblioteca ainda não tem precedentes. Cadastre documentos de decisões reais em Precedentes e retorne para comparar as teses.")
     } catch {
       setStrategyMessage("Não foi possível carregar seus precedentes. Verifique a conexão e tente novamente.")
@@ -320,6 +322,15 @@ export default function DecisionIntelligence() {
             <p className="text-xs text-gray-400">{item.judgingBody || "Órgão não informado"} · Disponibilização: {item.availableDate || "Não informada"}</p>
             <p className="text-xs text-amber-200">{item.candidateForManualReview ? "Possível ato decisório: exigir inteiro teor e revisão do advogado" : "Comunicação sem decisão fundamentada comprovada"}</p>
             {item.sourceUrl && <a className="text-xs underline text-primary" href={item.sourceUrl} target="_blank" rel="noopener noreferrer">Conferir no sistema do tribunal</a>}
+            {item.candidateForManualReview && item.sourceUrl && <button type="button"
+              className="block text-xs underline text-primary"
+              onClick={() => {
+                const djenReview = makeDjenReviewHandoff(item, user?.id)
+                if (!djenReview) { setDjenMessage("A referência não pôde ser validada para revisão manual."); return }
+                navigate("/dashboard/precedents", { state: { djenReview } })
+              }}>
+              Revisar esta publicação na Biblioteca de Precedentes
+            </button>}
           </article>)}
           <p className="text-xs text-amber-200">Nenhuma publicação desta consulta entra automaticamente no DNA do Juiz. Atribuição ao magistrado, fundamentação, resultado e direitos de uso exigem validação documental.</p>
         </div>}

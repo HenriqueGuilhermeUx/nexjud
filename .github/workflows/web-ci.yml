@@ -71,5 +71,8 @@ jobs:
       - name: DJEN authenticated one-process lookup privacy regression
         run: npx vitest run src/intelligence/djenPublicLookup.test.ts
 
+      - name: DJEN manual-review handoff and source isolation regression
+        run: npx vitest run src/intelligence/djenReviewHandoff.test.ts
+
       - name: Vite build
         run: npx vite build

@@ -36,6 +36,15 @@ describe("strategic analysis — authenticated and evidence-bound", () => {
     expect(source).not.toContain('"favorableRate": 0')
   })
 
+  it("persists analysis without marketing the legacy placeholder as win probability", () => {
+    const history = readFileSync(new URL("../services/strategicAnalysisService.ts", import.meta.url), "utf8")
+    const dashboard = readFileSync(new URL("../services/dashboardService.ts", import.meta.url), "utf8")
+    expect(history).toContain("predictionValidated: false")
+    expect(history).toContain("favorableRate: null")
+    expect(dashboard).not.toContain('% de êxito •')
+    expect(dashboard).toContain("probabilidade não validada")
+  })
+
   it("limits untrusted case text before external model calls", () => {
     expect(source).toContain("caseText.length > 30000")
   })

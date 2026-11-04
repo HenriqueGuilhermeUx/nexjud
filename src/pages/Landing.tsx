@@ -24,7 +24,7 @@ export default function Landing() {
   const resources = [
     ["Analisar documentos", "PDFs, DOCX, contratos, estatutos, atas e imagens com OCR.", FileText],
     ["Conversar com a IA", "Pergunte usando seus documentos, casos e memória jurídica.", Brain],
-    ["Decision Intelligence", "Compare processo, fatos e teses com padrões decisórios observados e decisões-fonte.", Target],
+    ["DNA do Juiz — IA Preditiva", "Confronte fundamentos de decisões documentadas, identifique argumentos e provas para sua estratégia.", Target],
     ["Criar petições", "Gere peças, contratos, notificações e minutas com IA.", Wand2],
     ["Simular audiências", "Treine argumentos, objeções e sustentação com o Judge Simulator.", Gavel],
     ["War Room", "Cenários, riscos, ataques prováveis e plano de ação.", ShieldAlert],
@@ -62,15 +62,15 @@ export default function Landing() {
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Inteligência jurídica para
+            DNA do Juiz
             <br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] to-[#22d3ee]">
-              decidir melhor antes de agir.
+              IA Preditiva para decidir melhor.
             </span>
           </h1>
 
           <p className="text-xl text-gray-400 max-w-4xl mx-auto mb-10">
-            O NexJud conecta processo, documentos, jurisprudência e estratégia para mostrar evidências, riscos e próximos passos — sem prometer o resultado do caso.
+            Analise como fundamentos e provas foram tratados em decisões documentadas, confronte sua tese com precedentes e descubra os próximos passos para atuar com mais estratégia. O resultado depende das fontes disponíveis e da revisão do advogado.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -189,8 +189,8 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto text-center mb-12"><h2 className="text-4xl md:text-5xl font-bold mb-4">Comece com Trial Premium</h2><p className="text-gray-400 text-lg">Conheça os planos, preços e recursos disponíveis na página de contratação. O trial segue as condições de elegibilidade.</p></div>
         <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
           <Plan name="Trial Premium" price="7 dias grátis" badge="SEM CARTÃO" items={["Conheça a experiência", "Documentos e IA jurídica", "Teste sujeito às condições do plano", "Consulte a página de acesso"]} />
-          <Plan name="Planos profissionais" price="Consulte os planos" featured items={["Acesso individual", "Ferramentas de produtividade", "Planos e valores atualizados no checkout", "Recursos conforme o plano contratado"]} />
-          <Plan name="Enterprise" price="Implantação sob consulta" items={["Diagnóstico de necessidades", "Escopo corporativo sujeito a homologação", "Integrações e permissões sob avaliação", "Atendimento comercial"]} />
+          <Plan name="Pro e Intelligence" price="A partir de R$ 197/mês" featured items={["Pro: R$ 197 por mês", "Intelligence: R$ 397 por mês", "DNA do Juiz e IA jurídica conforme o plano", "Pagamento Pix mensal, sem renovação automática"]} />
+          <Plan name="Enterprise e Plus" price="R$ 797 ou R$ 1.497/mês" items={["Recursos adicionais conforme o plano", "Enterprise Plus: operações e integrações sujeitas à validação", "Implantação e condições especiais sob consulta", "Consulte os detalhes antes de contratar"]} />
         </div>
       </section>
 

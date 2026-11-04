@@ -117,7 +117,7 @@ export default function History() {
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <Badge label="Chance" value={`${item.success_probability || 0}%`} />
+                      <Badge label="Probabilidade" value="Não validada" />
                       <Badge label="Risco" value={item.risk_level || "-"} />
                       <Badge label="Sócio IA" value={item.partner_decision || "-"} />
 
@@ -177,7 +177,7 @@ export default function History() {
                       </Card>
 
                       <section className="grid md:grid-cols-4 gap-4">
-                        <Metric title="Chance de êxito" value={`${item.success_probability || 0}%`} color="text-green-400" />
+                        <Metric title="Probabilidade de êxito" value="Não validada" color="text-amber-300" />
                         <Metric title="Risco" value={item.risk_level || "-"} color="text-yellow-400" />
                         <Metric title="Potencial" value={item.financial_potential || "-"} color="text-primary" />
                         <Metric title="Decisão" value={item.partner_decision || "-"} color="text-green-400" />
@@ -208,7 +208,7 @@ export default function History() {
 
                         <Card title="Opponent Intelligence™" icon={<ShieldAlert className="text-red-400" />} danger>
                           <Metric title="Perfil" value={item.opponent_intelligence?.profile || "-"} />
-                          <Metric title="Chance de acordo" value={item.opponent_intelligence?.settlementChance || "-"} />
+                          <Metric title="Probabilidade de acordo" value="Não validada" />
                           <List title="Táticas" items={item.opponent_intelligence?.commonTactics} prefix="⚔️" />
                         </Card>
 
@@ -220,11 +220,11 @@ export default function History() {
                       </section>
 
                       <section className="grid lg:grid-cols-2 gap-6">
-                        <Card title="Jurisprudência Preditiva™" icon={<TrendingUp className="text-primary" />} highlight>
+                        <Card title="Análise de cenários jurisprudenciais" icon={<TrendingUp className="text-primary" />} highlight>
                           <Metric
-                            title="Tendência estimada"
-                            value={`${item.jurisprudence_prediction?.favorableRate || 0}% favorável`}
-                            color="text-green-400"
+                            title="Estimativa estatística"
+                            value="Não validada"
+                            color="text-amber-300"
                           />
                           <p className="text-gray-300 mt-4">{item.jurisprudence_prediction?.thesisStrength || "-"}</p>
                           <List title="Fatores favoráveis" items={item.jurisprudence_prediction?.favorableFactors} prefix="✓" />

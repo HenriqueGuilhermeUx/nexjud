@@ -38,5 +38,8 @@ jobs:
       - name: Billing entitlement regression tests
         run: npx vitest run src/enterprise/paidEntitlement.test.ts
 
+      - name: Commercial copy and PDF HTML safety regressions
+        run: npx vitest run src/enterprise/commercialPredictiveCopy.test.ts src/enterprise/pdfReportSecurity.test.ts
+
       - name: Vite build
         run: npx vite build

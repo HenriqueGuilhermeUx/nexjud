@@ -131,10 +131,10 @@ const [realJurisprudence, setRealJurisprudence] = useState<any>(null)
 
 ${text}`)
 
-    alert("Jurimetria real DataJud adicionada ao caso.")
+    alert("Sinais processuais do DataJud adicionados. Movimentações não permitem calcular probabilidade de êxito.")
   } catch (error) {
     console.error(error)
-    alert("Erro ao buscar jurisprudência real no DataJud.")
+    alert("Erro ao consultar sinais processuais do DataJud.")
   } finally {
     setRealJurisLoading(false)
   }
@@ -354,13 +354,12 @@ Assunto: ${datajudProcess.subject}`
               </div>
 
               <p className="text-gray-400 text-lg mb-6">
-                Cole um resumo, tese, petição ou número CNJ. O NexJud transforma o caso em score,
-                riscos, jurisprudência preditiva, exposição financeira, War Room, auditoria e parecer executivo.
+                Cole um resumo, tese, petição ou número CNJ. O NexJud ajuda a organizar riscos, sinais processuais, cenários financeiros e estratégias para revisão profissional, sem prometer resultados.
               </p>
 
               <div className="grid sm:grid-cols-3 gap-3 text-sm text-gray-300">
                 <Badge text="DataJud/CNJ Oficial™" />
-                <Badge text="Jurisprudência Preditiva™" />
+                <Badge text="Análise de evidências e cenários" />
                 <Badge text="Financial Exposure™" />
                 <Badge text="Deal Economics™" />
                 <Badge text="Opponent Intelligence™" />
@@ -373,10 +372,8 @@ Assunto: ${datajudProcess.subject}`
 
               {analysisResult ? (
                 <>
-                  <div className="text-5xl font-bold text-green-400">
-                    {analysisResult.successProbability || 0}%
-                  </div>
-                  <p className="text-sm text-gray-400 mt-2">chance estratégica estimada</p>
+                  <div className="text-2xl font-bold text-amber-300">Sem taxa validada</div>
+                  <p className="text-sm text-gray-400 mt-2">Análise assistida: não é probabilidade de êxito</p>
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <MiniBox label="Risco" value={analysisResult.riskLevel || "-"} />
                     <MiniBox label="Prioridade" value={analysisResult.legalCommandCenter?.priority || "-"} />
@@ -450,7 +447,7 @@ Assunto: ${datajudProcess.subject}`
     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div>
         <h3 className="font-bold text-xl text-green-400">
-          Jurisprudência Preditiva Real™
+          Sinais processuais observados — DataJud
         </h3>
         <p className="text-sm text-gray-400 mt-1">
           Busca casos semelhantes no DataJud usando classe, assunto e tribunal.
@@ -470,7 +467,7 @@ Assunto: ${datajudProcess.subject}`
         ) : (
           <>
             <TrendingUp size={18} />
-            BUSCAR JURIMETRIA REAL
+            CONSULTAR SINAIS PROCESSUAIS
           </>
         )}
       </button>
@@ -572,7 +569,7 @@ Assunto: ${datajudProcess.subject}`
               </p>
 
               <div className="grid md:grid-cols-4 gap-4">
-                <MiniBox label="Êxito" value={`${analysisResult.successProbability || 0}%`} color="text-green-400" />
+                <MiniBox label="Estimativa estatística" value="Não validada" color="text-amber-300" />
                 <MiniBox label="Risco" value={analysisResult.riskLevel || "-"} />
                 <MiniBox label="Complexidade" value={analysisResult.complexity || "-"} />
                 <MiniBox label="Decisão" value={analysisResult.partnerDecision || "-"} color="text-primary" />
@@ -663,7 +660,7 @@ Assunto: ${datajudProcess.subject}`
                   {analysisResult.opponentIntelligence?.profile || "-"}
                 </p>
                 <p className="text-gray-400 mb-4">
-                  Chance de acordo: {analysisResult.opponentIntelligence?.settlementChance || "-"}
+                  Probabilidade de acordo: não validada
                 </p>
                 <List title="Táticas comuns" items={analysisResult.opponentIntelligence?.commonTactics} prefix="⚔️" />
                 <List title="Defesa esperada" items={analysisResult.opponentIntelligence?.expectedDefense} prefix="🛡️" />
@@ -696,12 +693,12 @@ Assunto: ${datajudProcess.subject}`
             </section>
 
             <section className="grid lg:grid-cols-2 gap-6">
-              <CardTitle icon={<TrendingUp className="text-primary" />} title="Jurisprudência Preditiva™" highlight>
+              <CardTitle icon={<TrendingUp className="text-primary" />} title="Análise de cenários jurisprudenciais" highlight>
                 <div className="space-y-4">
                   <MiniBox
-                    label="Tendência estimada"
-                    value={`${analysisResult.jurisprudencePrediction?.favorableRate || 0}% favorável`}
-                    color="text-green-400"
+                    label="Probabilidade de êxito"
+                    value="Não validada"
+                    color="text-amber-300"
                   />
                   <p className="text-gray-300">
                     {analysisResult.jurisprudencePrediction?.thesisStrength || "-"}

@@ -68,5 +68,8 @@ jobs:
       - name: DNA strategy source consistency regression
         run: npx vitest run src/intelligence/dnaStrategySourceBinding.test.ts
 
+      - name: DJEN authenticated one-process lookup privacy regression
+        run: npx vitest run src/intelligence/djenPublicLookup.test.ts
+
       - name: Vite build
         run: npx vite build

@@ -19,7 +19,7 @@ import { runPrecedentIntelligenceAi } from "@/services/precedentIntelligenceServ
 import { buildDnaActionContext } from "@/intelligence/dnaActionHandoff"
 
 export default function DecisionIntelligence() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const navigate = useNavigate()
   const [cnj, setCnj] = useState("")
   const [alias, setAlias] = useState("")
@@ -41,6 +41,10 @@ export default function DecisionIntelligence() {
   const [strategyResult, setStrategyResult] = useState<any>(null)
   const [strategySourceIds, setStrategySourceIds] = useState<string[]>([])
   const [strategyMessage, setStrategyMessage] = useState("")
+  const [djenLoading, setDjenLoading] = useState(false)
+  const [djenResult, setDjenResult] = useState<any>(null)
+  const [djenMessage, setDjenMessage] = useState("")
+  const djenRequest = useRef(0)
   const searchGuard = useRef(new DecisionSearchGuard())
   const currentAuthUserId = useRef(user?.id)
   currentAuthUserId.current = user?.id
@@ -55,7 +59,45 @@ export default function DecisionIntelligence() {
     setStrategySourceIds([])
     setStrategyMessage("")
     setStrategyLoading(false)
+    djenRequest.current++
+    setDjenLoading(false)
+    setDjenResult(null)
+    setDjenMessage("")
   }, [user?.id])
+
+  async function checkPublicDjen() {
+    const processDigits = cnj.replace(/\D/g, "")
+    if (processDigits.length !== 20) { setDjenMessage("Informe um número CNJ completo de 20 dígitos."); return }
+    if (!session?.access_token) { setDjenMessage("Entre na sua conta para consultar publicações do DJEN."); return }
+    const version = ++djenRequest.current
+    const owner = user?.id
+    setDjenLoading(true)
+    setDjenResult(null)
+    setDjenMessage("")
+    try {
+      const res = await fetch("/.netlify/functions/djen-process?process=" + encodeURIComponent(processDigits), {
+        headers: { Authorization: "Bearer " + session.access_token, Accept: "application/json" },
+        cache: "no-store",
+      })
+      const payload = await res.json()
+      if (version !== djenRequest.current || owner !== currentAuthUserId.current) return
+      if (!res.ok) {
+        setDjenMessage(res.status === 429 ? "Limite de consultas do CNJ atingido. Aguarde pelo menos um minuto."
+          : res.status === 503 ? "Consulta temporariamente indisponível: autenticação do serviço não configurada."
+          : res.status === 401 ? "Sua sessão expirou. Entre novamente para consultar."
+          : "Não foi possível consultar o DJEN neste momento. Consulte o portal oficial.")
+        return
+      }
+      setDjenResult(payload)
+      setDjenMessage(payload.items?.length
+        ? "Publicações do processo encontradas. Confira o teor no portal do tribunal antes de utilizá-las."
+        : "Nenhuma comunicação correspondente foi encontrada nesta página. Isso não comprova ausência de decisões.")
+    } catch {
+      if (version === djenRequest.current) setDjenMessage("Não foi possível consultar o DJEN. Verifique a conexão ou use o portal oficial.")
+    } finally {
+      if (version === djenRequest.current) setDjenLoading(false)
+    }
+  }
 
   async function loadPrecedents() {
     if (!user?.id) { setStrategyMessage("Entre na sua conta para consultar os precedentes salvos."); return }
@@ -140,6 +182,10 @@ export default function DecisionIntelligence() {
     setStrategySourceIds([])
     setStrategyMessage("")
     setStrategyLoading(false)
+    djenRequest.current++
+    setDjenResult(null)
+    setDjenMessage("")
+    setDjenLoading(false)
   }
 
   async function analyze() {
@@ -252,6 +298,31 @@ export default function DecisionIntelligence() {
         </label>
         <textarea value={caseText} onChange={e=>{ invalidateCurrentSearch(); setCaseText(e.target.value) }} placeholder="Opcional: complemente fatos, pedidos e teses que não estejam claros nos dados públicos." className="w-full h-32 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
         <textarea value={lawyerArgument} onChange={e=>{ invalidateCurrentSearch(); setLawyerArgument(e.target.value) }} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
+      </section>
+
+      <section className="rounded-2xl border border-[#303849] bg-[#111118] p-5 space-y-3" aria-label="DJEN consulta pública">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-lg">Conferir publicações oficiais do processo no DJEN</h2>
+            <p className="text-sm text-gray-400">Consulta pública pontual por número CNJ. Sem armazenar publicações ou dados de partes; sem coletar histórico em massa.</p>
+          </div>
+          <button type="button" disabled={djenLoading || cnj.replace(/\D/g, "").length !== 20}
+            onClick={() => { void checkPublicDjen() }}
+            className="rounded-xl border border-primary/50 px-4 py-3 text-sm font-semibold disabled:opacity-40">
+            {djenLoading ? "Consultando DJEN..." : "Consultar DJEN (CNJ)"}
+          </button>
+        </div>
+        {djenMessage && <p role="status" className="text-sm text-amber-200">{djenMessage}</p>}
+        {djenResult && <div className="space-y-2">
+          <p className="text-xs text-gray-400">Página limitada a cinco comunicações. Data de disponibilização não é data da decisão. A consulta não informa automaticamente quem decidiu.</p>
+          {(djenResult.items || []).map((item: any) => <article key={item.id} className="rounded-lg border border-[#313142] p-3 space-y-1">
+            <p className="text-sm font-semibold">{item.documentType || item.publicationKind || "Comunicação"} · {item.court || "Tribunal não informado"}</p>
+            <p className="text-xs text-gray-400">{item.judgingBody || "Órgão não informado"} · Disponibilização: {item.availableDate || "Não informada"}</p>
+            <p className="text-xs text-amber-200">{item.candidateForManualReview ? "Possível ato decisório: exigir inteiro teor e revisão do advogado" : "Comunicação sem decisão fundamentada comprovada"}</p>
+            {item.sourceUrl && <a className="text-xs underline text-primary" href={item.sourceUrl} target="_blank" rel="noopener noreferrer">Conferir no sistema do tribunal</a>}
+          </article>)}
+          <p className="text-xs text-amber-200">Nenhuma publicação desta consulta entra automaticamente no DNA do Juiz. Atribuição ao magistrado, fundamentação, resultado e direitos de uso exigem validação documental.</p>
+        </div>}
       </section>
 
       <section className="rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/15 via-[#151525] to-[#0d0d15] p-6 space-y-4" aria-label="Análise estratégica com IA">

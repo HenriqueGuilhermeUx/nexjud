@@ -224,8 +224,8 @@ const NavGroup = ({ label, open, onClick, children }: any) => (
 <QuickAction
   to="/dashboard/decision-intelligence"
   icon={Target}
-  title="Quero saber como este juízo costuma decidir"
-  description="Compare seu processo com decisões públicas encontradas para este juízo."
+  title="DNA do Juiz — IA Preditiva"
+  description="Descubra argumentos, provas e estratégias com base nas decisões e precedentes disponíveis."
 />
 
 <QuickAction
@@ -324,7 +324,7 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
 <NavItem to="/dashboard/legal-chat" icon={Brain} label="Assistente IA" description="Pergunte, pesquise e avance." active={isLegalChatActive} />
 <NavItem to="/dashboard/legal-cases" icon={Database} label="Processos" description="Seus casos em um só lugar." active={isLegalCasesActive} />
 <NavItem to="/dashboard/draft-generator" icon={Wand2} label="Documentos" description="Crie peças e contratos." active={isDraftGeneratorActive} />
-<NavItem to="/dashboard/decision-intelligence" icon={Target} label="Inteligência" description="Análise de decisões e riscos." active={isDecisionIntelligenceActive} />
+<NavItem to="/dashboard/decision-intelligence" icon={Target} label="DNA do Juiz — IA Preditiva" description="Estratégia do caso com fontes judiciais." active={isDecisionIntelligenceActive} />
 <NavItem to="/dashboard/notifications" icon={Bell} label="Alertas" description="O que precisa da sua atenção." active={isNotificationsActive} badge={notificationUnreadCount > 0 ? String(notificationUnreadCount) : undefined} />
 <button type="button" aria-expanded={showAllTools} onClick={() => setShowAllTools(v => !v)} className="w-full flex items-center justify-between rounded-lg border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted"><span>{showAllTools ? "Ocultar ferramentas" : "Todas as ferramentas"}</span>{showAllTools ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
 {showAllTools && <div className="space-y-2 border-l border-border/60 pl-1">
@@ -336,8 +336,8 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
   <NavItem
     to="/dashboard/decision-intelligence"
     icon={Target}
-    label="Análise do Juízo"
-    description="Veja como fatos, pedidos e teses aparecem nas decisões encontradas."
+    label="DNA do Juiz — IA Preditiva"
+    description="Argumentos, provas, histórico e estratégia para o caso."
     active={isDecisionIntelligenceActive}
     badge="DESTAQUE"
   />

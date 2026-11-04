@@ -22,6 +22,7 @@ export default function DecisionIntelligence() {
   const navigate = useNavigate()
   const [cnj, setCnj] = useState("")
   const [alias, setAlias] = useState("")
+  const [judgeName, setJudgeName] = useState("")
   const [caseText, setCaseText] = useState("")
   const [lawyerArgument, setLawyerArgument] = useState("")
   const [process, setProcess] = useState<any>(null)
@@ -149,7 +150,7 @@ export default function DecisionIntelligence() {
   const sample = audit?.comparableDecisions ?? 0
   const recordsFound = evidence?.cases?.length ?? 0
   const predictiveReadiness = audit ? assessPredictiveReadiness(audit) : null
-  const judgeAdvice = audit ? buildJudgeStrategyAdvice(audit, caseText, lawyerArgument) : null
+  const judgeAdvice = audit ? buildJudgeStrategyAdvice(audit, caseText, lawyerArgument, judgeName) : null
 
   function downloadEvidenceDossier() {
     if (!audit || !process) return
@@ -192,6 +193,9 @@ export default function DecisionIntelligence() {
           <input value={alias} onChange={e=>{ invalidateCurrentSearch(); setAlias(e.target.value.toLowerCase()) }} placeholder="Tribunal: tjsp, trt2..." className="rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
           <button onClick={analyze} disabled={loading} className="rounded-xl bg-primary text-white font-bold p-4 disabled:opacity-50 flex items-center justify-center gap-2"><Search size={18}/>{loading?"LOCALIZANDO...":"ANALISAR PROCESSO"}</button>
         </div>
+        <label className="block text-sm text-gray-300">Magistrado ou relator (opcional; apenas para análise individual quando identificado nas decisões)
+          <input value={judgeName} onChange={e => { invalidateCurrentSearch(); setJudgeName(e.target.value) }} placeholder="Nome completo do magistrado" className="block mt-2 w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4" />
+        </label>
         <label className="flex items-start gap-3 rounded-xl border border-[#343442] p-3 text-sm text-gray-300">
           <input type="checkbox" checked={saveToHistory} disabled={loading || !user?.id}
             onChange={e => { invalidateCurrentSearch(); setSaveToHistory(e.target.checked) }}

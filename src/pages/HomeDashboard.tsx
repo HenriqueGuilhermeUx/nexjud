@@ -318,10 +318,11 @@ Assunto: ${datajudProcess.subject}`
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">Seu espaço de trabalho</p>
           <h1 id="welcome-heading" className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight">O que vamos resolver hoje?</h1>
           <p className="mt-2 text-sm text-muted-foreground">Escolha o que precisa fazer. Você pode explorar as ferramentas avançadas quando quiser.</p>
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
             {[
               { label: "Conversar com a IA", detail: "Tire dúvidas e pesquise", path: "/dashboard/legal-chat", icon: Brain },
               { label: "Analisar processo", detail: "Entenda riscos e estratégias", path: "/dashboard/ai-copilot", icon: Scale },
+              { label: "Inteligência decisória", detail: "Confronte evidências e fontes do juízo", path: "/dashboard/decision-intelligence", icon: Target },
               { label: "Criar documento", detail: "Peças, contratos e minutas", path: "/dashboard/draft-generator", icon: FileText },
               { label: "Meus processos", detail: "Organize e acompanhe casos", path: "/dashboard/legal-cases", icon: Database },
             ].map(({ label, detail, path, icon: Icon }) => (

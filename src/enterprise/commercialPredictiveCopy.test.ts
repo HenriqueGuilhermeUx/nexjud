@@ -19,6 +19,15 @@ describe("Brazil commercial readiness — protect users from unvalidated win rat
     expect(code).not.toContain("chance estratégica estimada")
     expect(code).not.toContain("Chance de Êxito")
     expect(code).not.toContain('title="Jurisprudência Preditiva™"')
+    expect(code).not.toContain("Jurisprudência Preditiva Real™")
+  })
+
+  it("does not advertise DataJud movements as calibrated predictions", () => {
+    const dashboard = source("pages/HomeDashboard.tsx")
+    expect(dashboard).not.toContain("Jurisprudência Preditiva Real™")
+    expect(dashboard).not.toContain("Jurisprudência Preditiva™")
+    expect(dashboard).not.toContain("Chance de acordo: ")
+    expect(dashboard).toContain("Sinais processuais observados — DataJud")
   })
 
   it("keeps the predictive product labeled as unvalidated on every affected view", () => {

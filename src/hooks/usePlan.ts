@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { paidEntitlementCurrent } from "@/services/paidEntitlement"
 import {
@@ -21,26 +21,49 @@ export function usePlan() {
   const { user } = useAuth()
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState(true)
+  // An old request must never publish a previous account's subscription after sign-out/account switch.
+  const requestVersion = useRef(0)
 
   useEffect(() => {
-    load()
-  }, [user])
+    const version = ++requestVersion.current
+    setSubscription(null)
+    if (!user?.id) {
+      setLoading(false)
+      return () => { requestVersion.current++ }
+    }
+    setLoading(true)
+    getOrCreateSubscription(user.id).then((data) => {
+      if (requestVersion.current === version && data.user_id === user.id) setSubscription(data)
+    }).catch((error) => {
+      if (requestVersion.current === version) {
+        setSubscription(null)
+        console.error("Erro ao carregar assinatura:", error)
+      }
+    }).finally(() => {
+      if (requestVersion.current === version) setLoading(false)
+    })
+    return () => { requestVersion.current++ }
+  }, [user?.id])
 
   async function load() {
-    if (!user?.id) {
+    const userId = user?.id
+    const version = ++requestVersion.current
+    if (!userId) {
+      setSubscription(null)
       setLoading(false)
       return
     }
-
     setLoading(true)
-
     try {
-      const data = await getOrCreateSubscription(user.id)
-      setSubscription(data)
+      const data = await getOrCreateSubscription(userId)
+      if (requestVersion.current === version && data.user_id === userId) setSubscription(data)
     } catch (error) {
-      console.error("Erro ao carregar assinatura:", error)
+      if (requestVersion.current === version) {
+        setSubscription(null)
+        console.error("Erro ao carregar assinatura:", error)
+      }
     } finally {
-      setLoading(false)
+      if (requestVersion.current === version) setLoading(false)
     }
   }
 

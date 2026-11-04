@@ -16,6 +16,7 @@ import { assessPredictiveReadiness, buildPredictiveEvidenceDossier } from "@/int
 import { buildJudgeStrategyAdvice } from "@/intelligence/judgeStrategyAdvice"
 import { getPrecedents } from "@/services/precedentsService"
 import { runPrecedentIntelligenceAi } from "@/services/precedentIntelligenceService"
+import { buildDnaActionContext } from "@/intelligence/dnaActionHandoff"
 
 export default function DecisionIntelligence() {
   const { user } = useAuth()
@@ -91,6 +92,22 @@ export default function DecisionIntelligence() {
     } finally {
       if (searchGuard.current.isCurrent(guardVersion)) setStrategyLoading(false)
     }
+  }
+
+  function continueWithDna(destination: "draft" | "hearing") {
+    const dnaContext = buildDnaActionContext({
+      userId: user?.id,
+      facts: caseText,
+      thesis: lawyerArgument,
+      strategy: strategyResult,
+    })
+    if (!dnaContext) {
+      setStrategyMessage("Gere uma estratégia antes de levá-la para a redação ou audiência.")
+      return
+    }
+    navigate(destination === "draft" ? "/dashboard/draft-generator" : "/dashboard/judge-simulator", {
+      state: { dnaContext },
+    })
   }
 
   function invalidateCurrentSearch() {
@@ -256,6 +273,17 @@ export default function DecisionIntelligence() {
                 <div><h5 className="font-semibold">Reforço probatório</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.evidence_matrix || []).map((e: any, i: number) => <li key={i}>{e.requirement || "Prova"}: {e.recommended_action || e.gap || "Conferir"}</li>)}</ul></div>
                 <div><h5 className="font-semibold">Próximos movimentos</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.next_actions || []).map((a: string, i: number) => <li key={i}>{a}</li>)}</ul></div>
               </div>
+              <div className="flex flex-wrap gap-3" aria-label="Próximos passos da estratégia">
+                <button type="button" onClick={() => continueWithDna("draft")}
+                  className="rounded-xl bg-primary px-5 py-3 font-semibold text-white">
+                  Preparar peça com esta estratégia
+                </button>
+                <button type="button" onClick={() => continueWithDna("hearing")}
+                  className="rounded-xl border border-primary/50 px-5 py-3 font-semibold">
+                  Treinar audiência com estes argumentos
+                </button>
+              </div>
+              <p className="text-xs text-gray-400">O contexto acompanha você para a ferramenta escolhida, sem criar nova cobrança nem salvar dados automaticamente.</p>
               <p className="text-xs text-amber-200">Orientação gerada por IA a partir dos precedentes selecionados da biblioteca. Confira o texto, a fonte e a pertinência fática; não é conclusão empírica sobre este juiz.</p>
             </div>}
           </div>

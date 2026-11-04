@@ -1,4 +1,6 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useLocation } from "react-router-dom"
+import { readDnaActionContext } from "@/intelligence/dnaActionHandoff"
 import {
   Gavel,
   Send,
@@ -13,6 +15,8 @@ import { saveJudgeSession } from "@/services/judgeSessionService"
 
 export default function JudgeSimulator() {
   const { user } = useAuth()
+  const location = useLocation()
+  const [dnaSource, setDnaSource] = useState(false)
 
   const [caseText, setCaseText] = useState("")
   const [argument, setArgument] = useState("")
@@ -21,7 +25,17 @@ export default function JudgeSimulator() {
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState<any[]>([])
 
+  useEffect(() => {
+    const dna = readDnaActionContext(location.state, user?.id)
+    if (!dna) return
+    setCaseText([dna.caseText, dna.focus].filter(Boolean).join("\n\n"))
+    setArgument(dna.argument)
+    setHistory([])
+    setDnaSource(true)
+  }, [location.state, user?.id])
+
   function loadExample() {
+    setDnaSource(false)
     setCaseText(
       "Ação trabalhista. Reclamante busca reconhecimento de vínculo empregatício e horas extras. Há mensagens de WhatsApp com ordens diárias, comprovantes de pagamento mensal e testemunhas. A empresa afirma autonomia, ausência de exclusividade e prestação eventual."
     )
@@ -119,6 +133,7 @@ export default function JudgeSimulator() {
           </div>
         </section>
 
+        {dnaSource && <div role="status" className="rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm">Estratégia do DNA do Juiz recebida para treinamento. Esta é uma simulação de audiência, não uma reprodução do magistrado real; confira as fontes e adapte seus argumentos.</div>}
         <section className="grid lg:grid-cols-2 gap-6">
           <div className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6">
             <h2 className="font-bold text-xl mb-4">Caso-base</h2>

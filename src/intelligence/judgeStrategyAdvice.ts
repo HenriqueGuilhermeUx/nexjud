@@ -25,9 +25,9 @@ export function buildJudgeStrategyAdvice(
   judgeName = "",
 ): JudgeStrategyAdvice {
   // Only attribute documentary history to a named magistrate when the source identifies that person.
-  const normalizedJudge = judgeName.normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("pt-BR")
+  const normalizedJudge = judgeName.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR")
   const comparable = normalizedJudge
-    ? audit.comparableEvidence.filter(item => item.judgeOrRapporteur?.normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("pt-BR") === normalizedJudge)
+    ? audit.comparableEvidence.filter(item => item.judgeOrRapporteur?.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR") === normalizedJudge)
     : audit.comparableEvidence
   const eligibleIds = new Set(comparable.map(item => item.id))
   const review = audit.review.filter(item => item.comparable && eligibleIds.has(item.id))

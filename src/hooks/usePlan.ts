@@ -22,22 +22,29 @@ export function usePlan() {
   const { user } = useAuth()
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState(true)
+  const [subscriptionError, setSubscriptionError] = useState(false)
   // An old request must never publish a previous account's subscription after sign-out/account switch.
   const requestVersion = useRef(0)
 
   useEffect(() => {
     const version = ++requestVersion.current
     setSubscription(null)
+    setSubscriptionError(false)
     if (!user?.id) {
       setLoading(false)
       return () => { requestVersion.current++ }
     }
     setLoading(true)
     getOrCreateSubscription(user.id).then((data) => {
-      if (requestVersion.current === version) setSubscription(subscriptionForUser(data, user.id))
+      if (requestVersion.current === version) {
+        const owned = subscriptionForUser(data, user.id)
+        setSubscription(owned)
+        setSubscriptionError(!owned)
+      }
     }).catch((error) => {
       if (requestVersion.current === version) {
         setSubscription(null)
+        setSubscriptionError(true)
         console.error("Erro ao carregar assinatura:", error)
       }
     }).finally(() => {
@@ -51,16 +58,23 @@ export function usePlan() {
     const version = ++requestVersion.current
     if (!userId) {
       setSubscription(null)
+      setSubscriptionError(false)
       setLoading(false)
       return
     }
     setLoading(true)
+    setSubscriptionError(false)
     try {
       const data = await getOrCreateSubscription(userId)
-      if (requestVersion.current === version) setSubscription(subscriptionForUser(data, userId))
+      if (requestVersion.current === version) {
+        const owned = subscriptionForUser(data, userId)
+        setSubscription(owned)
+        setSubscriptionError(!owned)
+      }
     } catch (error) {
       if (requestVersion.current === version) {
         setSubscription(null)
+        setSubscriptionError(true)
         console.error("Erro ao carregar assinatura:", error)
       }
     } finally {
@@ -113,6 +127,7 @@ export function usePlan() {
     subscription: currentSubscription,
     plan,
     loading,
+    subscriptionError,
     trialExpired,
     trialDaysLeft,
     refresh: load,

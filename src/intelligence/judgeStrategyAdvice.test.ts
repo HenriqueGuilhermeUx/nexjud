@@ -1,0 +1,47 @@
+import { describe, expect, it } from "vitest"
+import { buildJudgeStrategyAdvice } from "./judgeStrategyAdvice"
+import type { DecisionEvidenceAudit } from "./decisionEvidenceAudit"
+import type { JudicialDecisionEvidence } from "./judicialDecisionSchema"
+
+const decision: JudicialDecisionEvidence = {
+  id: "decision-1", source: "tribunal_publico", sourceDocumentId: "acordao-42",
+  sourceUrl: "https://tribunal.example/decisao/42",
+  processNumber: "1234567-89.2025.8.26.0001",
+  court: "TJSP", judgingBody: "1ª Vara Cível", decisionDate: "2025-10-09",
+  caseClass: "Procedimento Comum", subjects: ["Responsabilidade civil"],
+  reasoning: ["O autor deve demonstrar dano, nexo causal e conduta."],
+  observedOutcome: "Pedido rejeitado por insuficiência de prova", legalTheses: ["Ônus da prova"],
+  facts: [], claims: [], citedPrecedents: [], citedLegislation: [], collectedAt: "2026-11-04",
+}
+const base = (withEvidence: boolean): DecisionEvidenceAudit => ({
+  recordsReceived: 1, distinctRecords: 1, duplicateRecords: 0,
+  qualifiedDecisions: withEvidence ? 1 : 0,
+  comparableDecisions: withEvidence ? 1 : 0,
+  enoughForDescriptivePattern: false, period: "2025-10-09 a 2025-10-09",
+  gaps: [], comparableEvidence: withEvidence ? [decision] : [],
+  review: withEvidence ? [{
+    id: decision.id, court: decision.court, judgingBody: decision.judgingBody!,
+    processNumber: decision.processNumber!, source: decision.source,
+    documentReference: decision.sourceDocumentId!, sourceUrl: decision.sourceUrl!,
+    decisionDate: decision.decisionDate!, qualified: true, comparable: true,
+    exclusionReasons: [],
+  }] : [],
+})
+
+describe("judge DNA strategy adviser", () => {
+  it("abstains from attributing a strategy to a judge without documented comparable decisions", () => {
+    const result = buildJudgeStrategyAdvice(base(false), "Fatos do caso", "Tese")
+    expect(result.coverage).toBe("insufficient")
+    expect(result.actions.every(action => action.references.length === 0)).toBe(true)
+    expect(result.headline).toContain("não há decisões")
+  })
+  it("returns specific recorded grounds, the actual outcome and traceable sources", () => {
+    const result = buildJudgeStrategyAdvice(base(true), "Dano alegado", "Responsabilidade civil")
+    expect(result.coverage).toBe("documented")
+    expect(result.actions[0].recommendation).toContain("dano, nexo causal e conduta")
+    expect(result.actions[0].recommendation).toContain("insuficiência de prova")
+    expect(result.actions[0].references[0].sourceUrl).toBe("https://tribunal.example/decisao/42")
+    expect(result.actions[2].recommendation).toContain("reformulá-la")
+    expect(result.disclaimer).toContain("não previsão")
+  })
+})

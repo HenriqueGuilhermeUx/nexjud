@@ -209,6 +209,7 @@ export default function DecisionIntelligence() {
         <Database className="mx-auto text-gray-500 mb-3"/>
         <h2 className="font-bold text-xl">Vamos começar pelo processo</h2>
         <p className="text-gray-500 mt-2">Informe o número do processo. Quando localizarmos registros relacionados, mostraremos a quantidade recuperada e se há decisões com fundamentação suficiente para análise.</p>
+        <button type="button" onClick={() => navigate("/dashboard/precedent-intelligence")} className="mt-5 rounded-lg border border-primary/60 px-5 py-3 text-sm font-semibold text-primary">Já tenho decisões: analisar argumentos e estratégias</button>
       </section> : <>
         <section className="grid md:grid-cols-4 gap-4">
           <Box label="Registros processuais recuperados" value={String(recordsFound)} />

@@ -47,5 +47,8 @@ jobs:
       - name: Authenticated subscription isolation regression
         run: npx vitest run src/enterprise/subscriptionForUser.test.ts
 
+      - name: Strategic analysis authentication and evidence regressions
+        run: npx vitest run src/enterprise/strategicAnalysisSecurity.test.ts
+
       - name: Vite build
         run: npx vite build

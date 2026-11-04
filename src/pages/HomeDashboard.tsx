@@ -134,7 +134,7 @@ ${text}`)
     alert("Sinais processuais do DataJud adicionados. Movimentações não permitem calcular probabilidade de êxito.")
   } catch (error) {
     console.error(error)
-    alert("Erro ao buscar jurisprudência real no DataJud.")
+    alert("Erro ao consultar sinais processuais do DataJud.")
   } finally {
     setRealJurisLoading(false)
   }
@@ -354,13 +354,12 @@ Assunto: ${datajudProcess.subject}`
               </div>
 
               <p className="text-gray-400 text-lg mb-6">
-                Cole um resumo, tese, petição ou número CNJ. O NexJud transforma o caso em score,
-                riscos, jurisprudência preditiva, exposição financeira, War Room, auditoria e parecer executivo.
+                Cole um resumo, tese, petição ou número CNJ. O NexJud ajuda a organizar riscos, sinais processuais, cenários financeiros e estratégias para revisão profissional, sem prometer resultados.
               </p>
 
               <div className="grid sm:grid-cols-3 gap-3 text-sm text-gray-300">
                 <Badge text="DataJud/CNJ Oficial™" />
-                <Badge text="Jurisprudência Preditiva™" />
+                <Badge text="Análise de evidências e cenários" />
                 <Badge text="Financial Exposure™" />
                 <Badge text="Deal Economics™" />
                 <Badge text="Opponent Intelligence™" />
@@ -448,7 +447,7 @@ Assunto: ${datajudProcess.subject}`
     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div>
         <h3 className="font-bold text-xl text-green-400">
-          Jurisprudência Preditiva Real™
+          Sinais processuais observados — DataJud
         </h3>
         <p className="text-sm text-gray-400 mt-1">
           Busca casos semelhantes no DataJud usando classe, assunto e tribunal.
@@ -661,7 +660,7 @@ Assunto: ${datajudProcess.subject}`
                   {analysisResult.opponentIntelligence?.profile || "-"}
                 </p>
                 <p className="text-gray-400 mb-4">
-                  Chance de acordo: {analysisResult.opponentIntelligence?.settlementChance || "-"}
+                  Probabilidade de acordo: não validada
                 </p>
                 <List title="Táticas comuns" items={analysisResult.opponentIntelligence?.commonTactics} prefix="⚔️" />
                 <List title="Defesa esperada" items={analysisResult.opponentIntelligence?.expectedDefense} prefix="🛡️" />

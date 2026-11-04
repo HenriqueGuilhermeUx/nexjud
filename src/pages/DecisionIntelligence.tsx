@@ -39,6 +39,7 @@ export default function DecisionIntelligence() {
   const [selectedPrecedents, setSelectedPrecedents] = useState<string[]>([])
   const [strategyLoading, setStrategyLoading] = useState(false)
   const [strategyResult, setStrategyResult] = useState<any>(null)
+  const [strategySourceIds, setStrategySourceIds] = useState<string[]>([])
   const [strategyMessage, setStrategyMessage] = useState("")
   const searchGuard = useRef(new DecisionSearchGuard())
   const currentAuthUserId = useRef(user?.id)
@@ -51,6 +52,7 @@ export default function DecisionIntelligence() {
     setAvailablePrecedents([])
     setSelectedPrecedents([])
     setStrategyResult(null)
+    setStrategySourceIds([])
     setStrategyMessage("")
     setStrategyLoading(false)
   }, [user?.id])
@@ -60,6 +62,12 @@ export default function DecisionIntelligence() {
     try {
       const items = await getPrecedents(user.id)
       if (currentAuthUserId.current !== user.id) return
+      // Reloading sources invalidates a previous answer and its handoff.
+      searchGuard.current.invalidate()
+      setStrategyResult(null)
+      setStrategySourceIds([])
+      setSelectedPrecedents([])
+      setStrategyLoading(false)
       setAvailablePrecedents(items.filter((item: any) => item.id && (item.fundamento || item.resumo)))
       setStrategyMessage(items.length ? "" : "Sua biblioteca ainda não tem precedentes. Cadastre documentos de decisões reais em Precedentes e retorne para comparar as teses.")
     } catch {
@@ -73,19 +81,22 @@ export default function DecisionIntelligence() {
       setStrategyMessage("Informe os fatos do caso e a tese jurídica com detalhes antes de solicitar a estratégia."); return
     }
     const currentUserId = user.id
+    const selectedIdsAtRequest = [...selectedPrecedents]
     const guardVersion = searchGuard.current.begin()
     setStrategyLoading(true)
     setStrategyResult(null)
+    setStrategySourceIds([])
     setStrategyMessage("")
     try {
       const result = await runPrecedentIntelligenceAi({
         userId: currentUserId,
         caseFacts: caseText.trim(),
         legalIssue: lawyerArgument.trim(),
-        precedentIds: selectedPrecedents,
+        precedentIds: selectedIdsAtRequest,
       })
       if (!searchGuard.current.isCurrent(guardVersion) || currentAuthUserId.current !== currentUserId) return
       setStrategyResult(result?.result || null)
+      setStrategySourceIds(result?.result ? selectedIdsAtRequest : [])
       setStrategyMessage(result?.result ? "Estratégia preliminar gerada a partir dos precedentes selecionados. Confira cada fonte." : "O motor não retornou uma estratégia verificável.")
     } catch (error) {
       if (searchGuard.current.isCurrent(guardVersion)) setStrategyMessage(error instanceof Error ? error.message : "Falha ao analisar precedentes.")
@@ -95,6 +106,11 @@ export default function DecisionIntelligence() {
   }
 
   function continueWithDna(destination: "draft" | "hearing") {
+    if (!strategyResult || selectedPrecedents.length !== strategySourceIds.length ||
+        selectedPrecedents.some(id => !strategySourceIds.includes(id))) {
+      setStrategyMessage("As fontes selecionadas mudaram. Execute novamente a análise antes de preparar a peça ou audiência.")
+      return
+    }
     const dnaContext = buildDnaActionContext({
       userId: user?.id,
       facts: caseText,
@@ -121,6 +137,7 @@ export default function DecisionIntelligence() {
     setReviewLimit(8)
     setManualReview({})
     setStrategyResult(null)
+    setStrategySourceIds([])
     setStrategyMessage("")
     setStrategyLoading(false)
   }
@@ -253,7 +270,14 @@ export default function DecisionIntelligence() {
             {availablePrecedents.length > 0 && <div className="grid md:grid-cols-2 gap-2">
               {availablePrecedents.slice(0, 12).map(item => <label key={item.id} className="flex items-start gap-3 border border-[#343446] rounded-lg p-3 text-sm">
                 <input type="checkbox" checked={selectedPrecedents.includes(item.id)}
-                  onChange={event => setSelectedPrecedents(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))}
+                  onChange={event => {
+                    searchGuard.current.invalidate()
+                    setStrategyLoading(false)
+                    setStrategyResult(null)
+                    setStrategySourceIds([])
+                    setStrategyMessage("A seleção de precedentes mudou. Execute novamente a análise para obter uma orientação correspondente.")
+                    setSelectedPrecedents(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))
+                  }}
                   className="mt-1" />
                 <span><strong>{item.title || item.numero || "Decisão"}</strong><span className="block text-xs text-gray-400">{item.tribunal || "Tribunal não informado"} · {item.numero || "Referência não informada"}</span></span>
               </label>)}
@@ -284,6 +308,16 @@ export default function DecisionIntelligence() {
                 </button>
               </div>
               <p className="text-xs text-gray-400">O contexto acompanha você para a ferramenta escolhida, sem criar nova cobrança nem salvar dados automaticamente.</p>
+              <div className="rounded-lg border border-[#36364d] p-3 space-y-2">
+                <h5 className="font-semibold">Referências selecionadas para esta análise</h5>
+                <ul className="list-disc pl-5 text-xs text-gray-300">
+                  {strategySourceIds.map(id => {
+                    const item = availablePrecedents.find(p => p.id === id)
+                    return <li key={id}>{item ? [item.title || "Precedente", item.tribunal, item.numero].filter(Boolean).join(" · ") : "Referência indisponível — não utilizar sem revisão"}</li>
+                  })}
+                </ul>
+                <p className="text-xs text-amber-200">Referências cadastradas na sua biblioteca; o NexJud não verificou automaticamente sua autenticidade nem confirmou que pertencem ao magistrado informado. Confira o documento original antes de citar.</p>
+              </div>
               <p className="text-xs text-amber-200">Orientação gerada por IA a partir dos precedentes selecionados da biblioteca. Confira o texto, a fonte e a pertinência fática; não é conclusão empírica sobre este juiz.</p>
             </div>}
           </div>

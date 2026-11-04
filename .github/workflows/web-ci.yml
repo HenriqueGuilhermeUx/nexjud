@@ -59,5 +59,8 @@ jobs:
       - name: Judge DNA flagship pilot regression
         run: npx vitest run src/intelligence/judgeDnaFlagship.test.ts
 
+      - name: Judge DNA commercial and DJEN safety gates
+        run: npx vitest run src/intelligence/dnaCommercialParity.test.ts src/intelligence/djenIntakeGate.test.ts
+
       - name: Vite build
         run: npx vite build

@@ -12,6 +12,7 @@ import { DecisionSearchGuard } from "@/intelligence/decisionSearchGuard"
 import { buildDecisionReviewWorksheet } from "@/intelligence/decisionReviewWorksheet"
 import ManualCourtDecisionReview from "@/components/ManualCourtDecisionReview"
 import { historyUserIdForSearch } from "@/intelligence/historyWritePolicy"
+import { assessPredictiveReadiness, buildPredictiveEvidenceDossier } from "@/intelligence/predictiveEvidenceDossier"
 
 export default function DecisionIntelligence() {
   const { user } = useAuth()
@@ -98,6 +99,27 @@ export default function DecisionIntelligence() {
   const p = evidence?.prediction
   const sample = audit?.comparableDecisions ?? 0
   const recordsFound = evidence?.cases?.length ?? 0
+  const predictiveReadiness = audit ? assessPredictiveReadiness(audit) : null
+
+  function downloadEvidenceDossier() {
+    if (!audit || !process) return
+    const content = buildPredictiveEvidenceDossier({
+      processNumber: cnj,
+      court: process.court || alias,
+      judgingBody: process.courtUnit || "",
+      caseDescription: caseText,
+      argument: lawyerArgument,
+      audit,
+      pattern: observedPattern,
+      generatedAt: new Date().toISOString(),
+    })
+    const url = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }))
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `nexjud-evidencias-${cnj.replace(/\D/g, "") || "processo"}.txt`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
   const reviewDocuments = evidence?.argument && audit
     ? buildDecisionReviewWorksheet(evidence.normalized || [], {
         court: process?.court,
@@ -156,6 +178,23 @@ export default function DecisionIntelligence() {
           </p>}
           {observedPattern && <p className="text-sm text-gray-400 mt-3">Base estruturada: {observedPattern.decisionsAnalyzed} decisões públicas normalizadas{observedPattern.period ? ` · ${observedPattern.period}` : ""}. Cada padrão mantém vínculo com as decisões que o sustentam.</p>}
         </section>
+        {predictiveReadiness && <section className="rounded-2xl border border-primary/30 bg-[#111118] p-6 space-y-4" aria-label="Prontidão da inteligência preditiva">
+          <div className="flex flex-wrap gap-4 justify-between items-start">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-primary font-bold">NexJud · Inteligência Preditiva</p>
+              <h2 className="text-2xl font-bold mt-1">{predictiveReadiness.label}</h2>
+              <p className="text-sm text-gray-300 mt-2 max-w-3xl">{predictiveReadiness.explanation}</p>
+            </div>
+            <button type="button" onClick={downloadEvidenceDossier} className="rounded-xl bg-primary px-5 py-3 font-semibold text-white">
+              Baixar dossiê de evidências
+            </button>
+          </div>
+          <p className="text-xs text-amber-200">O dossiê contém fontes, contagens, exclusões e próximos passos. Não fornece percentual de êxito nem julgamento automatizado.</p>
+          <h3 className="font-semibold">Próximas verificações para fortalecer a análise</h3>
+          <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
+            {predictiveReadiness.nextActions.map((action, index) => <li key={index}>{action}</li>)}
+          </ul>
+        </section>}
         {audit && <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6 space-y-4" aria-label="Auditoria das evidências">
           <h2 className="font-bold text-xl">Auditoria das fontes e limitações</h2>
           <p className="text-sm text-gray-400">

@@ -50,5 +50,8 @@ jobs:
       - name: Subscription lookup failure and retry regression
         run: npx vitest run src/enterprise/subscriptionLookupRecovery.test.ts
 
+      - name: Predictive evidence dossier regressions
+        run: npx vitest run src/intelligence/predictiveEvidenceDossier.test.ts
+
       - name: Vite build
         run: npx vite build

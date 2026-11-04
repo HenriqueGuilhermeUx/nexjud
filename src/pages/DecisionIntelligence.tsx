@@ -48,7 +48,7 @@ export default function DecisionIntelligence() {
     try {
       const items = await getPrecedents(user.id)
       setAvailablePrecedents(items.filter((item: any) => item.id && (item.fundamento || item.resumo)))
-      setStrategyMessage(items.length ? "" : "Sua biblioteca ainda não tem precedentes. Adicione decisões reais na Biblioteca de Precedentes.")
+      setStrategyMessage(items.length ? "" : "Sua biblioteca ainda não tem precedentes. Cadastre documentos de decisões reais em Precedentes e retorne para comparar as teses.")
     } catch {
       setStrategyMessage("Não foi possível carregar seus precedentes. Verifique a conexão e tente novamente.")
     }
@@ -217,7 +217,10 @@ export default function DecisionIntelligence() {
               <h3 className="font-semibold text-lg">Analisar estratégia com IA e precedentes reais</h3>
               <p className="text-sm text-gray-400 mt-1">Use decisões da sua Biblioteca de Precedentes para confrontar a tese com fatos, distinguishing, prova e contra-argumentos. O texto gerado exige revisão e não determina o comportamento do magistrado.</p>
             </div>
-            <button type="button" onClick={() => { void loadPrecedents() }} className="rounded-lg border border-primary/50 px-4 py-2 text-sm">Carregar precedentes da biblioteca</button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" onClick={() => { void loadPrecedents() }} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">1. Buscar decisões da minha biblioteca</button>
+              <button type="button" onClick={() => navigate("/dashboard/precedents")} className="rounded-lg border border-primary/50 px-4 py-2 text-sm">Cadastrar decisões e fontes</button>
+            </div>
             {availablePrecedents.length > 0 && <div className="grid md:grid-cols-2 gap-2">
               {availablePrecedents.slice(0, 12).map(item => <label key={item.id} className="flex items-start gap-3 border border-[#343446] rounded-lg p-3 text-sm">
                 <input type="checkbox" checked={selectedPrecedents.includes(item.id)}
@@ -253,21 +256,12 @@ export default function DecisionIntelligence() {
         <p className="text-gray-500 mt-2">Informe o número do processo. Quando localizarmos registros relacionados, mostraremos a quantidade recuperada e se há decisões com fundamentação suficiente para análise.</p>
         <button type="button" onClick={() => navigate("/dashboard/precedent-intelligence")} className="mt-5 rounded-lg border border-primary/60 px-5 py-3 text-sm font-semibold text-primary">Já tenho decisões: analisar argumentos e estratégias</button>
       </section> : <>
-        <section className="grid md:grid-cols-4 gap-4">
-          <Box label="Registros processuais recuperados" value={String(recordsFound)} />
-          <Box label="Decisões documentadas na busca" value={String(audit?.qualifiedDecisions ?? 0)} />
-          <Box label="Decisões comparáveis ao juízo" value={String(sample)} />
-          <Box label="Período de decisões comparáveis" value={audit?.period || "Não identificado"} />
-        </section>
         <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
           <h2 className="font-bold text-xl flex items-center gap-2"><Scale className="text-primary"/> O que encontramos</h2>
           <p className="text-gray-400 mt-2">Classe: {process?.className || "-"} · Assunto: {process?.subject || "-"} · Unidade: {process?.courtUnit || "-"}</p>
           <p className="text-sm text-gray-500 mt-3">{observedPattern?.warning || p?.warning || "Os registros encontrados servem como contexto, não como prova de tendência decisória ou probabilidade de êxito."}</p>
           {!observedPattern && <p role="status" className="text-sm text-amber-300 mt-3">
-            Não há amostra comparável suficiente para descrever padrões deste juízo. Exigimos, para uma
-            síntese exploratória, ao menos três decisões distintas do mesmo órgão, com fundamentação,
-            resultado, data e origem rastreável. Esse mínimo não garante representatividade
-            nem autoriza previsão de êxito ou de comportamento do magistrado.
+            A consulta processual ainda não trouxe fundamentos de decisões suficientes para identificar o entendimento do juízo. Use a biblioteca de decisões acima para comparar teses e estratégias, sem atribuir automaticamente os precedentes a um magistrado.
           </p>}
           {observedPattern && <p className="text-sm text-gray-400 mt-3">Base estruturada: {observedPattern.decisionsAnalyzed} decisões públicas normalizadas{observedPattern.period ? ` · ${observedPattern.period}` : ""}. Cada padrão mantém vínculo com as decisões que o sustentam.</p>}
         </section>

@@ -23,6 +23,6 @@ describe("DNA source-consistent strategy actions", () => {
   it("identifies library sources as unverified rather than verified court documents", () => {
     expect(page).toContain("Referências selecionadas para esta análise")
     expect(page).toContain("não verificou automaticamente sua autenticidade")
-    expect(page).toContain("não confirmou que pertencem ao magistrado informado")
+    expect(page).toContain("nem confirmou que pertencem ao magistrado informado")
   })
 })

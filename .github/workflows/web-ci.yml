@@ -47,5 +47,8 @@ jobs:
       - name: Authenticated subscription isolation regression
         run: npx vitest run src/enterprise/subscriptionForUser.test.ts
 
+      - name: Subscription lookup failure and retry regression
+        run: npx vitest run src/enterprise/subscriptionLookupRecovery.test.ts
+
       - name: Vite build
         run: npx vite build

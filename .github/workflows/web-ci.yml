@@ -53,5 +53,8 @@ jobs:
       - name: Predictive evidence dossier regressions
         run: npx vitest run src/intelligence/predictiveEvidenceDossier.test.ts
 
+      - name: Judge DNA sourced strategy regression
+        run: npx vitest run src/intelligence/judgeStrategyAdvice.test.ts
+
       - name: Vite build
         run: npx vite build

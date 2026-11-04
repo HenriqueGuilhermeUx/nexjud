@@ -322,7 +322,7 @@ Assunto: ${datajudProcess.subject}`
             {[
               { label: "Conversar com a IA", detail: "Tire dúvidas e pesquise", path: "/dashboard/legal-chat", icon: Brain },
               { label: "Analisar processo", detail: "Entenda riscos e estratégias", path: "/dashboard/ai-copilot", icon: Scale },
-              { label: "Inteligência decisória", detail: "Confronte evidências e fontes do juízo", path: "/dashboard/decision-intelligence", icon: Target },
+              { label: "DNA do Juiz — IA Preditiva", detail: "Argumentos, provas e estratégia com decisões", path: "/dashboard/decision-intelligence", icon: Target },
               { label: "Criar documento", detail: "Peças, contratos e minutas", path: "/dashboard/draft-generator", icon: FileText },
               { label: "Meus processos", detail: "Organize e acompanhe casos", path: "/dashboard/legal-cases", icon: Database },
             ].map(({ label, detail, path, icon: Icon }) => (

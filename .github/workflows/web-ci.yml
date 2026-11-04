@@ -41,5 +41,8 @@ jobs:
       - name: Commercial copy and PDF HTML safety regressions
         run: npx vitest run src/enterprise/commercialPredictiveCopy.test.ts src/enterprise/pdfReportSecurity.test.ts
 
+      - name: Checkout login return regression
+        run: npx vitest run src/enterprise/postLoginDestination.test.ts
+
       - name: Vite build
         run: npx vite build

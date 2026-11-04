@@ -7,7 +7,7 @@ const decision: JudicialDecisionEvidence = {
   id: "decision-1", source: "tribunal_publico", sourceDocumentId: "acordao-42",
   sourceUrl: "https://tribunal.example/decisao/42",
   processNumber: "1234567-89.2025.8.26.0001",
-  court: "TJSP", judgingBody: "1ª Vara Cível", decisionDate: "2025-10-09",
+  court: "TJSP", judgingBody: "1ª Vara Cível", judgeOrRapporteur: "Juíza Maria Silva", decisionDate: "2025-10-09",
   caseClass: "Procedimento Comum", subjects: ["Responsabilidade civil"],
   reasoning: ["O autor deve demonstrar dano, nexo causal e conduta."],
   observedOutcome: "Pedido rejeitado por insuficiência de prova", legalTheses: ["Ônus da prova"],
@@ -34,6 +34,16 @@ describe("judge DNA strategy adviser", () => {
     expect(result.coverage).toBe("insufficient")
     expect(result.actions.every(action => action.references.length === 0)).toBe(true)
     expect(result.headline).toContain("não há decisões")
+  })
+  it("never attributes a different magistrate's decision to the requested judge", () => {
+    const result = buildJudgeStrategyAdvice(base(true), "Fatos", "Tese", "Juiz João Santos")
+    expect(result.coverage).toBe("insufficient")
+    expect(result.headline).toContain("magistrado informado")
+    expect(result.actions.every(action => action.references.length === 0)).toBe(true)
+  })
+  it("accepts an exact magistrate match with normalized whitespace and case", () => {
+    const result = buildJudgeStrategyAdvice(base(true), "Fatos", "Tese", "  JUÍZA   MARIA SILVA  ")
+    expect(result.coverage).toBe("documented")
   })
   it("returns specific recorded grounds, the actual outcome and traceable sources", () => {
     const result = buildJudgeStrategyAdvice(base(true), "Dano alegado", "Responsabilidade civil")

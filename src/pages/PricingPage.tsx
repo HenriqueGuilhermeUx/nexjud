@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Check, Crown, Sparkles, Shield, Zap, Copy, Loader2 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { PlanType } from "@/services/subscriptionService"
@@ -42,6 +43,7 @@ const plans = [
 
 export default function PricingPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const [checkout, setCheckout] = useState<any>(null)
   const [taxId, setTaxId] = useState("")
@@ -73,7 +75,7 @@ export default function PricingPage() {
 
   async function choosePlan(plan: PlanType) {
     if (!user?.id || !user?.email) {
-      alert("Faça login novamente.")
+      navigate("/login?next=%2Fpricing")
       return
     }
 

@@ -111,7 +111,8 @@ export default function DecisionIntelligence() {
       setStrategySourceIds([])
       setSelectedPrecedents([])
       setStrategyLoading(false)
-      setAvailablePrecedents(items.filter((item: any) => item.id && (item.fundamento || item.resumo)))
+      setAvailablePrecedents(items.filter((item: any) => item.id && (item.fundamento || item.resumo) &&
+        !(Array.isArray(item.tags) && item.tags.some((tag: string) => tag.toLocaleLowerCase("pt-BR").includes("revisão manual pendente")))))
       setStrategyMessage(items.length ? "" : "Sua biblioteca ainda não tem precedentes. Cadastre documentos de decisões reais em Precedentes e retorne para comparar as teses.")
     } catch {
       setStrategyMessage("Não foi possível carregar seus precedentes. Verifique a conexão e tente novamente.")

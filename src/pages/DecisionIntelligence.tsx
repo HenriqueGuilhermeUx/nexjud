@@ -40,15 +40,27 @@ export default function DecisionIntelligence() {
   const [strategyResult, setStrategyResult] = useState<any>(null)
   const [strategyMessage, setStrategyMessage] = useState("")
   const searchGuard = useRef(new DecisionSearchGuard())
+  const currentAuthUserId = useRef(user?.id)
+  currentAuthUserId.current = user?.id
 
   useEffect(() => () => searchGuard.current.invalidate(), [])
+  useEffect(() => {
+    // A new account must not see the former account's saved precedents or strategy.
+    searchGuard.current.invalidate()
+    setAvailablePrecedents([])
+    setSelectedPrecedents([])
+    setStrategyResult(null)
+    setStrategyMessage("")
+    setStrategyLoading(false)
+  }, [user?.id])
 
   async function loadPrecedents() {
     if (!user?.id) { setStrategyMessage("Entre na sua conta para consultar os precedentes salvos."); return }
     try {
       const items = await getPrecedents(user.id)
+      if (currentAuthUserId.current !== user.id) return
       setAvailablePrecedents(items.filter((item: any) => item.id && (item.fundamento || item.resumo)))
-      setStrategyMessage(items.length ? "" : "Sua biblioteca ainda não tem precedentes. Adicione decisões reais na Biblioteca de Precedentes.")
+      setStrategyMessage(items.length ? "" : "Sua biblioteca ainda não tem precedentes. Cadastre documentos de decisões reais em Precedentes e retorne para comparar as teses.")
     } catch {
       setStrategyMessage("Não foi possível carregar seus precedentes. Verifique a conexão e tente novamente.")
     }
@@ -71,7 +83,7 @@ export default function DecisionIntelligence() {
         legalIssue: lawyerArgument.trim(),
         precedentIds: selectedPrecedents,
       })
-      if (!searchGuard.current.isCurrent(guardVersion)) return
+      if (!searchGuard.current.isCurrent(guardVersion) || currentAuthUserId.current !== currentUserId) return
       setStrategyResult(result?.result || null)
       setStrategyMessage(result?.result ? "Estratégia preliminar gerada a partir dos precedentes selecionados. Confira cada fonte." : "O motor não retornou uma estratégia verificável.")
     } catch (error) {
@@ -181,13 +193,13 @@ export default function DecisionIntelligence() {
   return <div className="min-h-screen bg-background text-foreground">
     <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-7">
       <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-indigo-500/10 to-[#05050a] p-8 lg:p-10">
-        <div className="inline-flex items-center gap-2 text-primary text-sm mb-4"><Brain size={17}/> ANÁLISE DO JUÍZO</div>
-        <h1 className="text-4xl lg:text-5xl font-bold">Como este juízo costuma decidir casos como o seu?</h1>
-        <p className="text-gray-400 text-lg mt-4 max-w-4xl">Informe o processo e, se quiser, acrescente os pontos principais da sua tese. A NexJud consulta registros processuais públicos para contextualizar o caso. A comparação de fundamentações e resultados dependerá de decisões com inteiro teor verificável; não há previsão de êxito.</p>
+        <div className="inline-flex items-center gap-2 text-primary text-sm mb-4"><Brain size={17}/> NEXJUD · CARRO-CHEFE</div>
+        <h1 className="text-4xl lg:text-5xl font-bold">DNA do Juiz — IA Preditiva</h1>
+        <p className="text-gray-400 text-lg mt-4 max-w-4xl">Descubra quais fundamentos, argumentos e provas merecem atenção, confronte decisões documentadas e prepare a melhor estratégia para o seu caso. Identificamos tribunal, vara e magistrado quando os documentos permitem. Sem decisões atribuíveis ao juiz, não inventamos seu perfil.</p>
       </section>
 
       <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6 space-y-4">
-        <h2 className="font-bold text-xl">Por onde quer começar?</h2>
+        <h2 className="font-bold text-xl">Conte o caso e, se tiver, informe o processo e o magistrado</h2>
         <div className="grid lg:grid-cols-4 gap-3">
           <input value={cnj} onChange={e=>{ invalidateCurrentSearch(); setCnj(formatCnj(e.target.value)) }} placeholder="Número CNJ" className="lg:col-span-2 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
           <input value={alias} onChange={e=>{ invalidateCurrentSearch(); setAlias(e.target.value.toLowerCase()) }} placeholder="Tribunal: tjsp, trt2..." className="rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
@@ -208,56 +220,19 @@ export default function DecisionIntelligence() {
         <textarea value={lawyerArgument} onChange={e=>{ invalidateCurrentSearch(); setLawyerArgument(e.target.value) }} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
       </section>
 
-      {message && <p role="alert" className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-sm text-amber-200">{message}</p>}
-      {!evidence ? <section className="rounded-2xl border border-dashed border-[#343442] p-8 text-center">
-        <Database className="mx-auto text-gray-500 mb-3"/>
-        <h2 className="font-bold text-xl">Vamos começar pelo processo</h2>
-        <p className="text-gray-500 mt-2">Informe o número do processo. Quando localizarmos registros relacionados, mostraremos a quantidade recuperada e se há decisões com fundamentação suficiente para análise.</p>
-        <button type="button" onClick={() => navigate("/dashboard/precedent-intelligence")} className="mt-5 rounded-lg border border-primary/60 px-5 py-3 text-sm font-semibold text-primary">Já tenho decisões: analisar argumentos e estratégias</button>
-      </section> : <>
-        <section className="grid md:grid-cols-4 gap-4">
-          <Box label="Registros processuais recuperados" value={String(recordsFound)} />
-          <Box label="Decisões documentadas na busca" value={String(audit?.qualifiedDecisions ?? 0)} />
-          <Box label="Decisões comparáveis ao juízo" value={String(sample)} />
-          <Box label="Período de decisões comparáveis" value={audit?.period || "Não identificado"} />
-        </section>
-        <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
-          <h2 className="font-bold text-xl flex items-center gap-2"><Scale className="text-primary"/> O que encontramos</h2>
-          <p className="text-gray-400 mt-2">Classe: {process?.className || "-"} · Assunto: {process?.subject || "-"} · Unidade: {process?.courtUnit || "-"}</p>
-          <p className="text-sm text-gray-500 mt-3">{observedPattern?.warning || p?.warning || "Os registros encontrados servem como contexto, não como prova de tendência decisória ou probabilidade de êxito."}</p>
-          {!observedPattern && <p role="status" className="text-sm text-amber-300 mt-3">
-            Não há amostra comparável suficiente para descrever padrões deste juízo. Exigimos, para uma
-            síntese exploratória, ao menos três decisões distintas do mesmo órgão, com fundamentação,
-            resultado, data e origem rastreável. Esse mínimo não garante representatividade
-            nem autoriza previsão de êxito ou de comportamento do magistrado.
-          </p>}
-          {observedPattern && <p className="text-sm text-gray-400 mt-3">Base estruturada: {observedPattern.decisionsAnalyzed} decisões públicas normalizadas{observedPattern.period ? ` · ${observedPattern.period}` : ""}. Cada padrão mantém vínculo com as decisões que o sustentam.</p>}
-        </section>
-        {judgeAdvice && <section className="rounded-2xl border border-primary/40 bg-gradient-to-br from-[#151525] to-[#0d0d15] p-6 space-y-5" aria-label="DNA estratégico do juízo">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-primary font-bold">NexJud · DNA estratégico do juízo</p>
-            <h2 className="text-2xl font-bold mt-2">Qual estratégia vale testar neste caso?</h2>
-            <p className="text-sm text-gray-300 mt-2">{judgeAdvice.headline}</p>
-            <p className="text-xs text-amber-200 mt-3">{judgeAdvice.disclaimer}</p>
-          </div>
-          <div className="grid lg:grid-cols-3 gap-3">
-            {judgeAdvice.actions.map((action) => <article key={action.title} className="rounded-xl border border-[#36364d] bg-black/20 p-4 space-y-3">
-              <h3 className="font-semibold">{action.title}</h3>
-              <p className="whitespace-pre-wrap break-words text-sm text-gray-200">{action.recommendation}</p>
-              <p className="text-xs text-gray-400">{action.rationale}</p>
-              {action.references.length > 0 && <div className="text-xs text-primary">
-                Fontes: {action.references.map(ref => ref.sourceUrl
-                  ? <a key={ref.id} href={ref.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline mr-2">{ref.document}</a>
-                  : <span key={ref.id} className="mr-2">{ref.document} (conferir no tribunal)</span>)}
-              </div>}
-            </article>)}
-          </div>
+      <section className="rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/15 via-[#151525] to-[#0d0d15] p-6 space-y-4" aria-label="Análise estratégica com IA">
+        <p className="text-xs uppercase tracking-widest text-primary font-bold">Motor estratégico de IA · trabalho com precedentes</p>
+        <h2 className="text-2xl font-bold">Qual tese defender, reforçar ou reformular?</h2>
+        <p className="text-sm text-gray-300">Descreva os fatos e sua tese acima. Selecione precedentes documentados da sua biblioteca para gerar orientações sobre argumentos, objeções, provas e próximos passos. Funciona também sem número CNJ.</p>
           <div className="rounded-xl border border-[#414158] p-5 space-y-4">
             <div>
-              <h3 className="font-semibold text-lg">Aprofundar com a IA de estratégia e precedentes</h3>
+              <h3 className="font-semibold text-lg">Analisar estratégia com IA e precedentes reais</h3>
               <p className="text-sm text-gray-400 mt-1">Use decisões da sua Biblioteca de Precedentes para confrontar a tese com fatos, distinguishing, prova e contra-argumentos. O texto gerado exige revisão e não determina o comportamento do magistrado.</p>
             </div>
-            <button type="button" onClick={() => { void loadPrecedents() }} className="rounded-lg border border-primary/50 px-4 py-2 text-sm">Carregar precedentes da biblioteca</button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" onClick={() => { void loadPrecedents() }} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">1. Buscar decisões da minha biblioteca</button>
+              <button type="button" onClick={() => navigate("/dashboard/precedents")} className="rounded-lg border border-primary/50 px-4 py-2 text-sm">Cadastrar decisões e fontes</button>
+            </div>
             {availablePrecedents.length > 0 && <div className="grid md:grid-cols-2 gap-2">
               {availablePrecedents.slice(0, 12).map(item => <label key={item.id} className="flex items-start gap-3 border border-[#343446] rounded-lg p-3 text-sm">
                 <input type="checkbox" checked={selectedPrecedents.includes(item.id)}
@@ -284,6 +259,44 @@ export default function DecisionIntelligence() {
               <p className="text-xs text-amber-200">Orientação gerada por IA a partir dos precedentes selecionados da biblioteca. Confira o texto, a fonte e a pertinência fática; não é conclusão empírica sobre este juiz.</p>
             </div>}
           </div>
+      </section>
+
+      {message && <p role="alert" className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-sm text-amber-200">{message}</p>}
+      {!evidence ? <section className="rounded-2xl border border-dashed border-[#343442] p-8 text-center">
+        <Database className="mx-auto text-gray-500 mb-3"/>
+        <h2 className="font-bold text-xl">Vamos começar pelo processo</h2>
+        <p className="text-gray-500 mt-2">Informe o número do processo. Quando localizarmos registros relacionados, mostraremos a quantidade recuperada e se há decisões com fundamentação suficiente para análise.</p>
+        <button type="button" onClick={() => navigate("/dashboard/precedent-intelligence")} className="mt-5 rounded-lg border border-primary/60 px-5 py-3 text-sm font-semibold text-primary">Já tenho decisões: analisar argumentos e estratégias</button>
+      </section> : <>
+        <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
+          <h2 className="font-bold text-xl flex items-center gap-2"><Scale className="text-primary"/> O que encontramos</h2>
+          <p className="text-gray-400 mt-2">Classe: {process?.className || "-"} · Assunto: {process?.subject || "-"} · Unidade: {process?.courtUnit || "-"}</p>
+          <p className="text-sm text-gray-500 mt-3">{observedPattern?.warning || p?.warning || "Os registros encontrados servem como contexto, não como prova de tendência decisória ou probabilidade de êxito."}</p>
+          {!observedPattern && <p role="status" className="text-sm text-amber-300 mt-3">
+            A consulta processual ainda não trouxe fundamentos de decisões suficientes para identificar o entendimento do juízo. Use a biblioteca de decisões acima para comparar teses e estratégias, sem atribuir automaticamente os precedentes a um magistrado.
+          </p>}
+          {observedPattern && <p className="text-sm text-gray-400 mt-3">Base estruturada: {observedPattern.decisionsAnalyzed} decisões públicas normalizadas{observedPattern.period ? ` · ${observedPattern.period}` : ""}. Cada padrão mantém vínculo com as decisões que o sustentam.</p>}
+        </section>
+        {judgeAdvice && <section className="rounded-2xl border border-primary/40 bg-gradient-to-br from-[#151525] to-[#0d0d15] p-6 space-y-5" aria-label="DNA estratégico do juízo">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-primary font-bold">NexJud · DNA estratégico do juízo</p>
+            <h2 className="text-2xl font-bold mt-2">Qual estratégia vale testar neste caso?</h2>
+            <p className="text-sm text-gray-300 mt-2">{judgeAdvice.headline}</p>
+            <p className="text-xs text-amber-200 mt-3">{judgeAdvice.disclaimer}</p>
+          </div>
+          <div className="grid lg:grid-cols-3 gap-3">
+            {judgeAdvice.actions.map((action) => <article key={action.title} className="rounded-xl border border-[#36364d] bg-black/20 p-4 space-y-3">
+              <h3 className="font-semibold">{action.title}</h3>
+              <p className="whitespace-pre-wrap break-words text-sm text-gray-200">{action.recommendation}</p>
+              <p className="text-xs text-gray-400">{action.rationale}</p>
+              {action.references.length > 0 && <div className="text-xs text-primary">
+                Fontes: {action.references.map(ref => ref.sourceUrl
+                  ? <a key={ref.id} href={ref.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline mr-2">{ref.document}</a>
+                  : <span key={ref.id} className="mr-2">{ref.document} (conferir no tribunal)</span>)}
+              </div>}
+            </article>)}
+          </div>
+
         </section>}
         {predictiveReadiness && <section className="rounded-2xl border border-primary/30 bg-[#111118] p-6 space-y-4" aria-label="Prontidão da inteligência preditiva">
           <div className="flex flex-wrap gap-4 justify-between items-start">

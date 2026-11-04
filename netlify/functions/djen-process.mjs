@@ -1,5 +1,7 @@
 import { normalizeDjenPublicPage } from "../lib/djenPublic.mjs"
 
+const recentQueries = new Map()
+
 const json = (status, body, extra = {}) => Response.json(body, {
   status, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...extra },
 })
@@ -29,6 +31,13 @@ export default async function handler(request) {
     if (!verified.ok) return json(401, { error: "invalid_session" })
     const account = await verified.json()
     if (!account?.id) return json(401, { error: "invalid_session" })
+    // Best-effort per-instance throttle. CNJ rate-limit headers and HTTP 429 remain authoritative.
+    const now = Date.now()
+    for (const [key, at] of recentQueries) if (now - at > 60000) recentQueries.delete(key)
+    if (now - (recentQueries.get(account.id) || 0) < 10000) {
+      return json(429, { error: "local_throttle", guidance: "Aguarde 10 segundos antes de nova consulta." }, { "Retry-After": "10" })
+    }
+    recentQueries.set(account.id, now)
     // One page, five records, process-scoped. No scheduling, backfill or data persistence.
     const query = new URL("https://comunicaapi.pje.jus.br/api/v1/comunicacao")
     query.searchParams.set("numeroProcesso", process)

@@ -230,7 +230,7 @@ export default function DecisionIntelligence() {
         </section>
         {judgeAdvice && <section className="rounded-2xl border border-primary/40 bg-gradient-to-br from-[#151525] to-[#0d0d15] p-6 space-y-5" aria-label="DNA estratégico do juízo">
           <div>
-            <p className="text-xs uppercase tracking-widest text-primary font-bold">NexaJud · DNA estratégico do juízo</p>
+            <p className="text-xs uppercase tracking-widest text-primary font-bold">NexJud · DNA estratégico do juízo</p>
             <h2 className="text-2xl font-bold mt-2">Qual estratégia vale testar neste caso?</h2>
             <p className="text-sm text-gray-300 mt-2">{judgeAdvice.headline}</p>
             <p className="text-xs text-amber-200 mt-3">{judgeAdvice.disclaimer}</p>

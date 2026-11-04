@@ -1,11 +1,11 @@
 import { ArrowRight, Brain, Database, FileText, Gavel, ShieldAlert, Sparkles } from "lucide-react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 
 const steps = [
   {
     icon: Brain,
     title: "1. Comece pela análise estratégica",
-    text: "Cole um caso, tese, petição ou número CNJ. O NexJud gera score, riscos, tese vencedora e próximos movimentos.",
+    text: "Cole um caso, tese, petição ou número CNJ. O NexJud ajuda a estruturar argumentos, riscos e próximos passos para revisão.",
   },
   {
     icon: Database,
@@ -15,7 +15,7 @@ const steps = [
   {
     icon: Gavel,
     title: "3. Simule o juiz",
-    text: "Use o Judge Simulator para prever pontos favoráveis, riscos e provável decisão.",
+    text: "Use o Judge Simulator para ensaiar argumentos e objeções em uma simulação — não é uma previsão judicial validada.",
   },
   {
     icon: ShieldAlert,
@@ -31,10 +31,12 @@ const steps = [
 
 export default function Tutorial() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const returningToPricing = searchParams.get("next") === "/pricing"
 
   function finishTutorial() {
     localStorage.setItem("nexjud_onboarding", "done")
-    navigate("/dashboard")
+    navigate(returningToPricing ? "/pricing" : "/dashboard")
   }
 
   return (
@@ -70,7 +72,7 @@ export default function Tutorial() {
             onClick={finishTutorial}
             className="py-4 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2"
           >
-            Começar análise
+            {returningToPricing ? "Continuar para planos" : "Começar análise"}
             <ArrowRight size={18} />
           </button>
 

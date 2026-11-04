@@ -65,5 +65,8 @@ jobs:
       - name: DNA to drafting and hearing action regression
         run: npx vitest run src/intelligence/dnaActionHandoff.test.ts
 
+      - name: DNA strategy source consistency regression
+        run: npx vitest run src/intelligence/dnaStrategySourceBinding.test.ts
+
       - name: Vite build
         run: npx vite build

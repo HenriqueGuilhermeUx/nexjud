@@ -226,6 +226,31 @@ Deno.serve(async (req) => {
       return Response.json({ error: "Sessão inválida." }, { status: 401, headers: corsHeaders });
     }
 
+    // Server-side entitlement check; frontend gates alone are not a payment boundary.
+    const { data: subscription, error: entitlementError } = await authClient
+      .from("subscriptions")
+      .select("plan,status,active,trial_end,current_period_end")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (entitlementError) {
+      return Response.json({ error: "Não foi possível validar o plano." }, { status: 503, headers: corsHeaders });
+    }
+    const now = Date.now();
+    const trialValid = subscription?.active === true &&
+      subscription.status === "trialing" &&
+      !!subscription.trial_end &&
+      Number.isFinite(Date.parse(subscription.trial_end)) &&
+      Date.parse(subscription.trial_end) > now;
+    const paidPlan = ["pro", "intelligence", "enterprise", "enterprise_plus"].includes(subscription?.plan ?? "");
+    const paidValid = subscription?.active === true &&
+      subscription.status === "active" && paidPlan &&
+      (!subscription.current_period_end ||
+        (Number.isFinite(Date.parse(subscription.current_period_end)) &&
+          Date.parse(subscription.current_period_end) > now));
+    if (!trialValid && !paidValid) {
+      return Response.json({ error: "Plano ou trial ativo necessário." }, { status: 403, headers: corsHeaders });
+    }
+
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
     if (!OPENAI_API_KEY) {

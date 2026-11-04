@@ -16,6 +16,17 @@ describe("strategic analysis — authenticated and evidence-bound", () => {
     expect(source).toContain('status: 405')
   })
 
+  it("checks the user's active trial or paid entitlement before model use", () => {
+    const entitlement = source.indexOf('.from("subscriptions")')
+    const model = source.indexOf('fetch("https://api.openai.com/v1/responses"')
+    expect(entitlement).toBeGreaterThan(source.indexOf("authClient.auth.getUser()"))
+    expect(model).toBeGreaterThan(entitlement)
+    expect(source).toContain('status: 403')
+    expect(source).toContain('status: 503')
+    expect(source).toContain('subscription.status === "trialing"')
+    expect(source).toContain('subscription.status === "active"')
+  })
+
   it("refuses to return generative legal win-rate estimates", () => {
     expect(source).toContain("successProbability: null")
     expect(source).toContain("predictionValidated: false")

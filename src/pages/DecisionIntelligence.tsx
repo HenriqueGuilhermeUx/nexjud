@@ -13,6 +13,9 @@ import { buildDecisionReviewWorksheet } from "@/intelligence/decisionReviewWorks
 import ManualCourtDecisionReview from "@/components/ManualCourtDecisionReview"
 import { historyUserIdForSearch } from "@/intelligence/historyWritePolicy"
 import { assessPredictiveReadiness, buildPredictiveEvidenceDossier } from "@/intelligence/predictiveEvidenceDossier"
+import { buildJudgeStrategyAdvice } from "@/intelligence/judgeStrategyAdvice"
+import { getPrecedents } from "@/services/precedentsService"
+import { runPrecedentIntelligenceAi } from "@/services/precedentIntelligenceService"
 
 export default function DecisionIntelligence() {
   const { user } = useAuth()
@@ -30,9 +33,52 @@ export default function DecisionIntelligence() {
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
   const [saveToHistory, setSaveToHistory] = useState(false)
+  const [availablePrecedents, setAvailablePrecedents] = useState<any[]>([])
+  const [selectedPrecedents, setSelectedPrecedents] = useState<string[]>([])
+  const [strategyLoading, setStrategyLoading] = useState(false)
+  const [strategyResult, setStrategyResult] = useState<any>(null)
+  const [strategyMessage, setStrategyMessage] = useState("")
   const searchGuard = useRef(new DecisionSearchGuard())
 
   useEffect(() => () => searchGuard.current.invalidate(), [])
+
+  async function loadPrecedents() {
+    if (!user?.id) { setStrategyMessage("Entre na sua conta para consultar os precedentes salvos."); return }
+    try {
+      const items = await getPrecedents(user.id)
+      setAvailablePrecedents(items.filter((item: any) => item.id && (item.fundamento || item.resumo)))
+      setStrategyMessage(items.length ? "" : "Sua biblioteca ainda não tem precedentes. Adicione decisões reais na Biblioteca de Precedentes.")
+    } catch {
+      setStrategyMessage("Não foi possível carregar seus precedentes. Verifique a conexão e tente novamente.")
+    }
+  }
+
+  async function analyzeStrategy() {
+    if (!user?.id || selectedPrecedents.length === 0) { setStrategyMessage("Selecione decisões da sua biblioteca para orientar a análise."); return }
+    if (caseText.trim().length < 20 || lawyerArgument.trim().length < 10) {
+      setStrategyMessage("Informe os fatos do caso e a tese jurídica com detalhes antes de solicitar a estratégia."); return
+    }
+    const currentUserId = user.id
+    const guardVersion = searchGuard.current.begin()
+    setStrategyLoading(true)
+    setStrategyResult(null)
+    setStrategyMessage("")
+    try {
+      const result = await runPrecedentIntelligenceAi({
+        userId: currentUserId,
+        caseFacts: caseText.trim(),
+        legalIssue: lawyerArgument.trim(),
+        precedentIds: selectedPrecedents,
+      })
+      if (!searchGuard.current.isCurrent(guardVersion)) return
+      setStrategyResult(result?.result || null)
+      setStrategyMessage(result?.result ? "Estratégia preliminar gerada a partir dos precedentes selecionados. Confira cada fonte." : "O motor não retornou uma estratégia verificável.")
+    } catch (error) {
+      if (searchGuard.current.isCurrent(guardVersion)) setStrategyMessage(error instanceof Error ? error.message : "Falha ao analisar precedentes.")
+    } finally {
+      if (searchGuard.current.isCurrent(guardVersion)) setStrategyLoading(false)
+    }
+  }
 
   function invalidateCurrentSearch() {
     searchGuard.current.invalidate()
@@ -44,6 +90,9 @@ export default function DecisionIntelligence() {
     setObservedPattern(null)
     setReviewLimit(8)
     setManualReview({})
+    setStrategyResult(null)
+    setStrategyMessage("")
+    setStrategyLoading(false)
   }
 
   async function analyze() {
@@ -100,6 +149,7 @@ export default function DecisionIntelligence() {
   const sample = audit?.comparableDecisions ?? 0
   const recordsFound = evidence?.cases?.length ?? 0
   const predictiveReadiness = audit ? assessPredictiveReadiness(audit) : null
+  const judgeAdvice = audit ? buildJudgeStrategyAdvice(audit, caseText, lawyerArgument) : null
 
   function downloadEvidenceDossier() {
     if (!audit || !process) return
@@ -178,6 +228,58 @@ export default function DecisionIntelligence() {
           </p>}
           {observedPattern && <p className="text-sm text-gray-400 mt-3">Base estruturada: {observedPattern.decisionsAnalyzed} decisões públicas normalizadas{observedPattern.period ? ` · ${observedPattern.period}` : ""}. Cada padrão mantém vínculo com as decisões que o sustentam.</p>}
         </section>
+        {judgeAdvice && <section className="rounded-2xl border border-primary/40 bg-gradient-to-br from-[#151525] to-[#0d0d15] p-6 space-y-5" aria-label="DNA estratégico do juízo">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-primary font-bold">NexaJud · DNA estratégico do juízo</p>
+            <h2 className="text-2xl font-bold mt-2">Qual estratégia vale testar neste caso?</h2>
+            <p className="text-sm text-gray-300 mt-2">{judgeAdvice.headline}</p>
+            <p className="text-xs text-amber-200 mt-3">{judgeAdvice.disclaimer}</p>
+          </div>
+          <div className="grid lg:grid-cols-3 gap-3">
+            {judgeAdvice.actions.map((action) => <article key={action.title} className="rounded-xl border border-[#36364d] bg-black/20 p-4 space-y-3">
+              <h3 className="font-semibold">{action.title}</h3>
+              <p className="whitespace-pre-wrap break-words text-sm text-gray-200">{action.recommendation}</p>
+              <p className="text-xs text-gray-400">{action.rationale}</p>
+              {action.references.length > 0 && <div className="text-xs text-primary">
+                Fontes: {action.references.map(ref => ref.sourceUrl
+                  ? <a key={ref.id} href={ref.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline mr-2">{ref.document}</a>
+                  : <span key={ref.id} className="mr-2">{ref.document} (conferir no tribunal)</span>)}
+              </div>}
+            </article>)}
+          </div>
+          <div className="rounded-xl border border-[#414158] p-5 space-y-4">
+            <div>
+              <h3 className="font-semibold text-lg">Aprofundar com a IA de estratégia e precedentes</h3>
+              <p className="text-sm text-gray-400 mt-1">Use decisões da sua Biblioteca de Precedentes para confrontar a tese com fatos, distinguishing, prova e contra-argumentos. O texto gerado exige revisão e não determina o comportamento do magistrado.</p>
+            </div>
+            <button type="button" onClick={() => { void loadPrecedents() }} className="rounded-lg border border-primary/50 px-4 py-2 text-sm">Carregar precedentes da biblioteca</button>
+            {availablePrecedents.length > 0 && <div className="grid md:grid-cols-2 gap-2">
+              {availablePrecedents.slice(0, 12).map(item => <label key={item.id} className="flex items-start gap-3 border border-[#343446] rounded-lg p-3 text-sm">
+                <input type="checkbox" checked={selectedPrecedents.includes(item.id)}
+                  onChange={event => setSelectedPrecedents(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))}
+                  className="mt-1" />
+                <span><strong>{item.title || item.numero || "Decisão"}</strong><span className="block text-xs text-gray-400">{item.tribunal || "Tribunal não informado"} · {item.numero || "Referência não informada"}</span></span>
+              </label>)}
+            </div>}
+            <button type="button" onClick={() => { void analyzeStrategy() }}
+              disabled={strategyLoading || selectedPrecedents.length === 0}
+              className="rounded-xl bg-primary px-6 py-3 font-bold text-white disabled:opacity-50">
+              {strategyLoading ? "Analisando fundamentos..." : "Analisar melhor argumento e estratégia"}
+            </button>
+            {strategyMessage && <p role="status" className="text-sm text-amber-200">{strategyMessage}</p>}
+            {strategyResult && <div className="rounded-xl border border-primary/30 p-5 space-y-4 text-sm">
+              <h4 className="text-lg font-semibold">Orientação estratégica preliminar</h4>
+              <p className="whitespace-pre-wrap">{strategyResult.strategy_summary || "Análise não identificada."}</p>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div><h5 className="font-semibold">Argumentos a explorar</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.favorable_arguments || []).map((a: string, i: number) => <li key={i}>{a}</li>)}</ul></div>
+                <div><h5 className="font-semibold">Objeções e riscos</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.adverse_arguments || []).map((a: string, i: number) => <li key={i}>{a}</li>)}</ul></div>
+                <div><h5 className="font-semibold">Reforço probatório</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.evidence_matrix || []).map((e: any, i: number) => <li key={i}>{e.requirement || "Prova"}: {e.recommended_action || e.gap || "Conferir"}</li>)}</ul></div>
+                <div><h5 className="font-semibold">Próximos movimentos</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.next_actions || []).map((a: string, i: number) => <li key={i}>{a}</li>)}</ul></div>
+              </div>
+              <p className="text-xs text-amber-200">Orientação gerada por IA a partir dos precedentes selecionados da biblioteca. Confira o texto, a fonte e a pertinência fática; não é conclusão empírica sobre este juiz.</p>
+            </div>}
+          </div>
+        </section>}
         {predictiveReadiness && <section className="rounded-2xl border border-primary/30 bg-[#111118] p-6 space-y-4" aria-label="Prontidão da inteligência preditiva">
           <div className="flex flex-wrap gap-4 justify-between items-start">
             <div>

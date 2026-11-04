@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { paidEntitlementCurrent } from "@/services/paidEntitlement"
+import { subscriptionForUser } from "@/services/subscriptionForUser"
 import {
   getOrCreateSubscription,
   getTrialDaysLeft,
@@ -33,7 +34,7 @@ export function usePlan() {
     }
     setLoading(true)
     getOrCreateSubscription(user.id).then((data) => {
-      if (requestVersion.current === version && data.user_id === user.id) setSubscription(data)
+      if (requestVersion.current === version) setSubscription(subscriptionForUser(data, user.id))
     }).catch((error) => {
       if (requestVersion.current === version) {
         setSubscription(null)
@@ -56,7 +57,7 @@ export function usePlan() {
     setLoading(true)
     try {
       const data = await getOrCreateSubscription(userId)
-      if (requestVersion.current === version && data.user_id === userId) setSubscription(data)
+      if (requestVersion.current === version) setSubscription(subscriptionForUser(data, userId))
     } catch (error) {
       if (requestVersion.current === version) {
         setSubscription(null)

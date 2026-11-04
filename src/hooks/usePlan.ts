@@ -68,15 +68,17 @@ export function usePlan() {
     }
   }
 
-  const plan = subscription?.plan || "trial"
+  // Filter at render time too: React can render the new user before the effect clears old state.
+  const currentSubscription = subscriptionForUser(subscription, user?.id)
+  const plan = currentSubscription?.plan || "trial"
   const level = PLAN_LEVEL[plan]
-  const trialExpired = isTrialExpired(subscription)
-  const trialDaysLeft = getTrialDaysLeft(subscription)
+  const trialExpired = isTrialExpired(currentSubscription)
+  const trialDaysLeft = getTrialDaysLeft(currentSubscription)
 
   function hasPlan(required: PlanType) {
-    if (!subscription) return false
-    if (subscription.status === "trialing" && !trialExpired && subscription.active) return true
-    if (!paidEntitlementCurrent(subscription)) return false
+    if (!currentSubscription) return false
+    if (currentSubscription.status === "trialing" && !trialExpired && currentSubscription.active) return true
+    if (!paidEntitlementCurrent(currentSubscription)) return false
     return level >= PLAN_LEVEL[required]
   }
 
@@ -104,11 +106,11 @@ export function usePlan() {
       canUseAgenda: hasPlan("enterprise"),
       canUseAlerts: hasPlan("enterprise"),
     }),
-    [subscription]
+    [currentSubscription, trialExpired, level]
   )
 
   return {
-    subscription,
+    subscription: currentSubscription,
     plan,
     loading,
     trialExpired,

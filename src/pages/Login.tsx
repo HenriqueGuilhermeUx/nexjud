@@ -1,10 +1,11 @@
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
+import { postLoginDestination } from "@/services/postLoginDestination"
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -12,6 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -36,7 +38,7 @@ export default function Login() {
         // Handle both paths explicitly so Safari users never get stuck on the form.
         if (data?.session) {
           localStorage.removeItem("nexjud_onboarding")
-          navigate("/welcome")
+          navigate(postLoginDestination(searchParams.get("next"), Boolean(localStorage.getItem("nexjud_onboarding"))))
           return
         }
 
@@ -51,11 +53,7 @@ export default function Login() {
 
         const tutorialDone = localStorage.getItem("nexjud_onboarding")
 
-        if (!tutorialDone) {
-          navigate("/welcome")
-        } else {
-          navigate("/dashboard")
-        }
+        navigate(postLoginDestination(searchParams.get("next"), Boolean(tutorialDone)))
       }
     } catch (err: any) {
       setError(err.message || "Erro ao processar requisição.")

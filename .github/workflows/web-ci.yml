@@ -50,5 +50,13 @@ jobs:
       - name: Strategic analysis authentication and evidence regressions
         run: npx vitest run src/enterprise/strategicAnalysisSecurity.test.ts
 
+      - name: Set up Deno for Edge Function typecheck
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Typecheck strategic-analysis Edge Function
+        run: deno check supabase/functions/strategic-analysis/index.ts
+
       - name: Vite build
         run: npx vite build

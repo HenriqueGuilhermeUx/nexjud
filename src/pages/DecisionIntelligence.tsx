@@ -40,13 +40,25 @@ export default function DecisionIntelligence() {
   const [strategyResult, setStrategyResult] = useState<any>(null)
   const [strategyMessage, setStrategyMessage] = useState("")
   const searchGuard = useRef(new DecisionSearchGuard())
+  const currentAuthUserId = useRef(user?.id)
+  currentAuthUserId.current = user?.id
 
   useEffect(() => () => searchGuard.current.invalidate(), [])
+  useEffect(() => {
+    // A new account must not see the former account's saved precedents or strategy.
+    searchGuard.current.invalidate()
+    setAvailablePrecedents([])
+    setSelectedPrecedents([])
+    setStrategyResult(null)
+    setStrategyMessage("")
+    setStrategyLoading(false)
+  }, [user?.id])
 
   async function loadPrecedents() {
     if (!user?.id) { setStrategyMessage("Entre na sua conta para consultar os precedentes salvos."); return }
     try {
       const items = await getPrecedents(user.id)
+      if (currentAuthUserId.current !== user.id) return
       setAvailablePrecedents(items.filter((item: any) => item.id && (item.fundamento || item.resumo)))
       setStrategyMessage(items.length ? "" : "Sua biblioteca ainda não tem precedentes. Cadastre documentos de decisões reais em Precedentes e retorne para comparar as teses.")
     } catch {
@@ -71,7 +83,7 @@ export default function DecisionIntelligence() {
         legalIssue: lawyerArgument.trim(),
         precedentIds: selectedPrecedents,
       })
-      if (!searchGuard.current.isCurrent(guardVersion)) return
+      if (!searchGuard.current.isCurrent(guardVersion) || currentAuthUserId.current !== currentUserId) return
       setStrategyResult(result?.result || null)
       setStrategyMessage(result?.result ? "Estratégia preliminar gerada a partir dos precedentes selecionados. Confira cada fonte." : "O motor não retornou uma estratégia verificável.")
     } catch (error) {

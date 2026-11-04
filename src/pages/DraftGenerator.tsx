@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import { useLocation } from "react-router-dom"
+import { readDnaActionContext } from "@/intelligence/dnaActionHandoff"
 import {
   FileText,
   Loader2,
@@ -15,6 +17,7 @@ import { generateDraftPdf } from "@/services/draftPdf"
 
 export default function DraftGenerator() {
   const { user } = useAuth()
+  const location = useLocation()
 
   const [caseText, setCaseText] = useState("")
   const [focus, setFocus] = useState("")
@@ -27,6 +30,16 @@ export default function DraftGenerator() {
   const [contextSource, setContextSource] = useState<string | null>(null)
 
   useEffect(() => {
+    const dna = readDnaActionContext(location.state, user?.id)
+    if (dna) {
+      setCaseText(dna.caseText)
+      setFocus(dna.focus)
+      setLinkedCaseId(null)
+      setContextSource("DNA do Juiz — IA Preditiva")
+      setResult(null)
+      setDraftNotice("Contexto estratégico importado do DNA. Revise os fundamentos e documentos antes de gerar a peça.")
+      return
+    }
     const saved = localStorage.getItem("nexjud_draft_context")
 
     if (saved) {
@@ -42,7 +55,7 @@ export default function DraftGenerator() {
         localStorage.removeItem("nexjud_draft_context")
       }
     }
-  }, [])
+  }, [location.state, user?.id])
 
   function loadExample() {
     setLinkedCaseId(null)

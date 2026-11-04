@@ -44,5 +44,8 @@ jobs:
       - name: Checkout login return regression
         run: npx vitest run src/enterprise/postLoginDestination.test.ts
 
+      - name: Authenticated subscription isolation regression
+        run: npx vitest run src/enterprise/subscriptionForUser.test.ts
+
       - name: Vite build
         run: npx vite build

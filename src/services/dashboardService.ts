@@ -64,7 +64,7 @@ export async function getDashboardStats(userId: string) {
       type: "analysis",
       title: item.title || "Análise estratégica criada",
       date: item.created_at,
-      description: `${item.success_probability || 0}% de êxito • ${item.partner_decision || "-"}`,
+      description: `Análise assistida (probabilidade não validada) • ${item.partner_decision || "-"}`,
     })),
     ...drafts.slice(0, 3).map((item) => ({
       type: "draft",

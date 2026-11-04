@@ -1,11 +1,12 @@
 import { ArrowRight, Brain, Gavel, FileText, Shield, Sparkles } from "lucide-react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 
 export default function Welcome() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   function start() {
-  navigate("/tutorial")
+  navigate(searchParams.get("next") === "/pricing" ? "/tutorial?next=%2Fpricing" : "/tutorial")
 }
 
   return (
@@ -22,8 +23,7 @@ export default function Welcome() {
           </div>
 
           <p className="text-xl text-muted-foreground max-w-3xl">
-            Plataforma Enterprise de Inteligência Jurídica para
-            decidir se vale entrar, negociar ou abandonar um processo.
+            Inteligência jurídica para profissionais e equipes: organize documentos, avalie riscos e prepare decisões com apoio da IA.
           </p>
 
         </section>
@@ -33,13 +33,13 @@ export default function Welcome() {
           <Card
             icon={<Brain/>}
             title="Strategic Analysis"
-            text="Analisa automaticamente risco, chance de sucesso, estratégia, jurisprudência e retorno financeiro."
+            text="Organiza fatos, riscos e cenários estratégicos para avaliação do profissional responsável."
           />
 
           <Card
             icon={<Gavel/>}
             title="Judge Simulator"
-            text="Simula a decisão de um juiz utilizando IA e critérios jurídicos."
+            text="Ajuda a testar argumentos em cenários simulados; não prevê decisões judiciais reais."
           />
 
           <Card

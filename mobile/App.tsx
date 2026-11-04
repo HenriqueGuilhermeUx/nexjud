@@ -659,7 +659,7 @@ function HearingScreen({ route, navigation }: any) {
 }
 
 const advancedTools = [
-  { title: "Análise do Juízo completa", description: "Evidências e revisão documental", path: "/dashboard/decision-intelligence" },
+  { title: "DNA do Juiz — IA Preditiva", description: "Argumentos, provas e estratégia com decisões documentadas", path: "/dashboard/decision-intelligence" },
   { title: "Legal Intelligence", description: "Análise jurídica ampliada", path: "/dashboard/legal-intelligence-engine" },
   { title: "Red Team", description: "Teste a robustez dos argumentos", path: "/dashboard/red-team" },
   { title: "Carteira processual", description: "Casos, documentos e acompanhamentos", path: "/dashboard/process-portfolio" },

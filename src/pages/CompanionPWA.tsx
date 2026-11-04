@@ -490,7 +490,7 @@ function AgendaScreenPWA({ userId }: { userId: string }) {
 }
 
 const advancedWorkspaceTools = [
-  { title: "Análise do Juízo completa", description: "Evidências, amostra, auditoria e revisão das decisões", path: "/dashboard/decision-intelligence" },
+  { title: "DNA do Juiz — IA Preditiva", description: "Confronte argumentos, provas e fundamentos de decisões; orientação estratégica com fontes", path: "/dashboard/decision-intelligence" },
   { title: "Legal Intelligence", description: "Análise jurídica ampliada, conforme seu plano", path: "/dashboard/legal-intelligence-engine" },
   { title: "Red Team", description: "Teste teses, argumentos e fragilidades", path: "/dashboard/red-team" },
   { title: "Carteira processual", description: "Acompanhe processos e dossiês", path: "/dashboard/process-portfolio" },

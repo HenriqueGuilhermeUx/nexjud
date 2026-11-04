@@ -56,7 +56,7 @@ jobs:
           deno-version: v2.x
 
       - name: Typecheck strategic-analysis Edge Function
-        run: deno check supabase/functions/strategic-analysis/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/strategic-analysis/index.ts
 
       - name: Vite build
         run: npx vite build

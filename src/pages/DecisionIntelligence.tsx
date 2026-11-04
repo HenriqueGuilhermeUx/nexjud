@@ -181,13 +181,13 @@ export default function DecisionIntelligence() {
   return <div className="min-h-screen bg-background text-foreground">
     <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-7">
       <section className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-indigo-500/10 to-[#05050a] p-8 lg:p-10">
-        <div className="inline-flex items-center gap-2 text-primary text-sm mb-4"><Brain size={17}/> ANÁLISE DO JUÍZO</div>
-        <h1 className="text-4xl lg:text-5xl font-bold">Como este juízo costuma decidir casos como o seu?</h1>
-        <p className="text-gray-400 text-lg mt-4 max-w-4xl">Informe o processo e, se quiser, acrescente os pontos principais da sua tese. A NexJud consulta registros processuais públicos para contextualizar o caso. A comparação de fundamentações e resultados dependerá de decisões com inteiro teor verificável; não há previsão de êxito.</p>
+        <div className="inline-flex items-center gap-2 text-primary text-sm mb-4"><Brain size={17}/> NEXJUD · CARRO-CHEFE</div>
+        <h1 className="text-4xl lg:text-5xl font-bold">DNA do Juiz — IA Preditiva</h1>
+        <p className="text-gray-400 text-lg mt-4 max-w-4xl">Descubra quais fundamentos, argumentos e provas merecem atenção, confronte decisões documentadas e prepare a melhor estratégia para o seu caso. Identificamos tribunal, vara e magistrado quando os documentos permitem. Sem decisões atribuíveis ao juiz, não inventamos seu perfil.</p>
       </section>
 
       <section className="rounded-2xl border border-[#2a2a35] bg-[#111118] p-6 space-y-4">
-        <h2 className="font-bold text-xl">Por onde quer começar?</h2>
+        <h2 className="font-bold text-xl">Conte o caso e, se tiver, informe o processo e o magistrado</h2>
         <div className="grid lg:grid-cols-4 gap-3">
           <input value={cnj} onChange={e=>{ invalidateCurrentSearch(); setCnj(formatCnj(e.target.value)) }} placeholder="Número CNJ" className="lg:col-span-2 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
           <input value={alias} onChange={e=>{ invalidateCurrentSearch(); setAlias(e.target.value.toLowerCase()) }} placeholder="Tribunal: tjsp, trt2..." className="rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
@@ -206,6 +206,44 @@ export default function DecisionIntelligence() {
         </label>
         <textarea value={caseText} onChange={e=>{ invalidateCurrentSearch(); setCaseText(e.target.value) }} placeholder="Opcional: complemente fatos, pedidos e teses que não estejam claros nos dados públicos." className="w-full h-32 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
         <textarea value={lawyerArgument} onChange={e=>{ invalidateCurrentSearch(); setLawyerArgument(e.target.value) }} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
+      </section>
+
+      <section className="rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/15 via-[#151525] to-[#0d0d15] p-6 space-y-4" aria-label="Análise estratégica com IA">
+        <p className="text-xs uppercase tracking-widest text-primary font-bold">Motor estratégico de IA · trabalho com precedentes</p>
+        <h2 className="text-2xl font-bold">Qual tese defender, reforçar ou reformular?</h2>
+        <p className="text-sm text-gray-300">Descreva os fatos e sua tese acima. Selecione precedentes documentados da sua biblioteca para gerar orientações sobre argumentos, objeções, provas e próximos passos. Funciona também sem número CNJ.</p>
+          <div className="rounded-xl border border-[#414158] p-5 space-y-4">
+            <div>
+              <h3 className="font-semibold text-lg">Analisar estratégia com IA e precedentes reais</h3>
+              <p className="text-sm text-gray-400 mt-1">Use decisões da sua Biblioteca de Precedentes para confrontar a tese com fatos, distinguishing, prova e contra-argumentos. O texto gerado exige revisão e não determina o comportamento do magistrado.</p>
+            </div>
+            <button type="button" onClick={() => { void loadPrecedents() }} className="rounded-lg border border-primary/50 px-4 py-2 text-sm">Carregar precedentes da biblioteca</button>
+            {availablePrecedents.length > 0 && <div className="grid md:grid-cols-2 gap-2">
+              {availablePrecedents.slice(0, 12).map(item => <label key={item.id} className="flex items-start gap-3 border border-[#343446] rounded-lg p-3 text-sm">
+                <input type="checkbox" checked={selectedPrecedents.includes(item.id)}
+                  onChange={event => setSelectedPrecedents(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))}
+                  className="mt-1" />
+                <span><strong>{item.title || item.numero || "Decisão"}</strong><span className="block text-xs text-gray-400">{item.tribunal || "Tribunal não informado"} · {item.numero || "Referência não informada"}</span></span>
+              </label>)}
+            </div>}
+            <button type="button" onClick={() => { void analyzeStrategy() }}
+              disabled={strategyLoading || selectedPrecedents.length === 0}
+              className="rounded-xl bg-primary px-6 py-3 font-bold text-white disabled:opacity-50">
+              {strategyLoading ? "Analisando fundamentos..." : "Analisar melhor argumento e estratégia"}
+            </button>
+            {strategyMessage && <p role="status" className="text-sm text-amber-200">{strategyMessage}</p>}
+            {strategyResult && <div className="rounded-xl border border-primary/30 p-5 space-y-4 text-sm">
+              <h4 className="text-lg font-semibold">Orientação estratégica preliminar</h4>
+              <p className="whitespace-pre-wrap">{strategyResult.strategy_summary || "Análise não identificada."}</p>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div><h5 className="font-semibold">Argumentos a explorar</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.favorable_arguments || []).map((a: string, i: number) => <li key={i}>{a}</li>)}</ul></div>
+                <div><h5 className="font-semibold">Objeções e riscos</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.adverse_arguments || []).map((a: string, i: number) => <li key={i}>{a}</li>)}</ul></div>
+                <div><h5 className="font-semibold">Reforço probatório</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.evidence_matrix || []).map((e: any, i: number) => <li key={i}>{e.requirement || "Prova"}: {e.recommended_action || e.gap || "Conferir"}</li>)}</ul></div>
+                <div><h5 className="font-semibold">Próximos movimentos</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.next_actions || []).map((a: string, i: number) => <li key={i}>{a}</li>)}</ul></div>
+              </div>
+              <p className="text-xs text-amber-200">Orientação gerada por IA a partir dos precedentes selecionados da biblioteca. Confira o texto, a fonte e a pertinência fática; não é conclusão empírica sobre este juiz.</p>
+            </div>}
+          </div>
       </section>
 
       {message && <p role="alert" className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-sm text-amber-200">{message}</p>}
@@ -252,38 +290,7 @@ export default function DecisionIntelligence() {
               </div>}
             </article>)}
           </div>
-          <div className="rounded-xl border border-[#414158] p-5 space-y-4">
-            <div>
-              <h3 className="font-semibold text-lg">Aprofundar com a IA de estratégia e precedentes</h3>
-              <p className="text-sm text-gray-400 mt-1">Use decisões da sua Biblioteca de Precedentes para confrontar a tese com fatos, distinguishing, prova e contra-argumentos. O texto gerado exige revisão e não determina o comportamento do magistrado.</p>
-            </div>
-            <button type="button" onClick={() => { void loadPrecedents() }} className="rounded-lg border border-primary/50 px-4 py-2 text-sm">Carregar precedentes da biblioteca</button>
-            {availablePrecedents.length > 0 && <div className="grid md:grid-cols-2 gap-2">
-              {availablePrecedents.slice(0, 12).map(item => <label key={item.id} className="flex items-start gap-3 border border-[#343446] rounded-lg p-3 text-sm">
-                <input type="checkbox" checked={selectedPrecedents.includes(item.id)}
-                  onChange={event => setSelectedPrecedents(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))}
-                  className="mt-1" />
-                <span><strong>{item.title || item.numero || "Decisão"}</strong><span className="block text-xs text-gray-400">{item.tribunal || "Tribunal não informado"} · {item.numero || "Referência não informada"}</span></span>
-              </label>)}
-            </div>}
-            <button type="button" onClick={() => { void analyzeStrategy() }}
-              disabled={strategyLoading || selectedPrecedents.length === 0}
-              className="rounded-xl bg-primary px-6 py-3 font-bold text-white disabled:opacity-50">
-              {strategyLoading ? "Analisando fundamentos..." : "Analisar melhor argumento e estratégia"}
-            </button>
-            {strategyMessage && <p role="status" className="text-sm text-amber-200">{strategyMessage}</p>}
-            {strategyResult && <div className="rounded-xl border border-primary/30 p-5 space-y-4 text-sm">
-              <h4 className="text-lg font-semibold">Orientação estratégica preliminar</h4>
-              <p className="whitespace-pre-wrap">{strategyResult.strategy_summary || "Análise não identificada."}</p>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div><h5 className="font-semibold">Argumentos a explorar</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.favorable_arguments || []).map((a: string, i: number) => <li key={i}>{a}</li>)}</ul></div>
-                <div><h5 className="font-semibold">Objeções e riscos</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.adverse_arguments || []).map((a: string, i: number) => <li key={i}>{a}</li>)}</ul></div>
-                <div><h5 className="font-semibold">Reforço probatório</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.evidence_matrix || []).map((e: any, i: number) => <li key={i}>{e.requirement || "Prova"}: {e.recommended_action || e.gap || "Conferir"}</li>)}</ul></div>
-                <div><h5 className="font-semibold">Próximos movimentos</h5><ul className="list-disc pl-5 mt-2">{(strategyResult.next_actions || []).map((a: string, i: number) => <li key={i}>{a}</li>)}</ul></div>
-              </div>
-              <p className="text-xs text-amber-200">Orientação gerada por IA a partir dos precedentes selecionados da biblioteca. Confira o texto, a fonte e a pertinência fática; não é conclusão empírica sobre este juiz.</p>
-            </div>}
-          </div>
+
         </section>}
         {predictiveReadiness && <section className="rounded-2xl border border-primary/30 bg-[#111118] p-6 space-y-4" aria-label="Prontidão da inteligência preditiva">
           <div className="flex flex-wrap gap-4 justify-between items-start">

@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,7 +32,8 @@ function normalizeResult(result: any) {
 
   return {
     title: result.title || "Análise Estratégica NexJud",
-    successProbability: clampScore(result.successProbability),
+    successProbability: null,
+    predictionValidated: false,
     riskLevel: result.riskLevel || "Médio",
     complexity: result.complexity || "Média",
     financialPotential: result.financialPotential || "Não informado",
@@ -76,7 +78,7 @@ function normalizeResult(result: any) {
       "Caso exige validação jurídica e reforço probatório antes de decisão final.",
 
     jurisprudencePrediction: {
-      favorableRate: clampScore(result.jurisprudencePrediction?.favorableRate),
+      favorableRate: null,
       trend: result.jurisprudencePrediction?.trend || "Indefinida",
       favorableFactors: arr(result.jurisprudencePrediction?.favorableFactors, 5),
       unfavorableFactors: arr(result.jurisprudencePrediction?.unfavorableFactors, 5),
@@ -179,7 +181,7 @@ function normalizeResult(result: any) {
 
     opponentIntelligence: {
       profile: result.opponentIntelligence?.profile || "Adversário não identificado",
-      settlementChance: result.opponentIntelligence?.settlementChance || "Não informado",
+      settlementChance: "Não validada estatisticamente",
       commonTactics: arr(result.opponentIntelligence?.commonTactics, 6),
       expectedDefense: arr(result.opponentIntelligence?.expectedDefense, 6),
       pressurePoints: arr(result.opponentIntelligence?.pressurePoints, 6),
@@ -205,6 +207,50 @@ Deno.serve(async (req) => {
   }
 
   try {
+    if (req.method !== "POST") {
+      return Response.json({ error: "Método não permitido." }, { status: 405, headers: corsHeaders });
+    }
+
+    // Authenticate a real user before making a paid third-party model request.
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!/^Bearer\s+\S+$/i.test(authHeader)) {
+      return Response.json({ error: "Autenticação obrigatória." }, { status: 401, headers: corsHeaders });
+    }
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    if (authError || !user) {
+      return Response.json({ error: "Sessão inválida." }, { status: 401, headers: corsHeaders });
+    }
+
+    // Server-side entitlement check; frontend gates alone are not a payment boundary.
+    const { data: subscription, error: entitlementError } = await authClient
+      .from("subscriptions")
+      .select("plan,status,active,trial_end,current_period_end")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (entitlementError) {
+      return Response.json({ error: "Não foi possível validar o plano." }, { status: 503, headers: corsHeaders });
+    }
+    const now = Date.now();
+    const trialValid = subscription?.active === true &&
+      subscription.status === "trialing" &&
+      !!subscription.trial_end &&
+      Number.isFinite(Date.parse(subscription.trial_end)) &&
+      Date.parse(subscription.trial_end) > now;
+    const paidPlan = ["pro", "intelligence", "enterprise", "enterprise_plus"].includes(subscription?.plan ?? "");
+    const paidValid = subscription?.active === true &&
+      subscription.status === "active" && paidPlan &&
+      (!subscription.current_period_end ||
+        (Number.isFinite(Date.parse(subscription.current_period_end)) &&
+          Date.parse(subscription.current_period_end) > now));
+    if (!trialValid && !paidValid) {
+      return Response.json({ error: "Plano ou trial ativo necessário." }, { status: 403, headers: corsHeaders });
+    }
+
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
     if (!OPENAI_API_KEY) {
@@ -217,9 +263,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const caseText = String(body.caseText || "").trim();
 
-    if (!caseText) {
+    if (!caseText || caseText.length > 30000) {
       return Response.json(
-        { error: "Texto do caso é obrigatório." },
+        { error: "Texto do caso deve conter entre 1 e 30.000 caracteres." },
         { status: 400, headers: corsHeaders },
       );
     }
@@ -234,7 +280,7 @@ NÃO invente jurisprudência específica.
 NÃO cite números de processos, acórdãos ou decisões inexistentes.
 NÃO afirme que consultou CNJ, DataJud, JusBrasil, Escavador ou tribunais.
 Trabalhe com análise estratégica baseada apenas no texto fornecido.
-Quando falar de jurisprudência, deixe claro que é uma predição estratégica estimada.
+Quando falar de jurisprudência, deixe claro que não houve consulta a base externa. NÃO estime probabilidades de êxito, taxas de decisões favoráveis nem chance de acordo. Não apresente inferência textual como estatística validada.
 
 Caso:
 
@@ -243,7 +289,7 @@ ${caseText}
 Responda SOMENTE JSON válido, sem markdown, sem texto fora do JSON.
 
 Regras:
-- Todos os scores devem ser de 0 a 100.
+- Scores internos heurísticos, quando solicitados, variam de 0 a 100 e NÃO representam probabilidades nem estatísticas.
 - Seja específico ao caso.
 - Evite respostas genéricas.
 - Partner Decision deve ser uma das opções:
@@ -253,7 +299,6 @@ Formato obrigatório:
 {
   "title": "título curto e específico da análise",
   "executiveSummary": "resumo executivo em até 5 linhas",
-  "successProbability": 0,
   "riskLevel": "Baixo | Médio | Alto",
   "complexity": "Baixa | Média | Alta",
   "financialPotential": "estimativa textual",
@@ -282,7 +327,6 @@ Formato obrigatório:
   "partnerReason": "motivo",
 
   "jurisprudencePrediction": {
-    "favorableRate": 0,
     "trend": "Favorável | Neutra | Desfavorável",
     "favorableFactors": ["fator favorável"],
     "unfavorableFactors": ["fator desfavorável"],
@@ -406,7 +450,7 @@ Formato obrigatório:
 
   "opponentIntelligence": {
     "profile": "perfil do adversário",
-    "settlementChance": "percentual ou texto",
+    "settlementChance": "Não validada estatisticamente",
     "commonTactics": ["tática comum"],
     "expectedDefense": ["defesa esperada"],
     "pressurePoints": ["ponto de pressão"]
@@ -445,7 +489,7 @@ Formato obrigatório:
 
     if (!text) {
       return Response.json(
-        { error: "OpenAI não retornou texto.", raw: json },
+        { error: "O serviço de análise não retornou conteúdo utilizável." },
         { status: 500, headers: corsHeaders },
       );
     }

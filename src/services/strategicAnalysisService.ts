@@ -60,7 +60,13 @@ export async function saveAnalysis(analysis: StrategicAnalysis) {
 
       partner_decision: analysis.partnerDecision || "",
 
-      jurisprudence_prediction: analysis.jurisprudencePrediction || {},
+      // Legacy numeric SQL column remains unchanged until a reviewed migration.
+      // New reports must never interpret these fields as calibrated forecasts.
+      jurisprudence_prediction: {
+        ...(analysis.jurisprudencePrediction || {}),
+        favorableRate: null,
+        predictionValidated: false,
+      },
       financial_exposure: analysis.financialExposure || {},
       partner_council: analysis.partnerCouncil || [],
       war_room: analysis.warRoom || {},

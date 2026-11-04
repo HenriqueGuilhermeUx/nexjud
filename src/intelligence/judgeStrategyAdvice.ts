@@ -22,9 +22,15 @@ export function buildJudgeStrategyAdvice(
   audit: DecisionEvidenceAudit,
   caseFacts: string,
   counselThesis: string,
+  judgeName = "",
 ): JudgeStrategyAdvice {
-  const comparable = audit.comparableEvidence
-  const review = audit.review.filter(item => item.comparable)
+  // Only attribute documentary history to a named magistrate when the source identifies that person.
+  const normalizedJudge = judgeName.normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("pt-BR")
+  const comparable = normalizedJudge
+    ? audit.comparableEvidence.filter(item => item.judgeOrRapporteur?.normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("pt-BR") === normalizedJudge)
+    : audit.comparableEvidence
+  const eligibleIds = new Set(comparable.map(item => item.id))
+  const review = audit.review.filter(item => item.comparable && eligibleIds.has(item.id))
   const cite = (item: typeof review[number]) => ({
     id: item.id,
     document: item.documentReference || item.processNumber || item.id,
@@ -36,7 +42,9 @@ export function buildJudgeStrategyAdvice(
   if (comparable.length === 0) {
     return {
       coverage: "insufficient",
-      headline: "Ainda não há decisões fundamentadas comparáveis deste órgão para orientar a estratégia específica.",
+      headline: normalizedJudge
+        ? "Ainda não há decisões fundamentadas atribuídas ao magistrado informado para orientar estratégia individual."
+        : "Ainda não há decisões fundamentadas comparáveis deste órgão para orientar a estratégia específica.",
       disclaimer,
       actions: [
         {
@@ -101,7 +109,9 @@ export function buildJudgeStrategyAdvice(
 
   return {
     coverage: "documented",
-    headline: `Foram identificadas ${comparable.length} decisões documentadas do órgão informado. Revise os fundamentos abaixo antes de escolher uma linha de atuação.`,
+    headline: normalizedJudge
+      ? `Foram identificadas ${comparable.length} decisões documentadas atribuídas ao magistrado informado. Revise os fundamentos antes de escolher uma linha de atuação.`
+      : `Foram identificadas ${comparable.length} decisões documentadas do órgão informado. Revise os fundamentos abaixo antes de escolher uma linha de atuação.`,
     disclaimer,
     actions: [argumentsAction, reformAction, viabilityAction],
   }

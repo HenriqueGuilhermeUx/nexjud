@@ -489,7 +489,7 @@ Formato obrigatório:
 
     if (!text) {
       return Response.json(
-        { error: "OpenAI não retornou texto.", raw: json },
+        { error: "O serviço de análise não retornou conteúdo utilizável." },
         { status: 500, headers: corsHeaders },
       );
     }

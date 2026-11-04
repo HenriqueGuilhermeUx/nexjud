@@ -7,13 +7,14 @@ describe("authenticated checkout return path", () => {
   })
 
   it("retains the existing onboarding journey for first-time users", () => {
-    expect(postLoginDestination("/pricing", false)).toBe("/welcome")
+    expect(postLoginDestination("/pricing", false)).toBe("/welcome?next=%2Fpricing")
     expect(postLoginDestination(null, false)).toBe("/welcome")
   })
 
   it("rejects external or unrecognized destinations", () => {
     expect(postLoginDestination("https://evil.example", true)).toBe("/dashboard")
     expect(postLoginDestination("//evil.example", true)).toBe("/dashboard")
+    expect(postLoginDestination("//evil.example", false)).toBe("/welcome")
     expect(postLoginDestination("/dashboard/admin", true)).toBe("/dashboard")
     expect(postLoginDestination(null, true)).toBe("/dashboard")
   })

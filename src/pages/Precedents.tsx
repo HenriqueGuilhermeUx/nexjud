@@ -187,7 +187,7 @@ export default function Precedents() {
             </div>
 
             {djenReview && <p role="status" className="mb-4 rounded-xl border border-amber-500/30 p-3 text-sm text-amber-200">
-              Comunicação DJEN importada como rascunho. Confira o inteiro teor no tribunal e escreva o fundamento antes de salvar. Após confirmar documentalmente, retire a tag "revisão manual pendente" para permitir o uso dessa referência na IA do DNA. Não atribua automaticamente o ato ao magistrado.
+              Comunicação DJEN importada como rascunho. Confira o inteiro teor no tribunal e escreva o fundamento antes de salvar. Depois de conferir e marcar a confirmação abaixo, o NexJud registrará sua atestação e removerá a pendência ao salvar. Não atribua automaticamente o ato ao magistrado.
             </p>}
             <div className="space-y-4">
               <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4" />

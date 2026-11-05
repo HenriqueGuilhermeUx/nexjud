@@ -84,7 +84,8 @@ export default function DecisionIntelligence() {
       const payload = await res.json()
       if (version !== djenRequest.current || owner !== currentAuthUserId.current) return
       if (!res.ok) {
-        setDjenMessage(res.status === 429 ? "Limite de consultas do CNJ atingido. Aguarde pelo menos um minuto."
+        setDjenMessage(payload?.error === "local_throttle" ? "Aguarde 10 segundos antes de consultar novamente este processo."
+          : res.status === 429 ? "Limite de consultas do CNJ atingido. Aguarde pelo menos um minuto."
           : payload?.error === "authentication_verifier_unavailable" ? "O serviço de verificação da sessão está temporariamente indisponível. Tente novamente mais tarde; não é necessário trocar sua senha."
           : res.status === 503 ? "Consulta temporariamente indisponível: autenticação do serviço não configurada."
           : res.status === 401 ? "Sua sessão expirou. Entre novamente para consultar."

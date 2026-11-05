@@ -47,7 +47,7 @@ describe("DJEN point lookup: private-data-safe metadata", () => {
     const ui = readFileSync(new URL("../pages/DecisionIntelligence.tsx", import.meta.url), "utf8")
     expect(fn).toContain('new URL("/auth/v1/user", supabaseUrl)')
     expect(fn).toContain('"https://comunicaapi.pje.jus.br/api/v1/comunicacao"')
-    expect(fn).toContain('query.searchParams.set("numeroProcesso", process)')
+    expect(fn).toContain('query.searchParams.set("numeroProcesso", processNumber)')
     expect(fn).toContain('query.searchParams.set("size", "5")')
     expect(fn).toContain('query.searchParams.set("page", "0")')
     expect(fn).toContain('const processNumber =')

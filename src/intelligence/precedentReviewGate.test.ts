@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { confirmDjenReview, hasTrustedCourtReference, isPrecedentEligibleForDna, DJEN_REVIEWED_TAG } from "./precedentReviewGate"
+import { confirmDjenReview, hasTrustedCourtReference, hasDocumentSpecificCourtReference, isPrecedentEligibleForDna, DJEN_REVIEWED_TAG } from "./precedentReviewGate"
 import { readFileSync } from "node:fs"
 
 const original = "Publicação DJEN — conferir documento original: https://esaj.tjsp.jus.br/documento/123"
@@ -11,6 +11,7 @@ describe("DJEN documented precedent admission for judge DNA", () => {
     expect(isPrecedentEligibleForDna(base)).toBe(false)
     expect(isPrecedentEligibleForDna({ ...base, tags: ["DJEN"] })).toBe(false)
     expect(isPrecedentEligibleForDna({ ...base, tags: ["DJEN", DJEN_REVIEWED_TAG], resumo: "Sem fonte" })).toBe(false)
+    expect(isPrecedentEligibleForDna({ ...base, tags: ["DJEN", DJEN_REVIEWED_TAG], resumo: "https://esaj.tjsp.jus.br/" })).toBe(false)
     expect(isPrecedentEligibleForDna({ ...base, tags: ["DJEN", DJEN_REVIEWED_TAG], fundamento: "curto" })).toBe(false)
     expect(isPrecedentEligibleForDna({ ...base, tags: ["DJEN", DJEN_REVIEWED_TAG] })).toBe(true)
   })
@@ -19,6 +20,7 @@ describe("DJEN documented precedent admission for judge DNA", () => {
     expect(confirmDjenReview({ ...base, acknowledged: false }).ok).toBe(false)
     expect(confirmDjenReview({ ...base, fundamento: "Tese breve" }).ok).toBe(false)
     expect(confirmDjenReview({ ...base, sourceUrl: "https://example.com/doc" }).ok).toBe(false)
+    expect(confirmDjenReview({ ...base, sourceUrl: "https://esaj.tjsp.jus.br/" }).ok).toBe(false)
     const done = confirmDjenReview(base)
     expect(done.ok).toBe(true)
     if (done.ok) {
@@ -30,6 +32,9 @@ describe("DJEN documented precedent admission for judge DNA", () => {
     expect(hasTrustedCourtReference("https://tribunal.jus.br.attacker.example/doc")).toBe(false)
     expect(hasTrustedCourtReference("http://tjsp.jus.br/doc")).toBe(false)
     expect(hasTrustedCourtReference("https://esaj.tjsp.jus.br/documento/123")).toBe(true)
+    expect(hasDocumentSpecificCourtReference("https://esaj.tjsp.jus.br/")).toBe(false)
+    expect(hasDocumentSpecificCourtReference("https://esaj.tjsp.jus.br/documento/123")).toBe(true)
+    expect(hasDocumentSpecificCourtReference("https://esaj.tjsp.jus.br.attacker.example/documento/123")).toBe(false)
   })
   it("preserves legacy verified library entries without DJEN labels", () => {
     expect(isPrecedentEligibleForDna({ id: "legacy", tags: ["STJ"], fundamento: "Texto resumido" })).toBe(true)

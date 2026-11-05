@@ -9,6 +9,8 @@ export type JudgeStrategyAction = {
 
 export type JudgeStrategyAdvice = {
   coverage: "insufficient" | "documented"
+  scope: "insufficient" | "judging_body" | "named_magistrate"
+  sourceCount: number
   headline: string
   disclaimer: string
   actions: JudgeStrategyAction[]
@@ -36,12 +38,13 @@ export function buildJudgeStrategyAdvice(
     document: item.documentReference || item.processNumber || item.id,
     sourceUrl: item.sourceUrl,
   })
-  const sources = review.slice(0, 8).map(cite)
   const disclaimer = "Orientação para revisão do advogado, não previsão do comportamento individual do magistrado. Avalie diferenças fáticas, atualidade, recursos e eventuais mudanças de entendimento."
 
   if (comparable.length === 0) {
     return {
       coverage: "insufficient",
+      scope: "insufficient",
+      sourceCount: 0,
       headline: normalizedJudge
         ? "Ainda não há decisões fundamentadas atribuídas ao magistrado informado para orientar estratégia individual."
         : "Ainda não há decisões fundamentadas comparáveis deste órgão para orientar a estratégia específica.",
@@ -78,6 +81,20 @@ export function buildJudgeStrategyAdvice(
     }]
   })
   const usable = supported.slice(0, 5)
+  // The comparison is descriptive: a small set cannot establish an individual pattern.
+  if (usable.length === 0) {
+    return {
+      coverage: "insufficient", scope: "insufficient", sourceCount: 0,
+      headline: "Os registros comparáveis ainda não oferecem fundamentação documentada para recomendar argumentos.",
+      disclaimer,
+      actions: [{
+        title: "Conferir inteiro teor",
+        recommendation: "Localize a fundamentação, o resultado e a autoria no documento judicial antes de elaborar a estratégia.",
+        rationale: "Metadados ou referências sem fundamentos utilizáveis não sustentam uma orientação individual.",
+        references: [],
+      }],
+    }
+  }
   const selected = usable.map(row => cite(row.source))
 
   const argumentsAction: JudgeStrategyAction = {
@@ -104,14 +121,16 @@ export function buildJudgeStrategyAdvice(
     title: "Prosseguir, negociar ou alterar a estratégia?",
     recommendation: "Antes de optar, confronte (1) provas disponíveis e prova faltante, (2) fundamentos e resultados das decisões anexadas, (3) precedentes vinculantes e possíveis recursos, (4) prazo, custo e benefício econômico. Se os documentos contradizem a tese sem distinção material, considere reformulá-la ou avaliar composição; se houver distinção e provas sólidas, documente-as antes de prosseguir.",
     rationale: "O histórico do órgão é um insumo contextual, não uma decisão automática de ajuizamento, acordo ou desistência.",
-    references: sources,
+    references: selected,
   }
 
   return {
     coverage: "documented",
+    scope: normalizedJudge ? "named_magistrate" : "judging_body",
+    sourceCount: usable.length,
     headline: normalizedJudge
-      ? `Foram identificadas ${comparable.length} decisões documentadas atribuídas ao magistrado informado. Revise os fundamentos antes de escolher uma linha de atuação.`
-      : `Foram identificadas ${comparable.length} decisões documentadas do órgão informado. Revise os fundamentos abaixo antes de escolher uma linha de atuação.`,
+      ? `Foram utilizados ${usable.length} documentos fundamentados atribuídos ao magistrado informado. ${usable.length < 3 ? "A amostra é reduzida e não representa um padrão individual." : "A amostra não garante um padrão individual."} Revise os fundamentos antes de escolher uma linha de atuação.`
+      : `Foram utilizados ${usable.length} documentos fundamentados do órgão informado. ${usable.length < 3 ? "A amostra é reduzida." : "A quantidade não comprova um padrão decisório."} Revise os fundamentos antes de escolher uma linha de atuação.`,
     disclaimer,
     actions: [argumentsAction, reformAction, viabilityAction],
   }

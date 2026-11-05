@@ -74,5 +74,8 @@ jobs:
       - name: DJEN manual-review handoff and source isolation regression
         run: npx vitest run src/intelligence/djenReviewHandoff.test.ts
 
+      - name: DJEN Netlify runtime regression
+        run: npx vitest run src/intelligence/djenRuntime.test.ts
+
       - name: Vite build
         run: npx vite build

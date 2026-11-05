@@ -73,7 +73,7 @@ describe("Netlify DJEN runtime regression", () => {
     expect(calls).toEqual(["https://supabase-test.example/auth/v1/user"])
   })
 
-  it("authenticates, calls CNJ once with bounded page/size, and strips private text", async () => {
+  it("authenticates, calls CNJ once with official bounded pagination, and strips private text", async () => {
     const calls: string[] = []
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
@@ -82,9 +82,11 @@ describe("Netlify DJEN runtime regression", () => {
       const parsed = new URL(url)
       expect(parsed.hostname).toBe("comunicaapi.pje.jus.br")
       expect(parsed.searchParams.get("numeroProcesso")).toBe(processNumber)
-      expect(parsed.searchParams.get("page")).toBe("0")
-      expect(parsed.searchParams.get("size")).toBe("5")
+      expect(parsed.searchParams.get("pagina")).toBe("1")
+      expect(parsed.searchParams.get("itensPorPagina")).toBe("5")
       expect(parsed.searchParams.has("nomeParte")).toBe(false)
+      expect(parsed.searchParams.has("page")).toBe(false)
+      expect(parsed.searchParams.has("size")).toBe(false)
       return Response.json({
         count: 1,
         items: [{

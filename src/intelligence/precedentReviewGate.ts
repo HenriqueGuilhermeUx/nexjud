@@ -25,7 +25,7 @@ export function hasTrustedCourtReference(value: unknown): boolean {
 /** A court homepage alone cannot establish which decision was reviewed. */
 export function hasDocumentSpecificCourtReference(value: unknown): boolean {
   if (typeof value !== "string") return false
-  const urls = value.match(/https:\\/\\/[^\\s<>"'()]+/gi) || []
+  const urls = value.match(/https:\/\/[^\s<>"'()]+/gi) || []
   return urls.some(url => {
     const candidate = url.replace(/[.,;]+$/, "")
     if (!hasTrustedCourtReference(candidate)) return false

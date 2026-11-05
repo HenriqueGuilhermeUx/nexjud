@@ -9,6 +9,8 @@ export type JudgeStrategyAction = {
 
 export type JudgeStrategyAdvice = {
   coverage: "insufficient" | "documented"
+  scope: "insufficient" | "judging_body" | "named_magistrate"
+  sourceCount: number
   headline: string
   disclaimer: string
   actions: JudgeStrategyAction[]
@@ -42,6 +44,8 @@ export function buildJudgeStrategyAdvice(
   if (comparable.length === 0) {
     return {
       coverage: "insufficient",
+      scope: "insufficient",
+      sourceCount: 0,
       headline: normalizedJudge
         ? "Ainda não há decisões fundamentadas atribuídas ao magistrado informado para orientar estratégia individual."
         : "Ainda não há decisões fundamentadas comparáveis deste órgão para orientar a estratégia específica.",
@@ -78,6 +82,20 @@ export function buildJudgeStrategyAdvice(
     }]
   })
   const usable = supported.slice(0, 5)
+  // The comparison is descriptive: a small set cannot establish an individual pattern.
+  if (usable.length === 0) {
+    return {
+      coverage: "insufficient", scope: "insufficient", sourceCount: 0,
+      headline: "Os registros comparáveis ainda não oferecem fundamentação documentada para recomendar argumentos.",
+      disclaimer,
+      actions: [{
+        title: "Conferir inteiro teor",
+        recommendation: "Localize a fundamentação, o resultado e a autoria no documento judicial antes de elaborar a estratégia.",
+        rationale: "Metadados ou referências sem fundamentos utilizáveis não sustentam uma orientação individual.",
+        references: [],
+      }],
+    }
+  }
   const selected = usable.map(row => cite(row.source))
 
   const argumentsAction: JudgeStrategyAction = {
@@ -109,9 +127,11 @@ export function buildJudgeStrategyAdvice(
 
   return {
     coverage: "documented",
+    scope: normalizedJudge ? "named_magistrate" : "judging_body",
+    sourceCount: usable.length,
     headline: normalizedJudge
-      ? `Foram identificadas ${comparable.length} decisões documentadas atribuídas ao magistrado informado. Revise os fundamentos antes de escolher uma linha de atuação.`
-      : `Foram identificadas ${comparable.length} decisões documentadas do órgão informado. Revise os fundamentos abaixo antes de escolher uma linha de atuação.`,
+      ? `Foram identificadas ${comparable.length} decisões documentadas atribuídas ao magistrado informado. ${comparable.length < 3 ? "A amostra é reduzida e não representa um padrão individual." : "A amostra não garante um padrão individual."} Revise os fundamentos antes de escolher uma linha de atuação.`
+      : `Foram identificadas ${comparable.length} decisões documentadas do órgão informado. ${comparable.length < 3 ? "A amostra é reduzida." : "A quantidade não comprova um padrão decisório."} Revise os fundamentos antes de escolher uma linha de atuação.`,
     disclaimer,
     actions: [argumentsAction, reformAction, viabilityAction],
   }

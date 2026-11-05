@@ -24,10 +24,16 @@ export default async function handler(request) {
   const timeout = setTimeout(() => controller.abort(), 10000)
   try {
     // Authorize with the user's session. Never trust a client-supplied user ID.
-    const verified = await fetch(new URL("/auth/v1/user", supabaseUrl), {
-      headers: { Authorization: auth, apikey: anonKey, Accept: "application/json" },
-      signal: controller.signal,
-    })
+    let verified
+    try {
+      verified = await fetch(new URL("/auth/v1/user", supabaseUrl), {
+        headers: { Authorization: auth, apikey: anonKey, Accept: "application/json" },
+        signal: controller.signal,
+      })
+    } catch {
+      // Auth-provider network/timeout errors must not be labeled CNJ failures.
+      return json(503, { error: "authentication_verifier_unavailable" })
+    }
     if (verified.status === 401 || verified.status === 403) return json(401, { error: "invalid_session" })
     if (!verified.ok) return json(503, { error: "authentication_verifier_unavailable" })
     let account

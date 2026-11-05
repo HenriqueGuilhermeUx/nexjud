@@ -11,8 +11,8 @@ export default async function handler(request) {
   const origin = request.headers.get("origin")
   if (origin && origin !== new URL(request.url).origin) return json(403, { error: "forbidden_origin" })
   const url = new URL(request.url)
-  const process = (url.searchParams.get("process") || "").replace(/\D/g, "")
-  if (process.length !== 20 || !/^\d{20}$/.test(process)) return json(400, { error: "invalid_cnj_process" })
+  const processNumber = (url.searchParams.get("process") || "").replace(/\D/g, "")
+  if (processNumber.length !== 20 || !/^\d{20}$/.test(processNumber)) return json(400, { error: "invalid_cnj_process" })
   const auth = request.headers.get("authorization") || ""
   if (!/^Bearer\s+\S+$/.test(auth)) return json(401, { error: "authentication_required" })
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
@@ -40,9 +40,9 @@ export default async function handler(request) {
     recentQueries.set(account.id, now)
     // One page, five records, process-scoped. No scheduling, backfill or data persistence.
     const query = new URL("https://comunicaapi.pje.jus.br/api/v1/comunicacao")
-    query.searchParams.set("numeroProcesso", process)
-    query.searchParams.set("pagina", "1")
-    query.searchParams.set("itensPorPagina", "5")
+    query.searchParams.set("numeroProcesso", processNumber)
+    query.searchParams.set("page", "0")
+    query.searchParams.set("size", "5")
     const remote = await fetch(query, {
       headers: { Accept: "application/json", "User-Agent": "NexJud-DJEN-Pilot/1.0 (on-demand, read-only)" },
       signal: controller.signal,
@@ -52,7 +52,7 @@ export default async function handler(request) {
     if (!remote.ok) return json(502, { error: "cnj_unavailable", upstreamStatus: remote.status })
     const raw = await remote.text()
     if (raw.length > 2000000) return json(502, { error: "cnj_response_too_large" })
-    const reduced = normalizeDjenPublicPage(JSON.parse(raw), process)
+    const reduced = normalizeDjenPublicPage(JSON.parse(raw), processNumber)
     return json(200, reduced)
   } catch {
     return json(502, { error: "cnj_query_failed" })

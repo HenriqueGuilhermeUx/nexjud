@@ -28,9 +28,12 @@ export default async function handler(request) {
       headers: { Authorization: auth, apikey: anonKey, Accept: "application/json" },
       signal: controller.signal,
     })
-    if (!verified.ok) return json(401, { error: "invalid_session" })
-    const account = await verified.json()
-    if (!account?.id) return json(401, { error: "invalid_session" })
+    if (verified.status === 401 || verified.status === 403) return json(401, { error: "invalid_session" })
+    if (!verified.ok) return json(503, { error: "authentication_verifier_unavailable" })
+    let account
+    try { account = await verified.json() }
+    catch { return json(503, { error: "authentication_verifier_unavailable" }) }
+    if (!account?.id || typeof account.id !== "string") return json(503, { error: "authentication_verifier_unavailable" })
     // Best-effort per-instance throttle. CNJ rate-limit headers and HTTP 429 remain authoritative.
     const now = Date.now()
     for (const [key, at] of recentQueries) if (now - at > 60000) recentQueries.delete(key)

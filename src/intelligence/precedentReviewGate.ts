@@ -22,6 +22,20 @@ export function hasTrustedCourtReference(value: unknown): boolean {
   })
 }
 
+/** A court homepage alone cannot establish which decision was reviewed. */
+export function hasDocumentSpecificCourtReference(value: unknown): boolean {
+  if (typeof value !== "string") return false
+  const urls = value.match(/https:\\/\\/[^\\s<>"'()]+/gi) || []
+  return urls.some(url => {
+    const candidate = url.replace(/[.,;]+$/, "")
+    if (!hasTrustedCourtReference(candidate)) return false
+    try {
+      const parsed = new URL(candidate)
+      return parsed.pathname !== "/" && parsed.pathname.length > 1
+    } catch { return false }
+  })
+}
+
 export function isPrecedentEligibleForDna(item: {
   id?: unknown; fundamento?: unknown; resumo?: unknown; tags?: unknown
 }): boolean {
@@ -30,15 +44,15 @@ export function isPrecedentEligibleForDna(item: {
   if (tags.some(tag => tag.includes(normalize(DJEN_PENDING_TAG)))) return false
   if (!tags.some(tag => tag === "djen")) return true // Preserve existing non-DJEN references.
   return tags.includes(normalize(DJEN_REVIEWED_TAG)) &&
-    hasTrustedCourtReference(item.resumo) &&
+    hasDocumentSpecificCourtReference(item.resumo) &&
     typeof item.fundamento === "string" && item.fundamento.trim().length >= 40
 }
 
 export function confirmDjenReview(input: {
   sourceUrl: string; fundamento: string; acknowledged: boolean; tags: string
 }): { ok: true; tags: string[] } | { ok: false; reason: string } {
-  if (!hasTrustedCourtReference(input.sourceUrl)) {
-    return { ok: false, reason: "A fonte deve ser um endereço HTTPS verificável de tribunal (*.jus.br)." }
+  if (!hasDocumentSpecificCourtReference(input.sourceUrl)) {
+    return { ok: false, reason: "Informe o endereço HTTPS do documento judicial específico no tribunal (*.jus.br), não apenas a página inicial." }
   }
   if (input.fundamento.trim().length < 40) {
     return { ok: false, reason: "Descreva a fundamentação conferida no inteiro teor (ao menos 40 caracteres)." }

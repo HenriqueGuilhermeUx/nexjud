@@ -26,12 +26,22 @@ const base = (withEvidence: boolean): DecisionEvidenceAudit => ({
     decisionDate: decision.decisionDate!, qualified: true, comparable: true,
     exclusionReasons: [],
   }] : [],
+  it("does not label an unreasoned comparison as documented guidance", () => {
+    const noGrounds = base(true)
+    noGrounds.comparableEvidence = [{ ...decision, reasoning: [] }]
+    const result = buildJudgeStrategyAdvice(noGrounds, "Fatos", "Tese", "Juíza Maria Silva")
+    expect(result.coverage).toBe("insufficient")
+    expect(result.scope).toBe("insufficient")
+    expect(result.actions[0].references).toEqual([])
+  })
 })
 
 describe("judge DNA strategy adviser", () => {
   it("abstains from attributing a strategy to a judge without documented comparable decisions", () => {
     const result = buildJudgeStrategyAdvice(base(false), "Fatos do caso", "Tese")
     expect(result.coverage).toBe("insufficient")
+    expect(result.scope).toBe("insufficient")
+    expect(result.sourceCount).toBe(0)
     expect(result.actions.every(action => action.references.length === 0)).toBe(true)
     expect(result.headline).toContain("não há decisões")
   })
@@ -44,10 +54,15 @@ describe("judge DNA strategy adviser", () => {
   it("accepts an exact magistrate match with normalized whitespace and case", () => {
     const result = buildJudgeStrategyAdvice(base(true), "Fatos", "Tese", "  JUÍZA   MARIA SILVA  ")
     expect(result.coverage).toBe("documented")
+    expect(result.scope).toBe("named_magistrate")
+    expect(result.sourceCount).toBe(1)
+    expect(result.headline).toContain("amostra é reduzida")
   })
   it("returns specific recorded grounds, the actual outcome and traceable sources", () => {
     const result = buildJudgeStrategyAdvice(base(true), "Dano alegado", "Responsabilidade civil")
     expect(result.coverage).toBe("documented")
+    expect(result.scope).toBe("judging_body")
+    expect(result.headline).not.toContain("atribuídas ao magistrado")
     expect(result.actions[0].recommendation).toContain("dano, nexo causal e conduta")
     expect(result.actions[0].recommendation).toContain("insuficiência de prova")
     expect(result.actions[0].references[0].sourceUrl).toBe("https://tribunal.example/decisao/42")

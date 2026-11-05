@@ -86,6 +86,9 @@ export default function DecisionIntelligence() {
         setDjenMessage(res.status === 429 ? "Limite de consultas do CNJ atingido. Aguarde pelo menos um minuto."
           : res.status === 503 ? "Consulta temporariamente indisponível: autenticação do serviço não configurada."
           : res.status === 401 ? "Sua sessão expirou. Entre novamente para consultar."
+          : payload?.error === "cnj_access_restricted" ? "O CNJ recusou a consulta deste servidor. Acesso à fonte restrito; utilize o portal oficial enquanto verificamos as condições de acesso."
+          : payload?.error === "cnj_query_rejected" ? "O CNJ rejeitou os parâmetros da consulta. A integração precisa ser ajustada conforme a especificação oficial."
+          : payload?.error === "cnj_unexpected_format" ? "A resposta do CNJ está incompleta ou mudou de formato. Não é possível afirmar que não existem publicações."
           : "Não foi possível consultar o DJEN neste momento. Consulte o portal oficial.")
         return
       }

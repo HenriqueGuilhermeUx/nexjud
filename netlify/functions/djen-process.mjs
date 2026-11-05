@@ -49,10 +49,14 @@ export default async function handler(request) {
       redirect: "error",
     })
     if (remote.status === 429) return json(429, { error: "cnj_rate_limited", guidance: "Aguarde pelo menos um minuto antes de nova tentativa." }, { "Retry-After": "60" })
+    if (remote.status === 403) return json(502, { error: "cnj_access_restricted", guidance: "O CNJ recusou a consulta deste servidor. Pode haver restrição por origem, rede ou política de acesso; não tente contornar o bloqueio." })
+    if (remote.status === 400 || remote.status === 422) return json(502, { error: "cnj_query_rejected", guidance: "O CNJ rejeitou os parâmetros da consulta. Verifique a especificação oficial antes de tentar novamente." })
     if (!remote.ok) return json(502, { error: "cnj_unavailable", upstreamStatus: remote.status })
     const raw = await remote.text()
     if (raw.length > 2000000) return json(502, { error: "cnj_response_too_large" })
-    const reduced = normalizeDjenPublicPage(JSON.parse(raw), processNumber)
+    let reduced
+    try { reduced = normalizeDjenPublicPage(JSON.parse(raw), processNumber) }
+    catch { return json(502, { error: "cnj_unexpected_format", guidance: "A resposta pública do CNJ mudou ou está incompleta. A consulta não foi considerada vazia." }) }
     return json(200, reduced)
   } catch {
     return json(502, { error: "cnj_query_failed" })

@@ -72,6 +72,34 @@ describe("Netlify DJEN runtime regression", () => {
     expect(res.headers.get("cache-control")).toBe("no-store")
   })
 
+  it.each([
+    [403, "cnj_access_restricted"],
+    [400, "cnj_query_rejected"],
+    [422, "cnj_query_rejected"],
+  ])("reports restricted or rejected CNJ response %s without leaking document text", async (code, errorCode) => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith("/auth/v1/user")) return Response.json({ id: "unique-" + code })
+      return new Response("CPF 123.456.789-00 confidential upstream content", { status: code })
+    }))
+    const res = await invoke()
+    expect(res.status).toBe(502)
+    const body = await res.json()
+    expect(body.error).toBe(errorCode)
+    expect(JSON.stringify(body)).not.toContain("123.456.789-00")
+  })
+
+  it("distinguishes malformed public payload from legitimately empty results", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith("/auth/v1/user")) return Response.json({ id: "malformed-response-account" })
+      return Response.json({ data: [{ text: "private" }] })
+    }))
+    const res = await invoke()
+    expect(res.status).toBe(502)
+    expect((await res.json()).error).toBe("cnj_unexpected_format")
+  })
+
   it("rejects missing auth and invalid CNJ without contacting providers", async () => {
     const mock = vi.fn()
     vi.stubGlobal("fetch", mock)

@@ -99,7 +99,7 @@ export default function Precedents() {
         acknowledged: djenVerified,
         tags,
       })
-      if (!review.ok) { alert(review.reason); return }
+      if ("reason" in review) { alert(review.reason); return }
       reviewedTags = review.tags
     }
 

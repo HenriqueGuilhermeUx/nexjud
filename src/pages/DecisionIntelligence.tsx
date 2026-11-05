@@ -85,6 +85,7 @@ export default function DecisionIntelligence() {
       if (version !== djenRequest.current || owner !== currentAuthUserId.current) return
       if (!res.ok) {
         setDjenMessage(res.status === 429 ? "Limite de consultas do CNJ atingido. Aguarde pelo menos um minuto."
+          : payload?.error === "authentication_verifier_unavailable" ? "O serviço de verificação da sessão está temporariamente indisponível. Tente novamente mais tarde; não é necessário trocar sua senha."
           : res.status === 503 ? "Consulta temporariamente indisponível: autenticação do serviço não configurada."
           : res.status === 401 ? "Sua sessão expirou. Entre novamente para consultar."
           : payload?.error === "cnj_access_restricted" ? "O CNJ recusou a consulta deste servidor. Acesso à fonte restrito; utilize o portal oficial enquanto verificamos as condições de acesso."

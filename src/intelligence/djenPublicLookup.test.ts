@@ -55,6 +55,8 @@ describe("DJEN point lookup: private-data-safe metadata", () => {
     expect(fn).not.toContain(".from(")
     expect(fn).not.toContain("localStorage")
     expect(ui).toContain("Consultar DJEN (CNJ)")
+    expect(ui).toContain('payload?.error === "local_throttle"')
+    expect(ui).toContain("Aguarde 10 segundos antes de consultar novamente este processo.")
     expect(ui).toContain("Nenhuma publicação desta consulta entra automaticamente no DNA do Juiz")
   })
 })

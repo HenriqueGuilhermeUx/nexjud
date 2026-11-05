@@ -26,14 +26,7 @@ const base = (withEvidence: boolean): DecisionEvidenceAudit => ({
     decisionDate: decision.decisionDate!, qualified: true, comparable: true,
     exclusionReasons: [],
   }] : [],
-  it("does not label an unreasoned comparison as documented guidance", () => {
-    const noGrounds = base(true)
-    noGrounds.comparableEvidence = [{ ...decision, reasoning: [] }]
-    const result = buildJudgeStrategyAdvice(noGrounds, "Fatos", "Tese", "Juíza Maria Silva")
-    expect(result.coverage).toBe("insufficient")
-    expect(result.scope).toBe("insufficient")
-    expect(result.actions[0].references).toEqual([])
-  })
+
 })
 
 describe("judge DNA strategy adviser", () => {
@@ -68,5 +61,13 @@ describe("judge DNA strategy adviser", () => {
     expect(result.actions[0].references[0].sourceUrl).toBe("https://tribunal.example/decisao/42")
     expect(result.actions[2].recommendation).toContain("reformulá-la")
     expect(result.disclaimer).toContain("não previsão")
+  })
+  it("does not label an unreasoned comparison as documented guidance", () => {
+    const noGrounds = base(true)
+    noGrounds.comparableEvidence = [{ ...decision, reasoning: [] }]
+    const result = buildJudgeStrategyAdvice(noGrounds, "Fatos", "Tese", "Juíza Maria Silva")
+    expect(result.coverage).toBe("insufficient")
+    expect(result.scope).toBe("insufficient")
+    expect(result.actions[0].references).toEqual([])
   })
 })

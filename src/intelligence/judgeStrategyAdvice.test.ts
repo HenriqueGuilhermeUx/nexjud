@@ -96,4 +96,28 @@ describe("judge DNA strategy adviser", () => {
     expect(result.sourceCount).toBe(0)
   })
 
+  it("rejects a source review referencing a different document under the same evidence id", () => {
+    const audit = base(true)
+    audit.review[0].documentReference = "acordao-diferente"
+    const result = buildJudgeStrategyAdvice(audit, "Fatos", "Tese", "Juíza Maria Silva")
+    expect(result.coverage).toBe("insufficient")
+    expect(result.actions.every(action => action.references.length === 0)).toBe(true)
+  })
+  it("rejects review metadata from a different court or an unqualified decision", () => {
+    const wrongCourt = base(true)
+    wrongCourt.review[0].court = "TJMG"
+    expect(buildJudgeStrategyAdvice(wrongCourt, "Fatos", "Tese").coverage).toBe("insufficient")
+    const unqualified = base(true)
+    unqualified.review[0].qualified = false
+    expect(buildJudgeStrategyAdvice(unqualified, "Fatos", "Tese").coverage).toBe("insufficient")
+  })
+  it("rejects a changed URL and review with unresolved exclusion reasons", () => {
+    const wrongLink = base(true)
+    wrongLink.review[0].sourceUrl = "https://tribunal.example/decisao/outra"
+    expect(buildJudgeStrategyAdvice(wrongLink, "Fatos", "Tese").coverage).toBe("insufficient")
+    const excluded = base(true)
+    excluded.review[0].exclusionReasons = ["Documento não comprovado"]
+    expect(buildJudgeStrategyAdvice(excluded, "Fatos", "Tese").coverage).toBe("insufficient")
+  })
+
 })

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { readDjenReviewHandoff } from "@/intelligence/djenReviewHandoff"
+import { confirmDjenReview } from "@/intelligence/precedentReviewGate"
 import { Landmark, Plus, Search, Trash2 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import {
@@ -26,6 +27,7 @@ export default function Precedents() {
   const [fundamento, setFundamento] = useState("")
   const [impacto, setImpacto] = useState("")
   const [tags, setTags] = useState("")
+  const [djenVerified, setDjenVerified] = useState(false)
 
   useEffect(() => {
     load()
@@ -43,6 +45,7 @@ export default function Precedents() {
         setFundamento("")
         setImpacto("")
         setTags("")
+        setDjenVerified(false)
       }
       return
     }
@@ -58,6 +61,7 @@ export default function Precedents() {
     setFundamento("")
     setImpacto("")
     setTags("DJEN, revisão manual pendente")
+    setDjenVerified(false)
   }, [location.state, user?.id])
 
   async function load(q = "") {
@@ -87,6 +91,18 @@ export default function Precedents() {
       return
     }
 
+    let reviewedTags: string[] | null = null
+    if (djenReview) {
+      const review = confirmDjenReview({
+        sourceUrl: djenReview.sourceUrl,
+        fundamento,
+        acknowledged: djenVerified,
+        tags,
+      })
+      if ("reason" in review) { alert(review.reason); return }
+      reviewedTags = review.tags
+    }
+
     try {
       await createPrecedent({
         user_id: user.id,
@@ -97,7 +113,7 @@ export default function Precedents() {
         resumo: resumo || null,
         fundamento,
         impacto: impacto || null,
-        tags: tags
+        tags: reviewedTags ?? tags
           .split(",")
           .map((t) => t.trim())
           .filter(Boolean),
@@ -111,6 +127,7 @@ export default function Precedents() {
       setFundamento("")
       setImpacto("")
       setTags("")
+      setDjenVerified(false)
 
       await load()
       alert("Precedente salvo.")
@@ -170,7 +187,7 @@ export default function Precedents() {
             </div>
 
             {djenReview && <p role="status" className="mb-4 rounded-xl border border-amber-500/30 p-3 text-sm text-amber-200">
-              Comunicação DJEN importada como rascunho. Confira o inteiro teor no tribunal e escreva o fundamento antes de salvar. Após confirmar documentalmente, retire a tag "revisão manual pendente" para permitir o uso dessa referência na IA do DNA. Não atribua automaticamente o ato ao magistrado.
+              Comunicação DJEN importada como rascunho. Confira o inteiro teor no tribunal e escreva o fundamento antes de salvar. Depois de conferir e marcar a confirmação abaixo, o NexJud registrará sua atestação e removerá a pendência ao salvar. Não atribua automaticamente o ato ao magistrado.
             </p>}
             <div className="space-y-4">
               <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" className="w-full rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4" />
@@ -184,6 +201,10 @@ export default function Precedents() {
 
               <textarea value={fundamento} onChange={(e) => setFundamento(e.target.value)} placeholder="Fundamento / tese / aplicabilidade / distinção" className="w-full h-48 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4" />
 
+              {djenReview && <label className="flex items-start gap-3 rounded-xl border border-amber-400/30 p-3 text-sm">
+                <input type="checkbox" checked={djenVerified} onChange={e => setDjenVerified(e.target.checked)} className="mt-1" />
+                <span>Abri o <a href={djenReview.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline text-primary">documento no sistema do tribunal</a>, confirmei que contém fundamentação e transcrevi ou resumi o fundamento sem dados sigilosos. Isso registra minha conferência, não uma certificação automática do NexJud.</span>
+              </label>}
               <div className="flex gap-3">
                 <button onClick={save} className="flex-1 py-3 rounded-xl bg-primary text-white font-bold">
                   Salvar

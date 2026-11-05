@@ -77,5 +77,8 @@ jobs:
       - name: DJEN Netlify runtime regression
         run: npx vitest run src/intelligence/djenRuntime.test.ts
 
+      - name: DJEN document review eligibility regression
+        run: npx vitest run src/intelligence/precedentReviewGate.test.ts
+
       - name: Vite build
         run: npx vite build

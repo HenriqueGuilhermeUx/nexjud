@@ -49,6 +49,18 @@ describe("Netlify DJEN runtime regression", () => {
     expect(calls).toEqual(["https://supabase-test.example/auth/v1/user"])
   })
 
+  it("reports auth-provider network failure as 503 and never contacts CNJ", async () => {
+    const calls: string[] = []
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      calls.push(String(input))
+      throw new TypeError("network failure")
+    }))
+    const res = await invoke()
+    expect(res.status).toBe(503)
+    expect((await res.json()).error).toBe("authentication_verifier_unavailable")
+    expect(calls).toEqual(["https://supabase-test.example/auth/v1/user"])
+  })
+
   it("does not mistake malformed session-verifier response for invalid credentials", async () => {
     const calls: string[] = []
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {

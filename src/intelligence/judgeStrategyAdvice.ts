@@ -32,7 +32,19 @@ export function buildJudgeStrategyAdvice(
     ? audit.comparableEvidence.filter(item => item.judgeOrRapporteur?.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR") === normalizedJudge)
     : audit.comparableEvidence
   const eligibleIds = new Set(comparable.map(item => item.id))
-  const review = audit.review.filter(item => item.comparable && eligibleIds.has(item.id))
+  // A reviewed source must match the underlying evidence, not merely share an id.
+  // Keep the guard local: no new persistence or change to existing integrations.
+  const normalizeVenue = (value: string | null | undefined) =>
+    (value || "").normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("pt-BR")
+  const review = audit.review.filter(row => {
+    if (!row.qualified || !row.comparable || row.exclusionReasons.length || !eligibleIds.has(row.id)) return false
+    const evidence = comparable.find(item => item.id === row.id)
+    return Boolean(evidence && row.source === evidence.source &&
+      normalizeVenue(row.court) === normalizeVenue(evidence.court) &&
+      normalizeVenue(row.judgingBody) === normalizeVenue(evidence.judgingBody) &&
+      (!row.documentReference || row.documentReference === evidence.sourceDocumentId) &&
+      (!row.sourceUrl || row.sourceUrl === evidence.sourceUrl))
+  })
   const cite = (item: typeof review[number]) => ({
     id: item.id,
     document: item.documentReference || item.processNumber || item.id,

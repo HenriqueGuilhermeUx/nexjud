@@ -38,7 +38,6 @@ export function buildJudgeStrategyAdvice(
     document: item.documentReference || item.processNumber || item.id,
     sourceUrl: item.sourceUrl,
   })
-  const sources = review.slice(0, 8).map(cite)
   const disclaimer = "Orientação para revisão do advogado, não previsão do comportamento individual do magistrado. Avalie diferenças fáticas, atualidade, recursos e eventuais mudanças de entendimento."
 
   if (comparable.length === 0) {
@@ -122,7 +121,7 @@ export function buildJudgeStrategyAdvice(
     title: "Prosseguir, negociar ou alterar a estratégia?",
     recommendation: "Antes de optar, confronte (1) provas disponíveis e prova faltante, (2) fundamentos e resultados das decisões anexadas, (3) precedentes vinculantes e possíveis recursos, (4) prazo, custo e benefício econômico. Se os documentos contradizem a tese sem distinção material, considere reformulá-la ou avaliar composição; se houver distinção e provas sólidas, documente-as antes de prosseguir.",
     rationale: "O histórico do órgão é um insumo contextual, não uma decisão automática de ajuizamento, acordo ou desistência.",
-    references: sources,
+    references: selected,
   }
 
   return {
@@ -130,8 +129,8 @@ export function buildJudgeStrategyAdvice(
     scope: normalizedJudge ? "named_magistrate" : "judging_body",
     sourceCount: usable.length,
     headline: normalizedJudge
-      ? `Foram identificadas ${comparable.length} decisões documentadas atribuídas ao magistrado informado. ${comparable.length < 3 ? "A amostra é reduzida e não representa um padrão individual." : "A amostra não garante um padrão individual."} Revise os fundamentos antes de escolher uma linha de atuação.`
-      : `Foram identificadas ${comparable.length} decisões documentadas do órgão informado. ${comparable.length < 3 ? "A amostra é reduzida." : "A quantidade não comprova um padrão decisório."} Revise os fundamentos antes de escolher uma linha de atuação.`,
+      ? `Foram utilizados ${usable.length} documentos fundamentados atribuídos ao magistrado informado. ${usable.length < 3 ? "A amostra é reduzida e não representa um padrão individual." : "A amostra não garante um padrão individual."} Revise os fundamentos antes de escolher uma linha de atuação.`
+      : `Foram utilizados ${usable.length} documentos fundamentados do órgão informado. ${usable.length < 3 ? "A amostra é reduzida." : "A quantidade não comprova um padrão decisório."} Revise os fundamentos antes de escolher uma linha de atuação.`,
     disclaimer,
     actions: [argumentsAction, reformAction, viabilityAction],
   }

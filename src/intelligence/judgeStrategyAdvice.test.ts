@@ -70,4 +70,30 @@ describe("judge DNA strategy adviser", () => {
     expect(result.scope).toBe("insufficient")
     expect(result.actions[0].references).toEqual([])
   })
+  it("uses a grounded decision even when eight earlier records lack reasoning", () => {
+    const audit = base(true)
+    const unavailable = Array.from({ length: 8 }, (_, index) => ({
+      ...decision, id: "missing-" + index, reasoning: [],
+    }))
+    audit.comparableEvidence = [...unavailable, { ...decision, id: "grounded-last" }]
+    audit.review = audit.comparableEvidence.map(item => ({
+      id: item.id, court: item.court, judgingBody: item.judgingBody!,
+      processNumber: item.processNumber!, source: item.source,
+      documentReference: item.sourceDocumentId!, sourceUrl: item.sourceUrl!,
+      decisionDate: item.decisionDate!, qualified: true, comparable: true,
+      exclusionReasons: [],
+    }))
+    const result = buildJudgeStrategyAdvice(audit, "Fatos", "Tese")
+    expect(result.coverage).toBe("documented")
+    expect(result.sourceCount).toBe(1)
+    expect(result.actions[0].references.map(ref => ref.id)).toEqual(["grounded-last"])
+  })
+  it("excludes entries without a documented outcome", () => {
+    const audit = base(true)
+    audit.comparableEvidence = [{ ...decision, observedOutcome: "" }]
+    const result = buildJudgeStrategyAdvice(audit, "Fatos", "Tese")
+    expect(result.coverage).toBe("insufficient")
+    expect(result.sourceCount).toBe(0)
+  })
+
 })

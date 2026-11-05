@@ -37,6 +37,30 @@ describe("Netlify DJEN runtime regression", () => {
     expect(calls).toEqual(["https://supabase-test.example/auth/v1/user"])
   })
 
+  it.each([500, 502, 503])("returns 503 without consulting CNJ when session verifier fails (%s)", async (status) => {
+    const calls: string[] = []
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      calls.push(String(input))
+      return new Response("verifier temporarily unavailable", { status })
+    }))
+    const res = await invoke()
+    expect(res.status).toBe(503)
+    expect((await res.json()).error).toBe("authentication_verifier_unavailable")
+    expect(calls).toEqual(["https://supabase-test.example/auth/v1/user"])
+  })
+
+  it("does not mistake malformed session-verifier response for invalid credentials", async () => {
+    const calls: string[] = []
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      calls.push(String(input))
+      return new Response("not JSON", { status: 200 })
+    }))
+    const res = await invoke()
+    expect(res.status).toBe(503)
+    expect((await res.json()).error).toBe("authentication_verifier_unavailable")
+    expect(calls).toEqual(["https://supabase-test.example/auth/v1/user"])
+  })
+
   it("authenticates, calls CNJ once with bounded page/size, and strips private text", async () => {
     const calls: string[] = []
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {

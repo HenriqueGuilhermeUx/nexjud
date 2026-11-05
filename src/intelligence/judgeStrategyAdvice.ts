@@ -68,11 +68,12 @@ export function buildJudgeStrategyAdvice(
 
   const fullFacts = caseFacts.trim()
   const thesis = counselThesis.trim()
-  const supported = comparable.slice(0, 8).flatMap((item) => {
+  const supported = comparable.flatMap((item) => {
     const source = review.find(row => row.id === item.id && row.comparable)
     if (!source) return []
     const reasoning = item.reasoning.map(text => text.trim()).find(Boolean)
-    if (!reasoning) return []
+    // Skip ungrounded entries rather than letting them consume the first eight slots.
+    if (!reasoning || !item.observedOutcome?.trim() || !source.sourceUrl && !source.documentReference) return []
     return [{
       source,
       reasoning: reasoning.slice(0, 420),

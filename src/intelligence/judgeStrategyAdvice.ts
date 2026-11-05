@@ -35,7 +35,7 @@ export function buildJudgeStrategyAdvice(
   // A reviewed source must match the underlying evidence, not merely share an id.
   // Keep the guard local: no new persistence or change to existing integrations.
   const normalizeVenue = (value: string | null | undefined) =>
-    (value || "").normalize("NFKC").trim().replace(/\\s+/g, " ").toLocaleLowerCase("pt-BR")
+    (value || "").normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR")
   const review = audit.review.filter(row => {
     if (!row.qualified || !row.comparable || row.exclusionReasons.length || !eligibleIds.has(row.id)) return false
     const evidence = comparable.find(item => item.id === row.id)

@@ -1,0 +1,85 @@
+name: NexJud legislation source staging tests
+
+on:
+  pull_request:
+    paths:
+      - 'src/enterprise/legislationSourcePilot.ts'
+      - 'src/enterprise/legislationSourcePilot.test.ts'
+      - 'src/enterprise/legislationBatchStaging.ts'
+      - 'src/enterprise/legislationBatchStaging.test.ts'
+      - 'src/enterprise/legislationArticleExtract.ts'
+      - 'src/enterprise/legislationArticleExtract.test.ts'
+      - 'src/enterprise/legislationSearchIndex.ts'
+      - 'src/enterprise/legislationSearchIndex.test.ts'
+      - 'src/enterprise/legislationSnapshot.ts'
+      - 'src/enterprise/legislationSnapshot.test.ts'
+      - 'src/enterprise/legislationRevisionReview.ts'
+      - 'src/enterprise/legislationRevisionReview.test.ts'
+      - 'src/enterprise/legislationSourceIntegrity.ts'
+      - 'src/enterprise/legislationSourceIntegrity.test.ts'
+      - 'src/enterprise/legislationOfficialReviewPacket.ts'
+      - 'src/enterprise/legislationOfficialReviewPacket.test.ts'
+      - 'scripts/legislationSnapshotSmoke.ts'
+      - 'src/enterprise/legislationPinnedFixture.test.ts'
+      - '.github/workflows/legislation-pilot-ci.yml'
+  push:
+    branches: ['feat/legislation-source-pilot-20261025']
+    paths:
+      - 'src/enterprise/legislationSourcePilot.ts'
+      - 'src/enterprise/legislationSourcePilot.test.ts'
+      - 'src/enterprise/legislationBatchStaging.ts'
+      - 'src/enterprise/legislationBatchStaging.test.ts'
+      - 'src/enterprise/legislationArticleExtract.ts'
+      - 'src/enterprise/legislationArticleExtract.test.ts'
+      - 'src/enterprise/legislationSearchIndex.ts'
+      - 'src/enterprise/legislationSearchIndex.test.ts'
+      - 'src/enterprise/legislationSnapshot.ts'
+      - 'src/enterprise/legislationSnapshot.test.ts'
+      - 'src/enterprise/legislationRevisionReview.ts'
+      - 'src/enterprise/legislationRevisionReview.test.ts'
+      - 'src/enterprise/legislationSourceIntegrity.ts'
+      - 'src/enterprise/legislationSourceIntegrity.test.ts'
+      - 'src/enterprise/legislationOfficialReviewPacket.ts'
+      - 'src/enterprise/legislationOfficialReviewPacket.test.ts'
+      - 'scripts/legislationSnapshotSmoke.ts'
+      - 'src/enterprise/legislationPinnedFixture.test.ts'
+      - '.github/workflows/legislation-pilot-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install frontend dependencies
+        run: npm install --ignore-scripts=false
+      - name: TypeScript
+        run: npx tsc -b
+      - name: Legislation parser and batch staging tests
+        run: npx vitest run src/enterprise/legislationSourcePilot.test.ts src/enterprise/legislationBatchStaging.test.ts src/enterprise/legislationArticleExtract.test.ts src/enterprise/legislationSearchIndex.test.ts src/enterprise/legislationSnapshot.test.ts src/enterprise/legislationRevisionReview.test.ts src/enterprise/legislationSourceIntegrity.test.ts src/enterprise/legislationOfficialReviewPacket.test.ts
+
+      - name: Check pinned Brazilian legislation sample without importing it
+        run: |
+          curl -fsSL --retry 2 --max-time 20 --max-filesize 500000 \
+            "https://raw.githubusercontent.com/ctresb/leis/15eb09b618ff08a38c4dfee06a91bd139d093f5d/federal/leis-ordinarias/2026/lei-15322-2026-01-06.md" \
+            -o "$RUNNER_TEMP/lei_15322.md"
+          test "$(wc -c < "$RUNNER_TEMP/lei_15322.md")" -lt 500000
+          NEXJUD_PINNED_LEGISLATION_FILE="$RUNNER_TEMP/lei_15322.md" \
+            npx vitest run src/enterprise/legislationPinnedFixture.test.ts
+      - name: Export and reload real-law JSON draft snapshot
+        run: |
+          npx --yes tsx@4.20.6 scripts/legislationSnapshotSmoke.ts \
+            "$RUNNER_TEMP/lei_15322.md" "$RUNNER_TEMP/legislation-draft.json"
+      - name: Upload public-law staging snapshot only
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexjud-legislation-source-only
+          path: ${{ runner.temp }}/legislation-draft.json
+          retention-days: 1
+          if-no-files-found: error

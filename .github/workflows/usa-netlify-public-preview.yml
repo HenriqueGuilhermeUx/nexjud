@@ -1,0 +1,70 @@
+name: NexJud USA — Git-based Netlify Site Safety
+
+on:
+  push:
+    branches:
+      - feature/usa-courtlistener-predictive-foundation-20261024
+    paths:
+      - 'usa-public/**'
+      - '.github/workflows/usa-netlify-public-preview.yml'
+  pull_request:
+    paths:
+      - 'usa-public/**'
+      - '.github/workflows/usa-netlify-public-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexjud-usa-public-static-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-us-site:
+    name: Static US release safety (Netlify Git CD publishes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout isolated U.S. source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate deployment scope, documents and private boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f usa-public/netlify.toml
+          for asset in index.html workspace.html privacy.html disclaimer.html favicon.svg robots.txt _headers; do
+            test -s "usa-public/$asset"
+          done
+          grep -q 'ILLUSTRATIVE DATA' usa-public/index.html
+          grep -q 'DEMO ONLY' usa-public/workspace.html
+          grep -q 'Private pilot access is not yet enabled' usa-public/workspace.html
+          grep -q 'href="workspace.html"' usa-public/index.html
+          grep -q 'noindex, nofollow' usa-public/index.html
+          grep -q 'noindex,nofollow' usa-public/workspace.html
+          # The public demo must never store user information or make network calls.
+          if grep -E -i '(fetch[[:space:]]*\(|XMLHttpRequest|WebSocket|sendBeacon|localStorage|sessionStorage|<form\b|<input[^>]+type="(text|email|password|file)")' usa-public/workspace.html; then
+            echo "Public demo includes a prohibited API, storage or personal-data form" >&2
+            exit 1
+          fi
+          if grep -E -i '(https?://[^" ]+\.(js|css)|src="https?://)' usa-public/workspace.html; then
+            echo "Public demo uses external runtime assets" >&2
+            exit 1
+          fi
+          grep -q 'User-agent:' usa-public/robots.txt
+          grep -q 'Content-Security-Policy:' usa-public/_headers
+          if grep -R -E -i '(service_role|secret_key|sk_live_|NETLIFY_AUTH_TOKEN|VITE_SUPABASE_URL|VITE_SUPABASE_ANON_KEY|localhost:5432)'             usa-public/index.html usa-public/workspace.html usa-public/privacy.html usa-public/disclaimer.html; then
+            echo "Sensitive/backend references found in public site" >&2
+            exit 1
+          fi
+          test ! -d usa-public/netlify/functions
+          echo "PASS: publish only usa-public, never Brazilian dist or research functions"
+      - name: Confirm Netlify Git-CD configuration (no token or ZIP)
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'publish = "."' usa-public/netlify.toml
+          echo "Netlify must link site nexjud-usa to this GitHub branch with base directory usa-public."
+          echo "This workflow tests the source; Netlify's native Git integration builds and publishes it."

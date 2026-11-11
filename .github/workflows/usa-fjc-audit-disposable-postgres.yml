@@ -1,0 +1,76 @@
+name: NexJud USA FJC Audit — Disposable PostgreSQL Only
+
+on:
+  pull_request:
+    paths:
+      - 'docs/usa/postgres/**'
+      - '.github/workflows/usa-fjc-audit-disposable-postgres.yml'
+  push:
+    branches:
+      - feature/usa-courtlistener-predictive-foundation-20261024
+    paths:
+      - 'docs/usa/postgres/**'
+      - '.github/workflows/usa-fjc-audit-disposable-postgres.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: usa-fjc-postgres-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-audit-ledger:
+    name: Synthetic FJC audit registry CAS / RLS / replay
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGPASSWORD: ci-only
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Apply candidate schema ONLY to disposable PostgreSQL 17
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/fjc-audit-disposable-proposal.sql
+      - name: Synthetic persistent chain, reviewer-key revocation, replay and forbidden writes
+        run: psql -X -v ON_ERROR_STOP=1 -f docs/usa/postgres/fjc-audit-disposable-contract-tests.sql
+      - name: Race two identical CAS writers against the same checkpoint
+        shell: bash
+        run: |
+          set +e
+          statement="select usa_fjc_audit_lab.append_event('revoke_key', '{\"key_id\":\"synthetic-key-3\",\"reason\":\"concurrent synthetic key revocation\"}'::jsonb, 6, (select head_digest from usa_fjc_audit_lab.ledger_head where singleton));"
+          (psql -X -v ON_ERROR_STOP=1 -c "$statement") >/tmp/fjc-writer-a 2>&1 &
+          p1=$!
+          (psql -X -v ON_ERROR_STOP=1 -c "$statement") >/tmp/fjc-writer-b 2>&1 &
+          p2=$!
+          wait "$p1"; rc1=$?
+          wait "$p2"; rc2=$?
+          successes=0
+          if [ "$rc1" -eq 0 ]; then successes=$((successes+1)); fi
+          if [ "$rc2" -eq 0 ]; then successes=$((successes+1)); fi
+          if [ "$successes" -ne 1 ]; then
+            cat /tmp/fjc-writer-a /tmp/fjc-writer-b
+            echo "Expected exactly one successful CAS writer; saw $successes"
+            exit 1
+          fi
+          count=$(psql -X -At -v ON_ERROR_STOP=1 -c "select count(*) from usa_fjc_audit_lab.ledger_events")
+          head=$(psql -X -At -v ON_ERROR_STOP=1 -c "select sequence from usa_fjc_audit_lab.ledger_head where singleton")
+          if [ "$count" != "6" ] || [ "$head" != "6" ]; then
+            echo "FJC ledger out of sync: count=$count head=$head"
+            exit 1
+          fi
+          echo "PASS: one race winner, stale writer rejected, six persisted events"

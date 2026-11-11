@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#070d1b">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="NexJud USA restricted legal research pilot. Unavailable until independently reviewed.">
+  <title>NexJud USA — Restricted Pilot</title>
+</head>
+<body>
+  <div id="app" class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="logo">N</span> NexJud <small>USA</small></div>
+      <span class="tag">Restricted pilot · No case research</span>
+    </header>
+    <main>
+      <div class="eyebrow">Controlled access</div>
+      <h1>One workspace.<br><em>Verified access.</em></h1>
+      <p class="intro">Private NexJud USA pilot. Account access alone does not authorize U.S. legal research or prediction. Every session requires live, organization-scoped authorization.</p>
+      <section class="panel" aria-labelledby="access-heading">
+        <div id="unavailable">
+          <h2 id="access-heading">Pilot access is not available</h2>
+          <p>Private enrollment, data permissions and U.S. court-provider rights remain under independent review. No credentials are being collected on this page.</p>
+        </div>
+        <form id="login-form" hidden autocomplete="off" aria-labelledby="login-heading">
+          <h2 id="login-heading">Approved members only</h2>
+          <p>Sign in with a previously approved pilot account. This session will not be saved in your browser.</p>
+          <label for="email">Work email</label>
+          <input id="email" name="email" type="email" autocomplete="username" maxlength="254" required>
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="256" required>
+          <button type="submit" id="login-btn">Verify access</button>
+        </form>
+        <div id="pilot-shell" hidden>
+          <h2 id="pilot-heading">Authorized pilot shell</h2>
+          <p>Role: <strong id="pilot-role"></strong></p>
+          <div class="notice">Research API: disabled. Predictive models: disabled. No matters, financial information or court data can be submitted.</div>
+          <button id="logout-btn" type="button">Sign out</button>
+        </div>
+        <div id="status" role="status" aria-live="polite"></div>
+      </section>
+      <div class="trust">
+        <div><b>Isolated by design</b><p>U.S. organization permissions are checked on the server, independent of NexJud Brasil records.</p></div>
+        <div><b>No persistent sessions</b><p>Session storage, automatic token refresh, OAuth URL detection and public signup are disabled.</p></div>
+        <div><b>No legal predictions</b><p>Real precedents, case searches and individual case outcomes are unavailable in this pilot shell.</p></div>
+      </div>
+    </main>
+    <footer>© 2026 NexJud USA — Restricted engineering release. Not legal advice.</footer>
+  </div>
+  <script type="module" src="/main.ts"></script>
+</body>
+</html>

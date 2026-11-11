@@ -1,0 +1,29 @@
+name: NexJud Pix Automatic Contract CI
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/functions/_shared/monthlyPixContract.ts"
+      - "supabase/functions/_shared/paidCyclePolicy.ts"
+      - "src/enterprise/monthlyPixContract.test.ts"
+      - "src/enterprise/paidCyclePolicy.test.ts"
+      - ".github/workflows/pix-automatic-contract.yml"
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install
+        run: npm install --ignore-scripts=false
+      - name: Test monthly contract and paid-only access policy
+        run: npx vitest run src/enterprise/monthlyPixContract.test.ts src/enterprise/paidCyclePolicy.test.ts
+      - name: Web typecheck
+        run: npx tsc -b
+      - name: Web/PWA build
+        run: npx vite build

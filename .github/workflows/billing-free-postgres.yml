@@ -1,0 +1,40 @@
+name: NexJud Free Billing PostgreSQL CI
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/billing/free-staging/**"
+      - ".github/workflows/billing-free-postgres.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  disposable-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: local-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: local-only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start invented customer and billing fixture
+        run: psql -v ON_ERROR_STOP=1 -f docs/billing/free-staging/01-fixture.sql
+      - name: Apply proposed monthly payment RPC only to disposable database
+        run: psql -v ON_ERROR_STOP=1 -f docs/billing/free-staging/02-atomic-entitlement-proposal.sql
+      - name: Verify monthly expiry RLS idempotency downgrade and rollback
+        run: psql -v ON_ERROR_STOP=1 -f docs/billing/free-staging/03-tests.sql

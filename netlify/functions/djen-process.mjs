@@ -47,11 +47,11 @@ export default async function handler(request) {
       return json(429, { error: "local_throttle", guidance: "Aguarde 10 segundos antes de nova consulta." }, { "Retry-After": "10" })
     }
     recentQueries.set(account.id, now)
-    // One page, five records, process-scoped. No scheduling, backfill or data persistence.
+    // One page, five records, process-scoped; public DJEN GET uses pagina/itensPorPagina. No scheduling, backfill or storage.
     const query = new URL("https://comunicaapi.pje.jus.br/api/v1/comunicacao")
     query.searchParams.set("numeroProcesso", processNumber)
-    query.searchParams.set("page", "0")
-    query.searchParams.set("size", "5")
+    query.searchParams.set("pagina", "1")
+    query.searchParams.set("itensPorPagina", "5")
     const remote = await fetch(query, {
       headers: { Accept: "application/json", "User-Agent": "NexJud-DJEN-Pilot/1.0 (on-demand, read-only)" },
       signal: controller.signal,

@@ -31,13 +31,13 @@ export default function PrivacyPolicy() {
           Aplicamos controles de acesso, autenticação, comunicação criptografada, políticas de banco e segregação por usuário. Os dados são mantidos pelo período necessário à prestação do serviço, ao cumprimento de obrigações legais e à defesa de direitos.
         </Section>
         <Section title="7. Direitos do titular">
-          O titular pode solicitar confirmação, acesso, correção, portabilidade, informações sobre compartilhamento, revogação de consentimento quando aplicável e exclusão, observadas as hipóteses legais de conservação. No aplicativo iOS, a permissão para futuros envios à OpenAI pode ser revogada em Perfil. Solicitações sobre histórico, retenção e exclusão também podem ser enviadas a suporte@nexjud.com.br.
+          O titular pode solicitar confirmação, acesso, correção, portabilidade, informações sobre compartilhamento, revogação de consentimento quando aplicável e exclusão, observadas as hipóteses legais de conservação. No aplicativo iOS, a permissão para futuros envios à OpenAI pode ser revogada em Perfil. Solicitações sobre histórico, retenção e exclusão também podem ser enviadas a corporate@alternativeventures.com.br.
         </Section>
         <Section title="8. Exclusão da conta">
           O usuário pode solicitar a exclusão da conta e dos dados pela página pública de exclusão. A solicitação será validada antes da remoção definitiva e poderá preservar registros exigidos por lei ou necessários à defesa de direitos.
         </Section>
         <Section title="9. Contato">
-          Para assuntos de privacidade e proteção de dados, entre em contato pelo e-mail suporte@nexjud.com.br.
+          Para assuntos de privacidade e proteção de dados, entre em contato pelo e-mail corporate@alternativeventures.com.br.
         </Section>
       </article>
     </main>

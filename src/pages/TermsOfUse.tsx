@@ -39,7 +39,7 @@ export default function TermsOfUse() {
           Contas podem ser suspensas em caso de violação destes termos, risco de segurança, fraude, inadimplência ou ordem legal. O usuário pode solicitar o encerramento e a exclusão por meio da página pública correspondente.
         </Section>
         <Section title="10. Contato">
-          Dúvidas sobre estes termos podem ser encaminhadas para suporte@nexjud.com.br.
+          Dúvidas sobre estes termos podem ser encaminhadas para corporate@alternativeventures.com.br.
         </Section>
       </article>
     </main>

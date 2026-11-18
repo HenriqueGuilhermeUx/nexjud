@@ -24,10 +24,10 @@ export default function Support() {
                 <h2 className="text-xl font-bold">Fale com o suporte</h2>
                 <p className="text-gray-300 mt-2 leading-7">
                   Para dúvidas sobre acesso, conta, documentos, casos, assinatura ou funcionamento do aplicativo,
-                  envie um e-mail para <strong>suporte@nexjud.com.br</strong>.
+                  envie um e-mail para <strong>corporate@alternativeventures.com.br</strong>.
                 </p>
                 <a
-                  href="mailto:suporte@nexjud.com.br?subject=Suporte%20NexJud"
+                  href="mailto:corporate@alternativeventures.com.br?subject=Suporte%20NexJud"
                   className="inline-flex mt-5 rounded-xl bg-indigo-600 px-5 py-3 font-bold hover:bg-indigo-500"
                 >
                   Enviar e-mail ao suporte

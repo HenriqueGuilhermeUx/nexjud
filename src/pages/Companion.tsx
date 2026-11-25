@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { ArrowLeft, Brain, Briefcase, Camera, CheckCircle, Download, Smartphone, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import FreeProcessLookup from "@/components/FreeProcessLookup"
 
 const features = [
   [Camera, "Scanner jurídico", "Fotografe contratos, despachos, sentenças e intimações e envie diretamente ao Workspace."],
@@ -60,6 +61,14 @@ export default function Companion() {
                 ))}
               </div>
             </div>
+          </div>
+        </section>
+
+        <section id="consulta-gratis" className="px-4 py-16 border-y border-[#1f2937]">
+          <div className="max-w-5xl mx-auto text-center">
+            <h2 className="text-3xl font-bold mb-3">Consulte um processo agora, sem cadastro</h2>
+            <p className="text-gray-400 mb-8">A mesma consulta grátis do site: vara, classe, assuntos e últimas movimentações pelo número CNJ.</p>
+            <FreeProcessLookup />
           </div>
         </section>
 

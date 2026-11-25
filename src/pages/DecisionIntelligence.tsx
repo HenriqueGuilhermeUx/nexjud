@@ -23,7 +23,16 @@ import { isPrecedentEligibleForDna } from "@/intelligence/precedentReviewGate"
 export default function DecisionIntelligence() {
   const { user, session } = useAuth()
   const navigate = useNavigate()
-  const [cnj, setCnj] = useState("")
+  // Número consultado na landing (consulta grátis) chega aqui depois do cadastro.
+  const [cnj, setCnj] = useState(() => {
+    try {
+      const pending = localStorage.getItem("nexjud_pending_cnj") || ""
+      if (pending) localStorage.removeItem("nexjud_pending_cnj")
+      return pending
+    } catch {
+      return ""
+    }
+  })
   const [alias, setAlias] = useState("")
   const [judgeName, setJudgeName] = useState("")
   const [caseText, setCaseText] = useState("")

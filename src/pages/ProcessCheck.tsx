@@ -44,12 +44,11 @@ export default function ProcessCheck() {
     }
   }
 
-  const riskClass =
-    result?.riskLevel === "ALTO"
-      ? "bg-red-500/20 text-red-400 border-red-500/30"
-      : result?.riskLevel === "MÉDIO"
-      ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-      : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+  const formatDate = (value: string | null | undefined) => {
+    if (!value) return "—"
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? "—" : parsed.toLocaleDateString("pt-BR")
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -61,7 +60,7 @@ export default function ProcessCheck() {
             </div>
             <div>
               <h1 className="text-3xl font-bold">Verificação Inteligente de Processo</h1>
-              <p className="text-muted-foreground">Entenda o status, risco e próximo movimento provável.</p>
+              <p className="text-muted-foreground">Fase, órgão julgador e movimentações do processo, direto do DataJud.</p>
             </div>
           </div>
         </div>
@@ -98,12 +97,18 @@ export default function ProcessCheck() {
           )}
         </Card>
 
-        {!result ? (
+        {result && result.found === false ? (
+          <Card className="p-12 text-center">
+            <Activity className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+            <p className="font-semibold mb-2">{result.processNumber} · {result.court}</p>
+            <p className="text-muted-foreground">{result.message}</p>
+          </Card>
+        ) : !result ? (
           <Card className="p-12 text-center">
             <Activity className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground mb-2">Digite um número CNJ para analisar o processo.</p>
             <p className="text-sm text-muted-foreground">
-              O NexJud mostrará fase, risco, alertas e próximos movimentos prováveis.
+              O NexJud mostra classe, órgão julgador, assuntos, últimas movimentações e um resumo para orientar o próximo passo.
             </p>
           </Card>
         ) : (
@@ -113,19 +118,20 @@ export default function ProcessCheck() {
                 <div>
                   <h3 className="text-xl font-bold">{result.processNumber}</h3>
                   <p className="text-muted-foreground">{result.court} • {result.phase}</p>
-                  <p className="text-sm text-muted-foreground">Juiz: {result.judge}</p>
+                  <p className="text-sm text-muted-foreground">Órgão julgador: {result.judge}</p>
+                  {result.subjects?.length > 0 && <p className="text-sm text-muted-foreground">Assuntos: {result.subjects.join(", ")}</p>}
                 </div>
-                <Badge className={riskClass}>Risco {result.riskLevel}</Badge>
+                <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Fonte: DataJud</Badge>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Chance estimada</p>
-                  <p className="text-3xl font-bold">{result.successProbability}%</p>
+                  <p className="text-sm text-muted-foreground">Movimentações registradas</p>
+                  <p className="text-3xl font-bold">{result.movementsCount ?? "—"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Última movimentação</p>
-                  <p className="font-bold">{new Date(result.lastMovement).toLocaleDateString("pt-BR")}</p>
+                  <p className="font-bold">{formatDate(result.lastMovement)}</p>
                 </div>
                 <div className="md:col-span-2">
                   <p className="text-sm text-muted-foreground">Resumo</p>
@@ -135,7 +141,7 @@ export default function ProcessCheck() {
             </Card>
 
             <Card className="p-6">
-              <h4 className="font-bold mb-3">Resumo Executivo</h4>
+              <h4 className="font-bold mb-3">Resumo Executivo <span className="text-xs font-normal text-muted-foreground">(gerado por IA a partir dos dados acima)</span></h4>
               <p className="text-muted-foreground leading-relaxed">{result.executiveSummary}</p>
             </Card>
 
@@ -155,20 +161,16 @@ export default function ProcessCheck() {
             </Card>
 
             <Card className="p-6">
-              <h4 className="font-bold mb-4">Próximos Eventos Prováveis</h4>
-              <div className="space-y-3">
-                {result.nextLikelyEvents.map((item: any) => (
-                  <div key={item.event}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>{item.event}</span>
-                      <span className="font-bold">{item.probability}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: `${item.probability}%` }} />
-                    </div>
-                  </div>
+              <h4 className="font-bold mb-4">Últimas movimentações</h4>
+              <ul className="space-y-2">
+                {(result.recentMovements || []).map((item: { date: string | null; name: string }, i: number) => (
+                  <li key={`${item.date}-${i}`} className="flex gap-3 text-sm">
+                    <span className="w-24 shrink-0 text-muted-foreground">{formatDate(item.date)}</span>
+                    <span>{item.name}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
+              <p className="mt-4 text-xs text-muted-foreground">Registros do tribunal no DataJud. O NexJud não calcula chance de êxito sem base de decisões validada.</p>
             </Card>
 
             <Card className="p-6 border-amber-500/20 bg-amber-500/5">

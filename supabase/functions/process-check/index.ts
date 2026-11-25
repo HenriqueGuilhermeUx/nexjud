@@ -1,57 +1,17 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { requireUser } from "../_shared/requireUser.ts";
+import { courtFromCnj, onlyDigits } from "../_shared/cnj.ts";
 
-// Código trazido da produção (versão 8) em 2026-11-25 e protegido com login.
-// Gasta: CNJ DataJud (CNJ_API_KEY) + OpenAI (gpt-4.1-mini).
+// Gasta: CNJ DataJud (CNJ_API_KEY) + OpenAI (gpt-4.1-mini) só quando o processo é encontrado.
+// Regra do produto: nenhum percentual de êxito ou de "próximo evento" sem modelo validado.
+// Por isso não há successProbability, riskLevel nem probabilidades, e não existe
+// resultado de demonstração quando o DataJud não encontra o processo.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
-function getTribunalFromCNJ(processNumber: string) {
-  if (processNumber.includes(".8.26.")) return { code: "tjsp", name: "TJSP" };
-  if (processNumber.includes(".5.02.")) return { code: "trt2", name: "TRT-2" };
-  if (processNumber.includes(".4.03.")) return { code: "trf3", name: "TRF-3" };
-  return { code: "tjsp", name: "TJSP" };
-}
-
-function demoResult(processNumber: string) {
-  return {
-    processNumber,
-    source: "demo-fallback",
-    court: getTribunalFromCNJ(processNumber).name,
-    phase: "Concluso para sentença",
-    judge: "Magistrado não identificado",
-    riskLevel: "MÉDIO",
-    successProbability: 68,
-    lastMovement: new Date().toISOString(),
-    lastMovementSummary: "Movimentação recente identificada ou simulada para análise estratégica.",
-    executiveSummary:
-      "O processo parece estar em fase relevante e exige atenção estratégica. Recomenda-se verificar prazos, reforçar documentos e preparar manifestação preventiva.",
-    radar: [
-      "Processo ativo ou com numeração CNJ válida.",
-      "Fase processual exige atenção.",
-      "Há oportunidade de reforçar a estratégia antes da próxima decisão.",
-      "Recomenda-se revisar documentos essenciais.",
-    ],
-    nextLikelyEvents: [
-      { event: "Sentença ou decisão", probability: 42 },
-      { event: "Despacho", probability: 25 },
-      { event: "Audiência/perícia", probability: 18 },
-      { event: "Acordo", probability: 10 },
-      { event: "Extinção", probability: 5 },
-    ],
-    alerts: [
-      "Confirmar prazo aberto no processo.",
-      "Revisar última movimentação.",
-      "Preparar resposta preventiva.",
-    ],
-    recommendation:
-      "Monte uma linha do tempo, destaque provas centrais e antecipe a objeção mais provável da parte contrária.",
-  };
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -70,14 +30,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: "Informe o número do processo." }, { status: 400, headers: corsHeaders });
     }
 
-    const tribunal = getTribunalFromCNJ(processNumber);
+    const tribunal = courtFromCnj(processNumber);
+    if (!tribunal) {
+      return Response.json(
+        { error: "Tribunal não identificado pelo número. Por enquanto cobrimos Tribunais de Justiça, TRFs e TRTs." },
+        { status: 400, headers: corsHeaders },
+      );
+    }
 
     // deno-lint-ignore no-explicit-any
     let datajudData: any = null;
 
     if (CNJ_API_KEY) {
       try {
-        const response = await fetch(`https://api-publica.datajud.cnj.jus.br/api_publica_${tribunal.code}/_search`, {
+        const response = await fetch(`https://api-publica.datajud.cnj.jus.br/api_publica_${tribunal.alias}/_search`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -86,7 +52,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             query: {
               match: {
-                numeroProcesso: processNumber.replace(/\D/g, ""),
+                numeroProcesso: onlyDigits(processNumber),
               },
             },
             size: 1,
@@ -104,11 +70,24 @@ Deno.serve(async (req) => {
     const hit = datajudData?.hits?.hits?.[0]?._source;
 
     if (!hit) {
-      return Response.json(demoResult(processNumber), { headers: corsHeaders });
+      return Response.json(
+        {
+          processNumber,
+          found: false,
+          court: tribunal.name,
+          message: CNJ_API_KEY
+            ? "Processo não encontrado na base pública do DataJud. Processos recentes ou em segredo de justiça podem não aparecer."
+            : "Consulta ao DataJud indisponível no momento.",
+        },
+        { headers: corsHeaders },
+      );
     }
 
-    const movimentos = hit.movimentos || [];
-    const lastMovement = movimentos[movimentos.length - 1] || movimentos[0];
+    // deno-lint-ignore no-explicit-any
+    const movimentos: any[] = [...(hit.movimentos || [])].sort((a, b) =>
+      String(b.dataHora || "").localeCompare(String(a.dataHora || ""))
+    );
+    const lastMovement = movimentos[0];
 
     let executiveSummary =
       "Processo localizado na base DataJud. Recomenda-se análise estratégica da última movimentação, fase processual e documentos disponíveis.";
@@ -126,7 +105,7 @@ Deno.serve(async (req) => {
             temperature: 0.2,
             max_output_tokens: 700,
             input: `
-Analise este processo brasileiro de forma estratégica. Não prometa resultado. Responda em um parágrafo executivo curto.
+Analise este processo brasileiro de forma estratégica. Não prometa resultado e não dê percentuais ou probabilidades. Use só os dados abaixo. Responda em um parágrafo executivo curto.
 
 Dados:
 ${JSON.stringify(hit).slice(0, 8000)}
@@ -144,27 +123,25 @@ ${JSON.stringify(hit).slice(0, 8000)}
     return Response.json(
       {
         processNumber,
+        found: true,
         source: "cnj-datajud",
         court: tribunal.name,
-        phase: hit.classe?.nome || "Fase não identificada",
-        judge: hit.orgaoJulgador?.nome || "Órgão julgador não identificado",
-        riskLevel: "MÉDIO",
-        successProbability: 66,
-        lastMovement: lastMovement?.dataHora || new Date().toISOString(),
+        phase: hit.classe?.nome || "Classe não informada",
+        judge: hit.orgaoJulgador?.nome || "Órgão julgador não informado",
+        // deno-lint-ignore no-explicit-any
+        subjects: Array.isArray(hit.assuntos) ? hit.assuntos.map((a: any) => a?.nome).filter(Boolean) : [],
+        filingDate: hit.dataAjuizamento || null,
+        movementsCount: movimentos.length,
+        lastMovement: lastMovement?.dataHora || null,
         lastMovementSummary: lastMovement?.nome || "Movimentação não identificada.",
+        // deno-lint-ignore no-explicit-any
+        recentMovements: movimentos.slice(0, 8).map((m: any) => ({ date: m.dataHora || null, name: m.nome || "Movimentação" })),
         executiveSummary,
         radar: [
           "Processo localizado na base DataJud.",
           `Classe: ${hit.classe?.nome || "não informada"}.`,
           `Órgão julgador: ${hit.orgaoJulgador?.nome || "não informado"}.`,
           "Revisar movimentações recentes antes de qualquer petição.",
-        ],
-        nextLikelyEvents: [
-          { event: "Despacho/decisão", probability: 38 },
-          { event: "Manifestação das partes", probability: 27 },
-          { event: "Sentença", probability: 20 },
-          { event: "Audiência/perícia", probability: 10 },
-          { event: "Arquivamento/extinção", probability: 5 },
         ],
         alerts: [
           "Verificar prazos no sistema do tribunal.",

@@ -4,6 +4,7 @@ const landing = readFileSync(new URL("../pages/Landing.tsx", import.meta.url), "
 const pricing = readFileSync(new URL("../pages/PricingPage.tsx", import.meta.url), "utf8")
 const pwa = readFileSync(new URL("../pages/CompanionPWA.tsx", import.meta.url), "utf8")
 const mobile = readFileSync(new URL("../../mobile/App.tsx", import.meta.url), "utf8")
+const catalog = readFileSync(new URL("../navigation/toolCatalog.ts", import.meta.url), "utf8")
 describe("judge DNA marketing and mobile parity", () => {
   it("makes DNA the primary public product, while preserving seven-day trial", () => {
     expect(landing).toContain("DNA do Juiz")
@@ -12,9 +13,12 @@ describe("judge DNA marketing and mobile parity", () => {
     expect(landing).toContain("R$ 197/mês")
   })
   it("uses the same DNA route in mobile and PWA", () => {
-    for (const source of [mobile, pwa]) {
-      expect(source).toContain("DNA do Juiz — IA Preditiva")
-      expect(source).toContain('path: "/dashboard/decision-intelligence"')
+    // PWA e app desenham as ferramentas a partir do catálogo único (src/navigation/toolCatalog.ts).
+    expect(catalog).toContain('label: "DNA do Juiz — IA Preditiva"')
+    expect(catalog).toContain('path: "/dashboard/decision-intelligence"')
+    expect(pwa).toContain('from "@/navigation/toolCatalog"')
+    expect(mobile).toContain('from "./src/toolCatalog"')
+    for (const source of [mobile, pwa, catalog]) {
       expect(source).not.toContain("Análise do Juízo completa")
     }
   })

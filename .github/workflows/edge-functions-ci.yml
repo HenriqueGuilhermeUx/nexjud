@@ -35,6 +35,8 @@ jobs:
         run: |
           deno check \
             supabase/functions/_shared/requireUser.ts \
+            supabase/functions/_shared/cnj.ts \
+            supabase/functions/public-process-lookup/index.ts \
             supabase/functions/process-check/index.ts \
             supabase/functions/red-team/index.ts \
             supabase/functions/super-responder/index.ts \

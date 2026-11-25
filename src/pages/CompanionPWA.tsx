@@ -7,6 +7,7 @@ import {
   Sparkles, Upload, User, WandSparkles, X, Download
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
+import { TOOL_GROUPS } from "@/navigation/toolCatalog"
 import { getSupabase } from "@/lib/supabase"
 import { paidEntitlementCurrent } from "@/services/paidEntitlement"
 
@@ -489,26 +490,21 @@ function AgendaScreenPWA({ userId }: { userId: string }) {
   </div>
 }
 
-const advancedWorkspaceTools = [
-  { title: "DNA do Juiz — IA Preditiva", description: "Confronte argumentos, provas e fundamentos de decisões; orientação estratégica com fontes", path: "/dashboard/decision-intelligence" },
-  { title: "Legal Intelligence", description: "Análise jurídica ampliada, conforme seu plano", path: "/dashboard/legal-intelligence-engine" },
-  { title: "Red Team", description: "Teste teses, argumentos e fragilidades", path: "/dashboard/red-team" },
-  { title: "Carteira processual", description: "Acompanhe processos e dossiês", path: "/dashboard/process-portfolio" },
-  { title: "Histórico das análises", description: "Consulte os registros que você decidiu salvar", path: "/dashboard/history" },
-  { title: "Estratégia de litígio", description: "Recursos empresariais sujeitos ao plano", path: "/dashboard/litigation-strategy" },
-] as const
 
 function AdvancedToolsPWA() {
   return <div className="space-y-4">
     <Back />
     <ScreenTitle eyebrow="WORKSPACE NEXJUD" title="Ferramentas avançadas" subtitle="Abra as capacidades completas da NexJud sem perder seus casos e documentos. O acesso respeita seu plano e suas permissões." />
-    <div className="space-y-2">{advancedWorkspaceTools.map(tool => (
-      <Link key={tool.path} to={tool.path} className="flex items-center gap-3 rounded-[18px] border p-4" style={{ background: colors.card, borderColor: colors.border }}>
-        <Sparkles size={22} style={{ color: colors.primary }} />
-        <span className="flex-1"><span className="block font-bold" style={{ color: colors.text }}>{tool.title}</span><span className="mt-1 block text-xs leading-5" style={{ color: colors.muted }}>{tool.description}</span></span>
-        <ChevronRight size={19} style={{ color: colors.muted }} />
-      </Link>
-    ))}</div>
+    {TOOL_GROUPS.map(group => <section key={group.id} className="space-y-2">
+      <h2 className="pt-2 text-[12px] font-extrabold uppercase tracking-[0.13em]" style={{ color: colors.primary }}>{group.label}</h2>
+      {group.tools.map(tool => (
+        <Link key={tool.path} to={tool.path} className="flex items-center gap-3 rounded-[18px] border p-4" style={{ background: colors.card, borderColor: colors.border }}>
+          <Sparkles size={22} style={{ color: colors.primary }} />
+          <span className="flex-1"><span className="block font-bold" style={{ color: colors.text }}>{tool.label}</span><span className="mt-1 block text-xs leading-5" style={{ color: colors.muted }}>{tool.description}</span></span>
+          <ChevronRight size={19} style={{ color: colors.muted }} />
+        </Link>
+      ))}
+    </section>)}
     <p className="text-xs leading-5" style={{ color: colors.muted }}>Estas ferramentas abrem o Workspace completo dentro do navegador/PWA. Análises do DataJud não substituem o inteiro teor de decisões judiciais.</p>
   </div>
 }

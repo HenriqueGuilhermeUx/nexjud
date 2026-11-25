@@ -80,6 +80,36 @@ verify_jwt = false
 [functions.woovi-webhook]
 verify_jwt = false
 
+# Funções chamadas pelo app logado. O gateway exige um JWT e, dentro de cada
+# função, _shared/requireUser.ts recusa a anon key: só sessão de usuário passa.
+# A anon key é pública e também é um JWT, por isso verify_jwt sozinho não basta.
+[functions.process-check]
+verify_jwt = true
+
+[functions.red-team]
+verify_jwt = true
+
+[functions.super-responder]
+verify_jwt = true
+
+[functions.rapid-api]
+verify_jwt = true
+
+[functions.generate-embedding]
+verify_jwt = true
+
+[functions.strategic-report]
+verify_jwt = true
+
+[functions.setup-oab]
+verify_jwt = true
+
+# Chamada pelo app (token do usuário) e por automação (header
+# x-nexjud-secret com NEXJUD_AUTOMATION_SECRET). A autenticação é feita dentro
+# da função; o gateway precisa deixar passar a chamada de automação.
+[functions.process-movement-impact]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { getUserFunctionHeaders } from "@/lib/functionAuth"
 
 export default function StrategicReport() {
   const [title, setTitle] = useState("Relatório Estratégico NexJud")
@@ -24,15 +25,10 @@ export default function StrategicReport() {
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
       const response = await fetch(`${supabaseUrl}/functions/v1/strategic-report`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${supabaseKey}`,
-          apikey: supabaseKey,
-        },
+        headers: await getUserFunctionHeaders(),
         body: JSON.stringify({ title, context, module: "premium-report" }),
       })
 

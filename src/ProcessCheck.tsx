@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { getUserFunctionHeaders } from "@/lib/functionAuth"
 
 export default function ProcessCheck() {
   const [processNumber, setProcessNumber] = useState("")
@@ -22,15 +23,10 @@ export default function ProcessCheck() {
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
       const response = await fetch(`${supabaseUrl}/functions/v1/process-check`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${supabaseKey}`,
-          apikey: supabaseKey,
-        },
+        headers: await getUserFunctionHeaders(),
         body: JSON.stringify({ processNumber }),
       })
 

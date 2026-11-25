@@ -137,6 +137,11 @@ verify_jwt = true
 [functions.war-room-ai]
 verify_jwt = true
 
+# Consulta grátis da landing: aceita a anon key de propósito (sem login).
+# Só DataJud, sem OpenAI, com limite por IP dentro da função.
+[functions.public-process-lookup]
+verify_jwt = true
+
 # Chamada pelo app (token do usuário) e por automação (header
 # x-nexjud-secret com NEXJUD_AUTOMATION_SECRET). A autenticação é feita dentro
 # da função; o gateway precisa deixar passar a chamada de automação.

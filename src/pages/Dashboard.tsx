@@ -18,7 +18,11 @@ import {
   Bell,
 ChevronDown,
 ChevronRight,
+Search,
+Scale,
 } from "lucide-react"
+import type { ComponentType } from "react"
+import { TOOL_GROUPS, type ToolIcon } from "@/navigation/toolCatalog"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
 import { supabase } from "@/lib/supabase"
@@ -52,13 +56,26 @@ import JurisprudenceLibrary from "./JurisprudenceLibrary"
 import Precedents from "./Precedents"
 import CNJProcesses from "./CNJProcesses"
 
+const TOOL_ICONS: Record<ToolIcon, ComponentType<{ className?: string }>> = {
+  target: Target,
+  brain: Brain,
+  file: FileText,
+  sparkles: Sparkles,
+  archive: Archive,
+  wand: Wand2,
+  bell: Bell,
+  database: Database,
+  history: HistoryIcon,
+  gavel: Gavel,
+  shield: ShieldAlert,
+  search: Search,
+  scale: Scale,
+}
+
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showAllTools, setShowAllTools] = useState(false)
-  const [enterpriseOpen, setEnterpriseOpen] = useState(false)
-  const [analysisOpen, setAnalysisOpen] = useState(false)
-const [productionOpen, setProductionOpen] = useState(false)
-const [managementOpen, setManagementOpen] = useState(false)
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
 const [morningBriefUnread, setMorningBriefUnread] = useState(false)
 const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
   const { user, signOut } = useAuth()
@@ -328,256 +345,30 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
 <NavItem to="/dashboard/notifications" icon={Bell} label="Alertas" description="O que precisa da sua atenção." active={isNotificationsActive} badge={notificationUnreadCount > 0 ? String(notificationUnreadCount) : undefined} />
 <button type="button" aria-expanded={showAllTools} onClick={() => setShowAllTools(v => !v)} className="w-full flex items-center justify-between rounded-lg border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted"><span>{showAllTools ? "Ocultar ferramentas" : "Todas as ferramentas"}</span>{showAllTools ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
 {showAllTools && <div className="space-y-2 border-l border-border/60 pl-1">
-<NavGroup
-  label="Analisar"
-  open={analysisOpen}
-  onClick={() => setAnalysisOpen((v) => !v)}
->
-  <NavItem
-    to="/dashboard/decision-intelligence"
-    icon={Target}
-    label="DNA do Juiz — IA Preditiva"
-    description="Argumentos, provas, histórico e estratégia para o caso."
-    active={isDecisionIntelligenceActive}
-    badge="DESTAQUE"
-  />
-
-  <NavItem
-    to="/dashboard/legal-chat"
-    icon={Brain}
-    label="Conversar com a IA"
-description="Tire dúvidas jurídicas usando seus documentos e casos."
-    active={isLegalChatActive}
-  />
-
-  <NavItem
-    to="/dashboard/knowledge-base"
-    icon={FileText}
-    label="Analisar documentos"
-description="Envie contratos, estatutos, atas, PDFs, DOCX e imagens."
-    active={isKnowledgeBaseActive}
-  />
-
-  <NavItem
-    to="/dashboard/ai-copilot"
-    icon={Sparkles}
-    label="Analisar um processo"
-description="Aprofunde riscos, estratégia e próximos passos com o AI Copilot."
-    active={isAICopilotActive}
-  />
-
-  <NavItem
-    to="/dashboard/legal-memory"
-    icon={Archive}
-    label="Biblioteca Inteligente"
-description="Salve teses, aprendizados e conhecimento do escritório."
-    active={isLegalMemoryActive}
-  />
-</NavGroup>
-
-<NavGroup
-  label="Produzir"
-  open={productionOpen}
-  onClick={() => setProductionOpen((v) => !v)}
->
-  <NavItem
-    to="/dashboard/draft-generator"
-    icon={Wand2}
-    label="Criar petição ou contrato"
-description="Gere peças, contratos, notificações e minutas com IA."
-    active={isDraftGeneratorActive}
-  />
-
-  <NavItem
-    to="/dashboard/draft-history"
-    icon={Archive}
-    label="Documentos criados"
-description="Revise e reutilize peças anteriores."
-    active={isDraftHistoryActive}
-  />
-
-  <NavItem
-    to="/dashboard/reports"
-    icon={FileText}
-    label="Relatórios"
-description="Prepare relatórios para clientes, sócios e reuniões."
-    active={isReportsActive}
-  />
-</NavGroup>
-
-<NavGroup
-  label="Gerenciar"
-  open={managementOpen}
-  onClick={() => setManagementOpen((v) => !v)}
->
-  <NavItem
-    to="/dashboard/office-intelligence"
-    icon={Sparkles}
-    label="Office Intelligence"
-    description="Morning Brief, riscos, prioridades e memória do escritório."
-    active={isOfficeIntelligenceActive}
-    badge={morningBriefUnread ? "NOVO" : undefined}
-  />
-
-  <NavItem
-    to="/dashboard/notifications"
-    icon={Bell}
-    label="Central de Alertas"
-    description="Movimentações, riscos e ações que exigem atenção."
-    active={isNotificationsActive}
-    badge={notificationUnreadCount > 0 ? String(notificationUnreadCount) : undefined}
-  />
-
-  <NavItem
-    to="/dashboard/legal-cases"
-    icon={Database}
-    label="Meus processos"
-description="Organize clientes, processos, riscos e estratégia."
-    active={isLegalCasesActive}
-  />
-
-  <NavItem
-    to="/dashboard/process-portfolio"
-    icon={Database}
-    label="Carteira de processos"
-description="Visualize todos os casos em andamento."
-    active={isProcessPortfolioActive}
-  />
-
-  <NavItem
-    to="/dashboard/history"
-    icon={HistoryIcon}
-    label="Histórico"
-description="Veja tudo que já foi feito na plataforma."
-    active={isHistoryActive}
-  />
-
-  <NavItem
-    to="/dashboard/ai-copilot-history"
-    icon={HistoryIcon}
-    label="Histórico das análises"
-description="Consulte análises anteriores da IA."
-    active={isAICopilotHistoryActive}
-  />
-</NavGroup>
-
-<NavGroup
-  label="Estratégia Avançada"
-  open={enterpriseOpen}
-  onClick={() => setEnterpriseOpen((prev) => !prev)}
->
-  <NavItem
-    to="/dashboard/litigation-strategy"
-    icon={Target}
-    label="Strategy Engine"
-    description="Deal Breaker, Victory Plan e tática."
-    active={isLitigationStrategyActive}
-  />
-
-<NavItem
-  to="/dashboard/cnj-processes"
-  icon={Gavel}
-  label="Processos CNJ"
-  description="Movimentações, classe, partes e contexto processual."
-  active={isCnjProcessesActive}
-/>
-  
-  <NavItem
-  to="/dashboard/precedents"
-  icon={Gavel}
-  label="Precedentes"
-  description="Temas, repetitivos, IRDR e repercussão geral."
-  active={isPrecedentsActive}
-/>
-  
-  <NavItem
-  to="/dashboard/jurisprudence-library"
-  icon={Gavel}
-  label="Jurisprudência Salva"
-  description="Guarde teses, decisões e fundamentos."
-  active={isJurisprudenceLibraryActive}
-/>
-
-  <NavItem
-    to="/dashboard/judge-simulator"
-    icon={Gavel}
-    label="Simular juiz"
-    description="Treine argumentos e pressão de audiência sem promessa de resultado."
-    active={isJudgeSimulatorActive}
-  />
-
-  <NavItem
-    to="/dashboard/red-team-simulator"
-    icon={ShieldAlert}
-    label="Red Team"
-    description="Encontre fragilidades na sua tese."
-    active={isRedTeamSimulatorActive}
-  />
-
-  <NavItem
-    to="/dashboard/chief-legal-officer"
-    icon={Brain}
-    label="Chief Legal Officer"
-    description="Visão executiva para decisões complexas."
-    active={isChiefLegalOfficerActive}
-  />
-
-  <NavItem
-    to="/dashboard/legal-intelligence-engine"
-    icon={Brain}
-    label="Legal Intelligence"
-    description="Inteligência jurídica e padrões."
-    active={isLegalIntelligenceEngineActive}
-  />
-
-  <NavItem
-    to="/dashboard/war-room"
-    icon={ShieldAlert}
-    label="War Room"
-    description="Cenários, riscos e plano de ataque."
-    active={isWarRoomCenterActive}
-  />
-
-  <NavItem
-    to="/dashboard/partner-council"
-    icon={Brain}
-    label="Partner Council"
-    description="Simule uma reunião de sócios."
-    active={isPartnerCouncilActive}
-  />
-
-  <NavItem
-    to="/dashboard/opponent-database"
-    icon={ShieldAlert}
-    label="Banco de Oponentes"
-    description="Mapeie adversários e padrões."
-    active={isOpponentDatabaseActive}
-  />
-
-  <NavItem
-    to="/dashboard/tribunal-heatmap"
-    icon={Database}
-    label="Mapa dos Tribunais"
-    description="Tendências e comportamento decisório."
-    active={isTribunalHeatmapActive}
-  />
-
-  <NavItem
-    to="/dashboard/enterprise-command-center"
-    icon={Brain}
-    label="Command Center"
-    description="Painel executivo avançado."
-    active={isEnterpriseCommandCenterActive}
-  />
-
-  <NavItem
-    to="/dashboard/one-click-actions"
-    icon={Wand2}
-    label="Ações rápidas"
-    description="Atalhos para tarefas frequentes."
-    active={isOneClickActionsActive}
-  />
-</NavGroup>
+{TOOL_GROUPS.map((group) => (
+  <NavGroup
+    key={group.id}
+    label={group.label}
+    open={Boolean(openGroups[group.id])}
+    onClick={() => setOpenGroups((current) => ({ ...current, [group.id]: !current[group.id] }))}
+  >
+    {group.tools.map((tool) => (
+      <NavItem
+        key={tool.path}
+        to={tool.path}
+        icon={TOOL_ICONS[tool.icon]}
+        label={tool.label}
+        description={tool.description}
+        active={location.pathname === tool.path}
+        badge={tool.path === "/dashboard/notifications" && notificationUnreadCount > 0
+          ? String(notificationUnreadCount)
+          : tool.path === "/dashboard/office-intelligence" && morningBriefUnread
+            ? "NOVO"
+            : tool.badge}
+      />
+    ))}
+  </NavGroup>
+))}
 </div>}
 
 <NavItem

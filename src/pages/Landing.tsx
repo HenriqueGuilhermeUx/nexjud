@@ -1,3 +1,4 @@
+import FreeProcessLookup from "@/components/FreeProcessLookup"
 import { Link } from "react-router-dom"
 import {
   ArrowRight,
@@ -79,6 +80,11 @@ export default function Landing() {
                 {ctaLabel}<ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
+            <a href="#consulta-gratis">
+              <Button size="lg" variant="outline" className="gap-2 border-[#334155] text-white hover:bg-[#111827]">
+                Consultar processo grátis
+              </Button>
+            </a>
             <Link to="/companion">
               <Button size="lg" variant="outline" className="gap-2 border-[#334155] text-white hover:bg-[#111827]">
                 <Smartphone className="w-4 h-4" /> Conhecer o app
@@ -92,6 +98,14 @@ export default function Landing() {
             <Metric value="7 dias" label="trial premium" />
             <Metric value="Web + App" label="um único ecossistema" />
           </div>
+        </div>
+      </section>
+
+      <section id="consulta-gratis" className="py-16 px-4 bg-[#0b0b10] border-y border-[#1f2937]">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">Consulte seu processo grátis</h2>
+          <p className="text-gray-400 mb-8">Cole o número CNJ e veja vara, classe, assuntos e últimas movimentações. Sem cadastro.</p>
+          <FreeProcessLookup ctaTo={user ? "/dashboard/decision-intelligence" : "/login"} />
         </div>
       </section>
 

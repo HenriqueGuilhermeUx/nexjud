@@ -176,13 +176,11 @@ export async function uploadKnowledgeFile({
 
   if (error) throw error
 
-  const { data: publicUrl } = supabase.storage
-    .from("knowledge-files")
-    .getPublicUrl(data.path)
-
+  // O bucket é privado: guardamos o caminho e abrimos com link temporário
+  // (src/lib/knowledgeFiles.ts).
   return {
     path: data.path,
-    url: publicUrl.publicUrl,
+    url: data.path,
     fileName: file.name,
     mimeType: file.type,
     size: file.size,

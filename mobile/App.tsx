@@ -445,7 +445,7 @@ function CaseDetailScreen({ route, navigation }: any) {
       <InfoBlock title="Estratégia" text={item.strategy || item.legal_strategy || "Ainda não registrada."} />
       <InfoBlock title="Riscos e fragilidades" text={item.risks || item.risk_analysis || "Aguardando análise."} />
       <Text style={styles.sectionTitle}>Documentos ({docs.length})</Text>
-      {docs.length ? docs.map(d => <View key={d.id} style={styles.rowCard}><FileText color={colors.primary} size={20} /><View style={{ flex: 1 }}><Text style={styles.body}>{d.title || d.file_name || "Documento"}</Text><Text style={styles.helper}>{d.processing_status || "Disponível"}</Text></View></View>) : <Empty title="Sem documentos vinculados" text="Use o Scanner para adicionar documentos a este caso." />}
+      {docs.length ? docs.map(d => <View key={d.id} style={styles.rowCard}><FileText color={colors.primary} size={20} /><View style={{ flex: 1 }}><Text style={styles.body}>{d.title || d.file_name || "Documento"}</Text><Text style={styles.helper}>{d.status === "uploaded" ? "Aguardando processamento" : "Disponível"}</Text></View></View>) : <Empty title="Sem documentos vinculados" text="Use o Scanner para adicionar documentos a este caso." />}
       <Text style={styles.sectionTitle}>Movimentações CNJ ({cnj.length})</Text>
       {cnj.length ? cnj.map(n => <View key={n.id} style={styles.rowCard}><Scale color={colors.primary} size={20} /><Text style={[styles.body, { flex: 1 }]}>{n.last_movement || n.status || n.process_number || "Processo monitorado"}</Text></View>) : <Empty title="Sem movimentações disponíveis" text="Vincule ou consulte o processo CNJ no Workspace." />}
     </ScrollView>
@@ -515,7 +515,7 @@ function ScannerScreen() {
       const path = `${uid}/mobile/${Date.now()}-${safe}`
       const { error } = await supabase.storage.from("knowledge-files").upload(path, blob, { contentType: asset.mimeType || "application/octet-stream" })
       if (error) throw error
-      const payload: any = { user_id: uid, title: name, document_type: "mobile_upload", file_path: path, content: "Documento enviado pelo Companion. Aguardando processamento.", processing_status: "pending" }
+      const payload: any = { user_id: uid, title: name, document_type: "mobile_upload", file_name: name, file_url: path, content: "Documento enviado pelo Companion. Aguardando processamento.", status: "uploaded" }
       if (caseId) payload.case_id = caseId
       const inserted = await supabase.from("knowledge_documents").insert(payload)
       if (inserted.error) throw inserted.error

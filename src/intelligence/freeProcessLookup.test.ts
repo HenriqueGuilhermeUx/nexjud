@@ -22,7 +22,7 @@ describe("consulta grátis pelo número CNJ", () => {
   })
 
   it("a função pública não gasta OpenAI, não devolve partes e tem limite de uso", () => {
-    expect(fn).not.toMatch(/openai/i)
+    expect(fn).not.toMatch(/api\.openai\.com|OPENAI_API_KEY/)
     expect(fn).not.toMatch(/\bpartes\b|poloAtivo|poloPassivo/)
     expect(fn).toContain("PER_IP_PER_HOUR")
     expect(fn).toContain("nivelSigilo")

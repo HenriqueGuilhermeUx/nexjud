@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
+import { getUserFunctionHeaders } from "@/lib/functionAuth"
 
 // NexJud API - Connects to Supabase Edge Functions
 // Uses real APIs: CNJ, Escavador, OpenAI
@@ -164,11 +165,7 @@ export async function performPredictiveAnalysis(input: PredictiveAnalysisInput):
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/super-responder`, {
       method: 'POST',
-      headers: {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-  'apikey': SUPABASE_ANON_KEY,
-},
+      headers: await getUserFunctionHeaders(),
       body: JSON.stringify({
         caseNumber: input.caseNumber,
         caseDescription: input.caseDescription,
@@ -209,11 +206,7 @@ export async function performJurisprudenceSearch(input: JurisprudenceSearchInput
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/rapid-api`, {
       method: 'POST',
-      headers: {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-  'apikey': SUPABASE_ANON_KEY,
-},
+      headers: await getUserFunctionHeaders(),
       body: JSON.stringify({
         theme: input.theme,
         court: input.court,

@@ -80,5 +80,8 @@ jobs:
       - name: DJEN document review eligibility regression
         run: npx vitest run src/intelligence/precedentReviewGate.test.ts
 
+      - name: Edge function auth headers regression
+        run: npx vitest run src/lib/functionAuth.test.ts
+
       - name: Vite build
         run: npx vite build

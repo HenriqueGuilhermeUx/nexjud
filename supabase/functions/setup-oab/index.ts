@@ -1,183 +1,343 @@
-// Supabase Edge Function: Setup Zero por OAB
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@^1";
+import { requireUser } from "../_shared/requireUser.ts";
 
-interface OABInput {
-  oabNumber: string
-  userId: string
+// Código trazido da produção (versão 21) em 2026-11-25. O arquivo que estava no
+// repositório era uma versão antiga (DataJud + Supabase service role) que não
+// correspondia ao que estava publicado.
+//
+// Mudanças de segurança em relação à produção:
+// - exige usuário logado (antes qualquer pessoa consultava a API paga do Escavador);
+// - a resposta não devolve mais `debug.attempts` nem `receivedBody`, que expunham
+//   até 1.500 caracteres de cada resposta bruta do Escavador e o corpo recebido;
+// - o log registra só URL e status de cada tentativa, não o corpo.
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function parseOAB(input: string) {
+  const clean = input.toUpperCase().trim();
+
+  const ufMatch = clean.match(
+    /\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/
+  );
+
+  const number = clean.replace(/\D/g, "");
+
+  return {
+    raw: clean,
+    uf: ufMatch?.[1] || "SP",
+    number,
+  };
+}
+
+// deno-lint-ignore no-explicit-any
+function extractArray(data: any): any[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.items)) return data.items;
+  if (Array.isArray(data.data)) return data.data;
+
+  // Escavador V2
+  if (data.resposta && Array.isArray(data.resposta.items)) return data.resposta.items;
+  if (data.resposta && Array.isArray(data.resposta.resultados)) return data.resposta.resultados;
+  if (data.resultado && Array.isArray(data.resultado.items)) return data.resultado.items;
+  if (data.resultado && Array.isArray(data.resultado.itens)) return data.resultado.itens;
+
+  // Escavador V1 / formatos alternativos
+  if (Array.isArray(data.sucesso)) return data.sucesso;
+  if (data.resposta && Array.isArray(data.resposta.sucesso)) return data.resposta.sucesso;
+  if (Array.isArray(data.processos)) return data.processos;
+  if (Array.isArray(data.envolvido?.processos)) return data.envolvido.processos;
+  if (Array.isArray(data.advogado?.processos)) return data.advogado.processos;
+
+  return [];
+}
+
+// deno-lint-ignore no-explicit-any
+function normalizeCase(item: any, index: number) {
+  const processo = item.processo || item;
+
+  const numeroCnj =
+    processo.numero_cnj ||
+    processo.numero ||
+    item.numero_cnj ||
+    item.numero ||
+    item.processos_links?.[0]?.numero_cnj ||
+    item.processos?.[0]?.numero_cnj ||
+    `processo-${index + 1}`;
+
+  return {
+    id: String(processo.id || item.id || `esc-${index}`),
+    caseNumber: numeroCnj,
+    tribunal:
+      processo.tribunal ||
+      processo.origem ||
+      processo.fonte ||
+      item.tribunal ||
+      item.origem ||
+      "Tribunal não informado",
+    natureza:
+      processo.classe ||
+      processo.assunto ||
+      processo.area ||
+      item.classe ||
+      item.assunto ||
+      "Natureza não informada",
+    valor: Number(processo.valor_causa || processo.valor || item.valor_causa || item.valor || 0),
+    status: "Aguardando",
+    judge:
+      processo.juiz ||
+      processo.orgao_julgador ||
+      item.juiz ||
+      item.orgao_julgador ||
+      "Não informado",
+    lastMovement:
+      processo.data_ultima_movimentacao ||
+      processo.updated_at ||
+      item.data_ultima_movimentacao ||
+      item.updated_at ||
+      new Date().toISOString(),
+    movementSummary:
+      processo.ultima_movimentacao ||
+      processo.resumo ||
+      item.ultima_movimentacao ||
+      item.resumo ||
+      "Movimentação não informada.",
+  };
+}
+
+// deno-lint-ignore no-explicit-any
+function buildStats(cases: any[]) {
+  const victories = cases.filter((c) => c.status === "Vitória").length;
+  const defeats = cases.filter((c) => c.status === "Derrota").length;
+  const pending = cases.filter((c) => c.status === "Aguardando").length;
+  const decided = victories + defeats;
+  const totalValue = cases.reduce((sum, c) => sum + Number(c.valor || 0), 0);
+
+  return {
+    totalCases: cases.length,
+    totalValue,
+    victories,
+    defeats,
+    pending,
+    successRate: decided > 0 ? Math.round((victories / decided) * 100) : 0,
+  };
+}
+
+async function escavadorGet(url: string, token: string) {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "X-Requested-With": "XMLHttpRequest",
+    },
+  });
+
+  const text = await response.text();
+
+  return {
+    url,
+    status: response.status,
+    ok: response.ok,
+    body: text,
+  };
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
-    });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
+
+  const auth = await requireUser(req, corsHeaders);
+  if (!auth.ok) return auth.response;
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const escavadorKey = Deno.env.get('ESCAVADOR_API_KEY')!;
+    const ESCAVADOR_API_KEY = Deno.env.get("ESCAVADOR_API_KEY");
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const { oabNumber, userId }: OABInput = await req.json();
-
-    let cases: any[] = [];
-    let stats = {
-      totalCases: 0,
-      totalValue: 0,
-      victories: 0,
-      defeats: 0,
-      pending: 0,
-      successRate: 0
-    };
-
-    // 1. Tentar buscar via CNJ DataJud (gratuito)
-    try {
-      const twoYearsAgo = new Date();
-      twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
-      const dateFrom = twoYearsAgo.toISOString().split('T')[0];
-
-      const cnpResponse = await fetch(
-        `https://api-publica.datajud.cnj.jus.br/api_publica_trf3/_search`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            query: {
-              match: {
-                "advogados.numero": oabNumber.replace(/\D/g, '')
-              }
-            },
-            from: 0,
-            size: 50,
-            sort: [{ "dataUltimaAtualizacao": { order: "desc" } }]
-          })
-        }
+    if (!ESCAVADOR_API_KEY) {
+      return Response.json(
+        { error: "ESCAVADOR_API_KEY não configurada no Supabase." },
+        { status: 500, headers: corsHeaders }
       );
-
-      if (cnpResponse.ok) {
-        const cnpData = await cnpResponse.json();
-        const hits = cnpData?.hits?.hits || [];
-
-        cases = hits.map((hit: any) => {
-          const source = hit._source;
-          return {
-            id: hit._id,
-            caseNumber: source.numero || 'N/A',
-            tribunal: source.tribunal || 'Não identificado',
-            natureza: source.classe?.nome || 'Não identificado',
-            valor: source.valorCausa || 0,
-            status: normalizeStatus(source.movimentos?.slice(-1)[0]?.tipo || ''),
-            judge: source.ultimoMovimento?.usuario?.nome || 'Não identificado',
-            lastMovement: source.ultimaAtualizacaoData || new Date().toISOString()
-          };
-        });
-      }
-    } catch (cnjError) {
-      console.log('CNJ DataJud não disponível, tentando Escavador...');
     }
 
-    // 2. Fallback para Escavador se CNJ não retornou nada
-    if (cases.length === 0) {
+    const body = await req.json().catch(() => ({}));
+
+    const oabInput = String(
+      body.oabNumber ||
+      body.oab ||
+      body.oab_number ||
+      body.numeroOab ||
+      body.numero_oab ||
+      body.query ||
+      ""
+    ).trim();
+
+    if (!oabInput) {
+      return Response.json(
+        { error: "Informe o número da OAB." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const oab = parseOAB(oabInput);
+
+    if (!oab.number || oab.number.length < 3) {
+      return Response.json(
+        { error: "Número de OAB inválido." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const baseV2 = "https://api.escavador.com/api/v2";
+    const baseV1 = "https://api.escavador.com/api/v1";
+
+    const urls = [
+      // V2 — variações OAB
+      `${baseV2}/advogados/oab/${oab.number}/${oab.uf}/processos`,
+      `${baseV2}/advogados/oab/${oab.number}/${oab.uf}`,
+      `${baseV2}/advogados/oab/${oab.uf}/${oab.number}/processos`,
+      `${baseV2}/advogados/oab/${oab.uf}/${oab.number}`,
+
+      `${baseV2}/envolvidos/oab/${oab.number}/${oab.uf}/processos`,
+      `${baseV2}/envolvidos/oab/${oab.number}/${oab.uf}`,
+      `${baseV2}/envolvidos/oab/${oab.uf}/${oab.number}/processos`,
+      `${baseV2}/envolvidos/oab/${oab.uf}/${oab.number}`,
+
+      `${baseV2}/busca?q=${encodeURIComponent(`OAB ${oab.uf} ${oab.number}`)}&tipo=advogado`,
+      `${baseV2}/busca?q=${encodeURIComponent(`OAB ${oab.uf} ${oab.number}`)}&tipo=envolvido`,
+      `${baseV2}/busca?q=${encodeURIComponent(`${oab.number} ${oab.uf}`)}`,
+
+      // V1 — fallback
+      `${baseV1}/oab/${oab.uf}/${oab.number}`,
+      `${baseV1}/oab/${oab.number}/${oab.uf}`,
+      `${baseV1}/busca/termo?q=${encodeURIComponent(`OAB ${oab.uf} ${oab.number}`)}`,
+      `${baseV1}/busca/termo?q=${encodeURIComponent(oab.number)}`,
+    ];
+
+    const attempts: { url: string; status: number; ok: boolean }[] = [];
+    // deno-lint-ignore no-explicit-any
+    let selectedData: any = null;
+    let selectedSource = "";
+    // deno-lint-ignore no-explicit-any
+    let selectedItems: any[] = [];
+
+    for (const url of urls) {
+      const attempt = await escavadorGet(url, ESCAVADOR_API_KEY);
+
+      attempts.push({ url: attempt.url, status: attempt.status, ok: attempt.ok });
+
+      if (!attempt.ok) continue;
+
+      // deno-lint-ignore no-explicit-any
+      let data: any = null;
+
       try {
-        const escavadorResponse = await fetch(
-          `https://api.escavador.com/api/v2/processos?q=${encodeURIComponent(oabNumber)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${escavadorKey}`,
-              'X-Requested-With': 'XMLHttpRequest',
-              'Content-Type': 'application/json'
-            }
-          }
-        );
+        data = JSON.parse(attempt.body);
+      } catch (_error) {
+        continue;
+      }
 
-        if (escavadorResponse.ok) {
-          const escavadorData = await escavadorResponse.json();
-          const items = escavadorData?.items || escavadorData?.processos || [];
+      const items = extractArray(data);
 
-          cases = items.map((p: any) => ({
-            id: p.id || p.numero_cnj,
-            caseNumber: p.numero_cnj || p.numero || 'N/A',
-            tribunal: p.tribunal?.sigla || p.tribunal || 'Não identificado',
-            natureza: p.natureza || p.tipo || 'Não identificado',
-            valor: p.valor_causa || 0,
-            status: normalizeStatus(p.ultima_movimentacao?.tipo || p.status || ''),
-            judge: p.juiz?.nome || p.magistrado || 'Não identificado',
-            lastMovement: p.ultima_movimentacao?.data || new Date().toISOString()
-          }));
-        }
-      } catch (escavadorError) {
-        console.log('Escavador API não disponível');
+      if (items.length > 0) {
+        selectedData = data;
+        selectedItems = items;
+        selectedSource = url.includes("/processos")
+          ? "escavador-oab-processos"
+          : url.includes("/advogados/oab")
+          ? "escavador-advogado-oab"
+          : url.includes("/envolvidos/oab")
+          ? "escavador-envolvido-oab"
+          : "escavador-busca";
+        break;
+      }
+
+      if (data?.id || data?.nome || data?.advogado || data?.envolvido) {
+        selectedData = data;
+        selectedItems = extractArray(data);
+        selectedSource = url.includes("/advogados/oab")
+          ? "escavador-advogado-oab-sem-processos"
+          : "escavador-oab-sem-processos";
+        break;
       }
     }
 
-    // 3. Calcular estatísticas
-    if (cases.length > 0) {
-      stats = {
-        totalCases: cases.length,
-        totalValue: cases.reduce((sum: number, c: any) => sum + (c.valor || 0), 0),
-        victories: cases.filter((c: any) => c.status === 'Vitória').length,
-        defeats: cases.filter((c: any) => c.status === 'Derrota').length,
-        pending: cases.filter((c: any) => c.status === 'Aguardando').length,
-        successRate: cases.length > 0
-          ? Math.round((cases.filter((c: any) => c.status === 'Vitória').length / cases.length) * 100)
-          : 0
-      };
+    console.log("setup-oab escavador attempts", JSON.stringify(attempts));
+
+    if (!selectedData) {
+      return Response.json(
+        {
+          oab: oab.raw,
+          oabNumber: oab.number,
+          oabState: oab.uf,
+          source: "escavador-sem-dados",
+          message: "Escavador não retornou dados para esta OAB.",
+          cases: [],
+          stats: {
+            totalCases: 0,
+            totalValue: 0,
+            victories: 0,
+            defeats: 0,
+            pending: 0,
+            successRate: 0,
+          },
+          insights: {
+            strongestArea: "Nenhum processo encontrado para esta OAB.",
+            weakPoint: "A consulta ao Escavador não retornou dados utilizáveis.",
+            opportunity: "Confira o número e a UF da OAB.",
+            recommendation: "Use a busca por processo individual pelo número CNJ.",
+          },
+        },
+        { status: 200, headers: corsHeaders }
+      );
     }
 
-    // 4. Salvar no banco
-    await supabase.from('analysis_history').insert({
-      user_id: userId,
-      type: 'oab_setup',
-      input_data: { oabNumber },
-      result: { cases, stats }
-    });
+    const cases = selectedItems.slice(0, 20).map(normalizeCase);
 
-    const response = {
-      success: true,
-      message: `Setup Zero completado! ${cases.length} processos carregados.`,
-      cases,
-      stats,
-      oabNumber,
-      loadedAt: new Date().toISOString()
-    };
-
-    return new Response(JSON.stringify(response), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      }
-    });
-
+    return Response.json(
+      {
+        oab: oab.raw,
+        oabNumber: oab.number,
+        oabState: oab.uf,
+        source: selectedSource,
+        message:
+          cases.length > 0
+            ? "Dados carregados via Escavador."
+            : "Advogado localizado, mas a rota acessível não retornou processos.",
+        cases,
+        stats: buildStats(cases),
+        insights: {
+          strongestArea:
+            cases.length > 0
+              ? "Áreas de atuação identificadas a partir dos processos retornados."
+              : "Advogado localizado sem lista processual disponível.",
+          weakPoint:
+            cases.length > 0
+              ? "A classificação de vitórias e derrotas depende de análise das decisões dos processos."
+              : "A API retornou o advogado, mas não retornou processos vinculados.",
+          opportunity:
+            cases.length > 0
+              ? "Selecionar processos com movimentação recente para IA Preditiva e Red Team."
+              : "Buscar por nome completo ou testar a verificação individual por número CNJ.",
+          recommendation:
+            cases.length > 0
+              ? "Revise os processos carregados e rode Verificar Processo nos casos prioritários."
+              : "Use a busca por processo individual enquanto liberamos a rota completa de processos por OAB.",
+        },
+      },
+      { headers: corsHeaders }
+    );
   } catch (error) {
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      }
-    });
+    return Response.json(
+      {
+        error: error instanceof Error ? error.message : "Erro interno no Setup Zero OAB.",
+      },
+      { status: 500, headers: corsHeaders }
+    );
   }
 });
-
-// Helper para normalizar status
-function normalizeStatus(rawStatus: string): "Vitória" | "Derrota" | "Aguardando" {
-  const s = (rawStatus || "").toLowerCase();
-  if (s.includes("procedente") || s.includes("ganho") || s.includes("favorável") || s.includes("improcedente")) {
-    return "Vitória";
-  }
-  if (s.includes("negado") || s.includes("rejeitado") || s.includes("parcialmente")) {
-    return "Derrota";
-  }
-  return "Aguardando";
-}

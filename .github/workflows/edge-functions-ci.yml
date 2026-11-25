@@ -1,0 +1,50 @@
+name: Edge Functions CI
+
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/**"
+      - "supabase/config.toml"
+      - ".github/workflows/edge-functions-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Deno type check (funções protegidas)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Type check
+        run: |
+          deno check \
+            supabase/functions/_shared/requireUser.ts \
+            supabase/functions/process-check/index.ts \
+            supabase/functions/red-team/index.ts \
+            supabase/functions/super-responder/index.ts \
+            supabase/functions/rapid-api/index.ts \
+            supabase/functions/generate-embedding/index.ts \
+            supabase/functions/strategic-report/index.ts \
+            supabase/functions/setup-oab/index.ts
+
+      - name: Every function that spends money requires login
+        run: |
+          set -e
+          for fn in process-check red-team super-responder rapid-api generate-embedding strategic-report setup-oab; do
+            file="supabase/functions/$fn/index.ts"
+            grep -q 'requireUser(req' "$file" || { echo "::error file=$file::$fn não chama requireUser"; exit 1; }
+            grep -A1 "^\[functions\.$fn\]" supabase/config.toml | grep -q 'verify_jwt = true' || { echo "::error::$fn sem verify_jwt = true no config.toml"; exit 1; }
+          done
+          grep -q 'auth.getUser' supabase/functions/process-movement-impact/index.ts

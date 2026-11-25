@@ -104,6 +104,39 @@ verify_jwt = true
 [functions.setup-oab]
 verify_jwt = true
 
+[functions.judge-simulator]
+verify_jwt = true
+
+[functions.draft-generator]
+verify_jwt = true
+
+[functions.red-team-simulator]
+verify_jwt = true
+
+[functions.board-report-ai]
+verify_jwt = true
+
+[functions.litigation-strategy-ai]
+verify_jwt = true
+
+[functions.one-click-ai]
+verify_jwt = true
+
+[functions.opponent-intelligence-ai]
+verify_jwt = true
+
+[functions.partner-council-ai]
+verify_jwt = true
+
+[functions.strategic-analysis]
+verify_jwt = true
+
+[functions.tribunal-heatmap-ai]
+verify_jwt = true
+
+[functions.war-room-ai]
+verify_jwt = true
+
 # Chamada pelo app (token do usuário) e por automação (header
 # x-nexjud-secret com NEXJUD_AUTOMATION_SECRET). A autenticação é feita dentro
 # da função; o gateway precisa deixar passar a chamada de automação.

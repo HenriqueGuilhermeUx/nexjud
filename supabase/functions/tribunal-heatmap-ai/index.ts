@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { requireUser } from "../_shared/requireUser.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,9 @@ function safeArray(value: any) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
+
+  const auth = await requireUser(req, corsHeaders)
+  if (!auth.ok) return auth.response
 
   try {
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")

@@ -1,0 +1,89 @@
+name: Supabase schema snapshot
+
+# Exporta SOMENTE a estrutura (tabelas, índices, funções, políticas RLS) do
+# schema public do Supabase de produção para supabase/remote-schema/public.sql
+# e abre um PR. Não exporta dados e não altera o banco (pg_dump é só leitura).
+#
+# Pré-requisito: secret do repositório SUPABASE_DB_URL com a connection string
+# do Postgres (Supabase > Project Settings > Database > Connection string > URI,
+# de preferência o "Session pooler"). Cadastre em:
+# Settings > Secrets and variables > Actions > New repository secret.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secret
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "${SUPABASE_DB_URL}" ]; then
+            echo "::error::Secret SUPABASE_DB_URL não configurado neste repositório."
+            exit 1
+          fi
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump public schema (structure only)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p supabase/remote-schema
+          supabase db dump --db-url "${SUPABASE_DB_URL}" --schema public -f supabase/remote-schema/public.sql
+          wc -l supabase/remote-schema/public.sql
+
+      - name: Drift and RLS report
+        run: |
+          python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import re, pathlib
+          dump = pathlib.Path("supabase/remote-schema/public.sql").read_text()
+          tables = set(re.findall(r'CREATE TABLE (?:IF NOT EXISTS )?"?public"?\."?([a-z0-9_]+)"?', dump))
+          rls = set(re.findall(r'ALTER TABLE (?:ONLY )?"?public"?\."?([a-z0-9_]+)"? ENABLE ROW LEVEL SECURITY', dump))
+          used = set()
+          for d in ("src", "supabase/functions", "mobile", "netlify"):
+              for f in pathlib.Path(d).rglob("*"):
+                  if f.suffix in {".ts", ".tsx", ".mjs", ".js"} and f.is_file():
+                      used |= set(re.findall(r"\.from\(['\"]([a-z0-9_]+)['\"]\)", f.read_text(errors="ignore")))
+          print("## Supabase schema snapshot\n")
+          print(f"- Tabelas no banco (public): **{len(tables)}**")
+          print(f"- Tabelas usadas pelo código: **{len(used)}**\n")
+          def section(title, items):
+              print(f"### {title} ({len(items)})\n")
+              print("\n".join(f"- `{t}`" for t in sorted(items)) or "_nenhuma_")
+              print()
+          section("Tabelas SEM Row Level Security (risco de exposição via anon key)", tables - rls)
+          section("Usadas no código mas inexistentes no banco", used - tables)
+          section("No banco mas não usadas pelo código", tables - used)
+          PY
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BRANCH="chore/supabase-schema-snapshot-$(date -u +%Y%m%d-%H%M)"
+          git checkout -b "$BRANCH"
+          git add supabase/remote-schema/public.sql
+          if git diff --cached --quiet; then
+            echo "Snapshot idêntico ao do repositório; nada a fazer."
+            exit 0
+          fi
+          git commit -m "chore(db): snapshot do schema public do Supabase"
+          git push -u origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" --draft \
+            --title "chore(db): snapshot do schema public do Supabase" \
+            --body "Gerado pelo workflow *Supabase schema snapshot* (run ${{ github.run_id }}). Somente estrutura, sem dados. O relatório de drift e RLS está no resumo do run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+          || echo "::warning::Não foi possível abrir o PR automaticamente (Settings > Actions > General > 'Allow GitHub Actions to create and approve pull requests'). A branch $BRANCH foi enviada."

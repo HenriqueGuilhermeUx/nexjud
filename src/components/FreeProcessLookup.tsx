@@ -108,6 +108,7 @@ export default function FreeProcessLookup({ ctaTo = "/login" }: { ctaTo?: string
         </button>
       </form>
       <p className="mt-2 text-xs text-gray-500">Sem cadastro. Dados públicos do DataJud (CNJ). Não exibimos nomes das partes.</p>
+      {loading && <p className="mt-3 text-sm text-gray-400">Consultando o DataJud. Pode levar até 20 segundos.</p>}
 
       {error && <p role="alert" className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">{error}</p>}
 

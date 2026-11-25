@@ -17,3 +17,13 @@ create index if not exists public_process_lookups_created_idx
 
 -- RLS ligado e sem policies: só a Edge Function (service role) lê e grava.
 alter table public.public_process_lookups enable row level security;
+
+-- Cache de 6 h do resumo público (sem partes), por hash do número CNJ.
+-- Reduz chamadas ao DataJud, que limita requisições (HTTP 429).
+create table if not exists public.public_process_lookup_cache (
+  cnj_hash text primary key,
+  payload jsonb not null,
+  cached_at timestamptz not null default now()
+);
+
+alter table public.public_process_lookup_cache enable row level security;

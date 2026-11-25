@@ -7,6 +7,8 @@ import { courtFromCnj, formatCnj, isValidCnj, onlyDigits } from "../_shared/cnj.
 // - Não devolve nomes de partes nem complementos de movimentação (podem ter nomes).
 // - Processos com sigilo não têm detalhes exibidos.
 // - Limite: 10 consultas por IP por hora e 3.000 por dia no total.
+// - O DataJud limita requisições (429) e às vezes demora: uma nova tentativa,
+//   tempo máximo de 20 s e cache de 6 h do resumo por hash do número.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +18,21 @@ const corsHeaders = {
 
 const PER_IP_PER_HOUR = 10
 const GLOBAL_PER_DAY = 3000
+const CACHE_HOURS = 6
+const DATAJUD_TIMEOUT_MS = 20_000
+
+async function datajudSearch(alias: string, cnj: string, key: string): Promise<Response> {
+  const attempt = () => fetch(`https://api-publica.datajud.cnj.jus.br/api_publica_${alias}/_search`, {
+    method: "POST",
+    headers: { Authorization: key, "Content-Type": "application/json" },
+    body: JSON.stringify({ size: 1, query: { match: { numeroProcesso: cnj } } }),
+    signal: AbortSignal.timeout(DATAJUD_TIMEOUT_MS),
+  })
+  const first = await attempt()
+  if (first.status !== 429) return first
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+  return attempt()
+}
 
 async function sha256(value: string): Promise<string> {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))
@@ -86,13 +103,21 @@ Deno.serve(async (req) => {
     return json({ error: "A consulta grátis está muito procurada agora. Tente mais tarde ou crie sua conta.", limit: true }, 429)
   }
 
+  const cnjHash = await sha256(cnj)
+  const { data: cached } = await admin
+    .from("public_process_lookup_cache")
+    .select("payload,cached_at")
+    .eq("cnj_hash", cnjHash)
+    .gte("cached_at", new Date(Date.now() - CACHE_HOURS * 3600_000).toISOString())
+    .maybeSingle()
+
   let found = false
   try {
-    const response = await fetch(`https://api-publica.datajud.cnj.jus.br/api_publica_${court.alias}/_search`, {
-      method: "POST",
-      headers: { Authorization: datajudKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ size: 1, query: { match: { numeroProcesso: cnj } } }),
-    })
+    if (cached?.payload) {
+      found = Boolean(cached.payload.found)
+      return json({ ...cached.payload, cachedAt: cached.cached_at })
+    }
+    const response = await datajudSearch(court.alias, cnj, datajudKey)
     if (!response.ok) {
       console.error("public-process-lookup datajud", court.alias, response.status)
       return json({ error: "O DataJud não respondeu agora. Tente de novo em alguns minutos." }, 502)
@@ -102,7 +127,12 @@ Deno.serve(async (req) => {
     found = Boolean(source)
 
     const base = { cnj: formatCnj(cnj), court, source: "DataJud (CNJ) — API pública" }
+    const respond = async (payload: Record<string, unknown>) => {
+      await admin.from("public_process_lookup_cache").upsert({ cnj_hash: cnjHash, payload, cached_at: new Date().toISOString() })
+      return json(payload)
+    }
     if (!source) {
+      // "Não encontrado" não vai para o cache: o processo pode aparecer no DataJud depois.
       return json({
         ...base,
         found: false,
@@ -110,16 +140,17 @@ Deno.serve(async (req) => {
       })
     }
     if (Number(source.nivelSigilo || 0) > 0) {
-      return json({ ...base, found: true, restricted: true, message: "Este processo tem sigilo. Não exibimos detalhes." })
+      return respond({ ...base, found: true, restricted: true, message: "Este processo tem sigilo. Não exibimos detalhes." })
     }
-    return json({ ...base, found: true, restricted: false, process: summarize(source) })
+    return respond({ ...base, found: true, restricted: false, process: summarize(source) })
   } catch (error) {
-    console.error("public-process-lookup", error instanceof Error ? error.message : String(error))
-    return json({ error: "Não foi possível concluir a consulta agora." }, 500)
+    const timedOut = error instanceof DOMException && error.name === "TimeoutError"
+    console.error("public-process-lookup", timedOut ? "datajud timeout" : error instanceof Error ? error.message : String(error))
+    return json({ error: timedOut ? "O DataJud demorou demais para responder. Tente de novo em instantes." : "Não foi possível concluir a consulta agora." }, timedOut ? 504 : 500)
   } finally {
     await admin.from("public_process_lookups").insert({
       ip_hash: ipHash,
-      cnj_hash: await sha256(cnj),
+      cnj_hash: cnjHash,
       court_alias: court.alias,
       found,
     })

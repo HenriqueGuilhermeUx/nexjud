@@ -32,13 +32,13 @@ function sameSecret(given, expected) {
 }
 
 async function callDatajud(alias, query, authorization) {
+  // CNJ 429 is authoritative: never retry automatically.
   return fetch(`https://api-publica.datajud.cnj.jus.br/api_publica_${alias}/_search`, {
     method: 'POST',
     headers: { Authorization: authorization, 'Content-Type': 'application/json' },
     body: JSON.stringify(query),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
-  // Return rate limits as-is; CNJ must not receive an automatic retry.
 }
 
 export default async (req) => {

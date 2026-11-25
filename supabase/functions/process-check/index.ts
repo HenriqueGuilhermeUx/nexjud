@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 import { courtFromCnj, onlyDigits } from "../_shared/cnj.ts";
+import { datajudSearch } from "../_shared/datajud.ts";
 
 // Gasta: CNJ DataJud (CNJ_API_KEY) + OpenAI (gpt-4.1-mini) só quando o processo é encontrado.
 // Regra do produto: nenhum percentual de êxito ou de "próximo evento" sem modelo validado.
@@ -43,21 +44,11 @@ Deno.serve(async (req) => {
 
     if (CNJ_API_KEY) {
       try {
-        const response = await fetch(`https://api-publica.datajud.cnj.jus.br/api_publica_${tribunal.alias}/_search`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `APIKey ${CNJ_API_KEY}`,
-          },
-          body: JSON.stringify({
-            query: {
-              match: {
-                numeroProcesso: onlyDigits(processNumber),
-              },
-            },
-            size: 1,
-          }),
-        });
+        const { response } = await datajudSearch(
+          tribunal.alias,
+          { query: { match: { numeroProcesso: onlyDigits(processNumber) } }, size: 1 },
+          `APIKey ${CNJ_API_KEY}`,
+        );
 
         if (response.ok) {
           datajudData = await response.json();

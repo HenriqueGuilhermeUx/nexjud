@@ -28,6 +28,49 @@ export interface DatajudSearchResult {
   error?: string
 }
 
+export class DatajudLookupError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "DatajudLookupError"
+  }
+}
+
+async function describeDatajudFailure(error: unknown): Promise<DatajudLookupError> {
+  const context = (error as { context?: unknown } | null)?.context
+  let status: number | undefined
+  let code = ""
+  if (context instanceof Response) {
+    status = context.status
+    try {
+      const body = await context.clone().json() as { error?: unknown; status?: unknown }
+      code = typeof body?.error === "string" ? body.error : ""
+      if (!status && typeof body?.status === "number") status = body.status
+    } catch { /* Never expose upstream HTML or personal data. */ }
+  }
+  if (code.includes("DATAJUD_API_KEY")) {
+    return new DatajudLookupError("A integração DataJud não está configurada no servidor. Informe o suporte do NexJud.")
+  }
+  if (status === 401 || status === 403) {
+    return new DatajudLookupError("A consulta foi recusada por autenticação ou permissão. Entre novamente no NexJud; se persistir, informe o suporte.")
+  }
+  if (status === 404) {
+    return new DatajudLookupError("O serviço de consulta processual não foi encontrado neste ambiente. Informe o suporte do NexJud.")
+  }
+  if (status === 429) {
+    return new DatajudLookupError("O DataJud limitou temporariamente as consultas. Aguarde e tente novamente.")
+  }
+  if (status === 504 || status === 408) {
+    return new DatajudLookupError("A consulta ao DataJud excedeu o tempo de resposta. Tente novamente mais tarde.")
+  }
+  if (status && status >= 500) {
+    return new DatajudLookupError("O serviço de consulta processual está indisponível no momento. Informe o suporte se persistir.")
+  }
+  if (code.includes("Tribunal não identificado") || code.includes("alias válido")) {
+    return new DatajudLookupError("Tribunal não reconhecido. Confira o número CNJ e a sigla do tribunal.")
+  }
+  return new DatajudLookupError("Não foi possível acessar a consulta DataJud. Verifique a conexão e tente novamente; se persistir, informe o suporte.")
+}
+
 export async function searchProcessDatajud(
   cnj: string,
   tribunalAlias?: string,
@@ -47,15 +90,19 @@ export async function searchProcessDatajud(
   })
 
   if (error) {
-    console.error("Erro na Edge Function datajud-search:", error)
-    throw error
+    // Supabase FunctionsHttpError carries a Response in context; never surface raw provider text.
+    throw await describeDatajudFailure(error)
   }
 
   if (data?.error) {
-    console.error("Erro DataJud:", data)
-    throw new Error(data.error)
+    throw await describeDatajudFailure({ context: Response.json(data, {
+      status: typeof data.status === "number" && data.status >= 400 && data.status <= 599 ? data.status : 502,
+    }) })
   }
 
+  if (!data || data.success !== true || typeof data.found !== "boolean") {
+    throw new DatajudLookupError("O DataJud retornou uma resposta inesperada. Informe o suporte do NexJud.")
+  }
   const result = data as DatajudSearchResult
 
   if (userId && result.found && result.process) {

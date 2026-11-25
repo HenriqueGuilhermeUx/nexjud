@@ -35,8 +35,31 @@ describe("DataJud process lookup resilience", () => {
     expect(mocks.save).not.toHaveBeenCalled()
   })
 
-  it("still reports actual DataJud provider failures as errors", async () => {
-    mocks.invoke.mockResolvedValueOnce({ data: null, error: new Error("DataJud indisponível") })
-    await expect(searchProcessDatajud(process.number, "tjsp")).rejects.toThrow("DataJud indisponível")
+  it("gives a safe message when provider access fails without response details", async () => {
+    mocks.invoke.mockResolvedValueOnce({ data: null, error: new Error("upstream private failure") })
+    await expect(searchProcessDatajud(process.number, "tjsp")).rejects.toThrow("Não foi possível acessar a consulta DataJud")
+  })
+
+  it.each([
+    [401, "autenticação ou permissão"],
+    [404, "não foi encontrado"],
+    [429, "limitou temporariamente"],
+    [504, "tempo de resposta"],
+    [502, "indisponível"],
+  ])("maps HTTP %s into a safe actionable message", async (status, expected) => {
+    const context = Response.json({ error: "raw private upstream error" }, { status })
+    mocks.invoke.mockResolvedValueOnce({ data: null, error: { context } })
+    await expect(searchProcessDatajud(process.number, "tjsp")).rejects.toThrow(expected)
+  })
+
+  it("identifies absent DataJud API key without exposing configuration secrets", async () => {
+    const context = Response.json({ error: "DATAJUD_API_KEY não configurada." }, { status: 500 })
+    mocks.invoke.mockResolvedValueOnce({ data: null, error: { context } })
+    await expect(searchProcessDatajud(process.number, "tjsp")).rejects.toThrow("não está configurada no servidor")
+  })
+
+  it("rejects malformed upstream success rather than treating it as not-found", async () => {
+    mocks.invoke.mockResolvedValueOnce({ data: {}, error: null })
+    await expect(searchProcessDatajud(process.number, "tjsp")).rejects.toThrow("resposta inesperada")
   })
 })

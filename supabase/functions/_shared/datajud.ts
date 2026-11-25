@@ -28,6 +28,8 @@ export async function datajudSearch(alias: string, query: unknown, authorization
   const denoEnv = (globalThis as { Deno?: { env?: { get(name: string): string | undefined } } }).Deno?.env
   const secret = denoEnv?.get("DATAJUD_PROXY_SECRET") || ""
   const proxyUrl = denoEnv?.get("DATAJUD_PROXY_URL") || DEFAULT_PROXY_URL
+  // Log only routing state, never secrets, process numbers or the query body.
+  console.info("DataJud proxy configured:", Boolean(secret))
   if (secret) {
     try {
       const response = await fetch(proxyUrl, {
@@ -47,5 +49,12 @@ export async function datajudSearch(alias: string, query: unknown, authorization
       console.error("datajud proxy erro", error instanceof Error ? error.message : String(error))
     }
   }
-  return { response: await direct(alias, query, authorization), via: "direct" }
+  console.info("DataJud route selected:", "direct")
+  try {
+    return { response: await direct(alias, query, authorization), via: "direct" }
+  } catch (error) {
+    const kind = error instanceof Error ? error.name : "UnknownError"
+    console.warn("DataJud direct transport failed:", kind)
+    throw error
+  }
 }

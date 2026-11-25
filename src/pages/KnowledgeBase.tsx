@@ -7,6 +7,7 @@ import Tesseract from "tesseract.js"
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
 import { useAuth } from "@/context/AuthContext"
+import { openKnowledgeFile } from "@/lib/knowledgeFiles"
 import {
   createKnowledgeDocument,
   getKnowledgeDocuments,
@@ -385,7 +386,7 @@ export default function KnowledgeBase() {
                         </div>
                       )}
 
-                      {doc.file_url && <a href={doc.file_url} target="_blank" rel="noreferrer" className="inline-block mt-4 text-primary text-sm font-bold hover:underline">Abrir arquivo enviado</a>}
+                      {doc.file_url && <button type="button" onClick={() => openKnowledgeFile(doc.file_url).catch((err) => alert(err instanceof Error ? err.message : "Não foi possível abrir o arquivo."))} className="inline-block mt-4 text-primary text-sm font-bold hover:underline">Abrir arquivo enviado</button>}
                     </div>
                   )
                 })}

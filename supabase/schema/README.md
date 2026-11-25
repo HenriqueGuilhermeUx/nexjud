@@ -39,8 +39,10 @@ nunca tentar aplicá-lo no banco de produção.
    O webhook atual (`woovi-webhook`) não usa nenhum dos dois.
 6. **`subscriptions` tem 4 índices em `user_id`**, dois deles duplicados.
 
-Nenhum desses itens foi alterado em produção. Cada correção vai num PR próprio
-e só é aplicada com autorização.
+Atualização 2026-11-25 (autorizado): itens 1, 4 e 5 corrigidos em produção;
+`automation_notifications` criada e índice único em
+`legal_strategic_memories(source_outcome_id)`; as 4 funções não publicadas foram
+publicadas. O item 2 era código morto (removido). Os itens 3 e 6 continuam abertos.
 
 ## Edge Functions: repo × produção (2026-11-25)
 

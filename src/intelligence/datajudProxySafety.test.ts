@@ -11,6 +11,26 @@ function configure(secret: string) {
 }
 
 describe("DataJud provider and proxy rate-limit safety", () => {
+  it("diagnoses direct timeout without leaking a process number or credentials", async () => {
+    configure("")
+    const info = vi.spyOn(console, "info").mockImplementation(() => {})
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const mock = vi.fn(async () => { throw new DOMException("timed out", "TimeoutError") })
+    vi.stubGlobal("fetch", mock)
+    try {
+      await expect(datajudSearch(alias, query, "APIKey test-secret")).rejects.toThrow("timed out")
+      expect(info).toHaveBeenCalledWith("DataJud proxy configured:", false)
+      expect(info).toHaveBeenCalledWith("DataJud route selected:", "direct")
+      expect(warn).toHaveBeenCalledWith("DataJud direct transport failed:", "TimeoutError")
+      const diagnostic = JSON.stringify([...info.mock.calls, ...warn.mock.calls])
+      expect(diagnostic).not.toContain("test-secret")
+      expect(diagnostic).not.toContain("00082351120058260606")
+    } finally {
+      info.mockRestore()
+      warn.mockRestore()
+    }
+  })
+
   it("returns CNJ 429 without automatic retry in direct mode", async () => {
     configure("")
     const mock = vi.fn(async () => new Response("busy", { status: 429 }))

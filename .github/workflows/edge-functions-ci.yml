@@ -41,12 +41,23 @@ jobs:
             supabase/functions/rapid-api/index.ts \
             supabase/functions/generate-embedding/index.ts \
             supabase/functions/strategic-report/index.ts \
-            supabase/functions/setup-oab/index.ts
+            supabase/functions/setup-oab/index.ts \
+            supabase/functions/judge-simulator/index.ts \
+            supabase/functions/draft-generator/index.ts \
+            supabase/functions/red-team-simulator/index.ts \
+            supabase/functions/board-report-ai/index.ts \
+            supabase/functions/litigation-strategy-ai/index.ts \
+            supabase/functions/one-click-ai/index.ts \
+            supabase/functions/opponent-intelligence-ai/index.ts \
+            supabase/functions/partner-council-ai/index.ts \
+            supabase/functions/strategic-analysis/index.ts \
+            supabase/functions/tribunal-heatmap-ai/index.ts \
+            supabase/functions/war-room-ai/index.ts
 
       - name: Every function that spends money requires login
         run: |
           set -e
-          for fn in process-check red-team super-responder rapid-api generate-embedding strategic-report setup-oab; do
+          for fn in process-check red-team super-responder rapid-api generate-embedding strategic-report setup-oab judge-simulator draft-generator red-team-simulator board-report-ai litigation-strategy-ai one-click-ai opponent-intelligence-ai partner-council-ai strategic-analysis tribunal-heatmap-ai war-room-ai; do
             file="supabase/functions/$fn/index.ts"
             grep -q 'requireUser(req' "$file" || { echo "::error file=$file::$fn não chama requireUser"; exit 1; }
             grep -A1 "^\[functions\.$fn\]" supabase/config.toml | grep -q 'verify_jwt = true' || { echo "::error::$fn sem verify_jwt = true no config.toml"; exit 1; }

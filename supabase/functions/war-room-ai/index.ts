@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { requireUser } from "../_shared/requireUser.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,148 +7,102 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
-function safeArray(value: any, fallback: string[] = []) {
-  return Array.isArray(value) ? value : fallback
+function fallback() {
+  return {
+    title: "War Room AI",
+    riskLevel: "MÉDIO",
+    attackPlan: [
+      "Questionar prova documental.",
+      "Alegar ausência de dano comprovado.",
+      "Sustentar regularidade da conduta.",
+    ],
+    defensePlan: [
+      "Organizar linha do tempo documental.",
+      "Destacar protocolos e comunicações.",
+      "Quantificar prejuízo de forma objetiva.",
+    ],
+    negotiationPlan: [
+      "Definir valor mínimo de acordo.",
+      "Usar prova documental como pressão.",
+      "Negociar antes de audiência ou perícia.",
+    ],
+    emergencyActions: [
+      "Reunir documentos essenciais.",
+      "Validar prescrição.",
+      "Mapear risco financeiro.",
+    ],
+    nextMoves: [
+      "Criar tese principal.",
+      "Preparar minuta.",
+      "Definir estratégia de acordo.",
+    ],
+  }
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
+
+  const auth = await requireUser(req, corsHeaders)
+  if (!auth.ok) return auth.response
 
   try {
+    const { caseText } = await req.json()
+    const text = String(caseText || "").trim()
+
+    if (!text) {
+      return Response.json({ error: "caseText obrigatório." }, { status: 400, headers: corsHeaders })
+    }
+
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")
-
-    if (!OPENAI_API_KEY) {
-      return Response.json(
-        { error: "OPENAI_API_KEY não configurada." },
-        { status: 500, headers: corsHeaders }
-      )
-    }
-
-    const body = await req.json().catch(() => ({}))
-    const caseText = String(body.caseText || "").trim()
-
-    if (!caseText) {
-      return Response.json(
-        { error: "Texto do caso é obrigatório." },
-        { status: 400, headers: corsHeaders }
-      )
-    }
+    if (!OPENAI_API_KEY) return Response.json(fallback(), { headers: corsHeaders })
 
     const prompt = `
-Você é o NexJud Litigation War Room™, uma IA estratégica para advogados brasileiros.
+Você é um War Room jurídico.
+Crie ataque, defesa, negociação e ações urgentes.
+Retorne SOMENTE JSON válido.
 
-Analise o caso abaixo e produza uma central tática de litígio.
+Caso:
+${text}
 
-NÃO dê aconselhamento jurídico definitivo.
-NÃO invente jurisprudência específica.
-NÃO cite números de processos inexistentes.
-Trabalhe apenas com o texto fornecido.
-
-CASO:
-${caseText}
-
-Responda SOMENTE JSON válido, sem markdown, sem texto fora do JSON.
-
-Formato obrigatório:
+JSON:
 {
-  "title": "título curto e específico",
-  "risks": [
-    "risco crítico 1 específico",
-    "risco crítico 2 específico",
-    "risco crítico 3 específico",
-    "risco crítico 4 específico"
-  ],
-  "opportunities": [
-    "oportunidade estratégica 1",
-    "oportunidade estratégica 2",
-    "oportunidade estratégica 3",
-    "oportunidade estratégica 4"
-  ],
-  "missingEvidence": [
-    "prova faltante 1",
-    "prova faltante 2",
-    "prova faltante 3",
-    "prova faltante 4"
-  ],
-  "opponentArguments": [
-    "argumento provável do adversário 1",
-    "argumento provável do adversário 2",
-    "argumento provável do adversário 3",
-    "argumento provável do adversário 4"
-  ],
-  "nextMoves": [
-    "próximo movimento prático 1",
-    "próximo movimento prático 2",
-    "próximo movimento prático 3",
-    "próximo movimento prático 4",
-    "próximo movimento prático 5"
-  ],
-  "hearingStrategy": [
-    "estratégia de audiência 1",
-    "estratégia de audiência 2",
-    "estratégia de audiência 3"
-  ],
-  "settlementStrategy": "estratégia objetiva de acordo",
-  "priority": "BAIXA | MÉDIA | ALTA | CRÍTICA",
-  "executiveSummary": "resumo executivo em até 5 linhas"
+  "title": "string",
+  "riskLevel": "BAIXO|MÉDIO|ALTO",
+  "attackPlan": ["string"],
+  "defensePlan": ["string"],
+  "negotiationPlan": ["string"],
+  "emergencyActions": ["string"],
+  "nextMoves": ["string"]
 }
 `
 
-    const ai = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        input: prompt,
-        temperature: 0.2,
-        max_output_tokens: 2200,
+        model: "gpt-4o-mini",
+        temperature: 0.25,
+        messages: [
+          { role: "system", content: "Responda apenas JSON válido." },
+          { role: "user", content: prompt },
+        ],
       }),
     })
 
-    const json = await ai.json()
+    const json = await response.json()
+    const content = json?.choices?.[0]?.message?.content || ""
 
-    const text =
-      json.output_text ||
-      json.output?.[0]?.content?.[0]?.text ||
-      ""
-
-    if (!text) {
-      return Response.json(
-        { error: "OpenAI não retornou texto.", raw: json },
-        { status: 500, headers: corsHeaders }
-      )
+    try {
+      return Response.json(JSON.parse(content), { headers: corsHeaders })
+    } catch {
+      return Response.json({ ...fallback(), raw: content }, { headers: corsHeaders })
     }
-
-    const clean = text.replace(/```json/g, "").replace(/```/g, "").trim()
-    const parsed = JSON.parse(clean)
-
-    const normalized = {
-      title: parsed.title || "War Room NexJud",
-      risks: safeArray(parsed.risks),
-      opportunities: safeArray(parsed.opportunities),
-      missingEvidence: safeArray(parsed.missingEvidence),
-      opponentArguments: safeArray(parsed.opponentArguments),
-      nextMoves: safeArray(parsed.nextMoves),
-      hearingStrategy: safeArray(parsed.hearingStrategy),
-      settlementStrategy: parsed.settlementStrategy || "",
-      priority: parsed.priority || "MÉDIA",
-      executiveSummary: parsed.executiveSummary || "",
-    }
-
-    return Response.json(normalized, { headers: corsHeaders })
   } catch (error) {
     return Response.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Erro interno no War Room AI.",
-      },
+      { error: error instanceof Error ? error.message : "Erro war-room-ai" },
       { status: 500, headers: corsHeaders }
     )
   }

@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
+import { datajudSearch } from "../_shared/datajud.ts"
 
 async function authenticated(req: Request): Promise<boolean> {
   const url = Deno.env.get("SUPABASE_URL")
@@ -71,7 +72,6 @@ Deno.serve(async (req) => {
     if (!/^(tj[a-z]{2,4}|trf[1-6]|trt(?:[1-9]|1[0-9]|2[0-4]))$/.test(alias)) {
       return Response.json({ error: "Tribunal não identificado ou não suportado. Informe um alias válido." }, { status: 400, headers: corsHeaders })
     }
-    const url = `https://api-publica.datajud.cnj.jus.br/api_publica_${alias}/_search`
 
     const must: any[] = []
 
@@ -100,14 +100,9 @@ Deno.serve(async (req) => {
       },
     }
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: DATAJUD_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(query),
-    })
+    const { response, via } = await datajudSearch(alias, query, DATAJUD_API_KEY)
+    // Operational signal only; never log process number, user identity or provider key.
+    console.info("DataJud route:", via, "HTTP status:", response.status)
 
     const text = await response.text()
 

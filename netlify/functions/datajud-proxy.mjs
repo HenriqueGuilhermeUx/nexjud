@@ -32,16 +32,13 @@ function sameSecret(given, expected) {
 }
 
 async function callDatajud(alias, query, authorization) {
-  const attempt = () => fetch(`https://api-publica.datajud.cnj.jus.br/api_publica_${alias}/_search`, {
+  // CNJ 429 is authoritative: never retry automatically.
+  return fetch(`https://api-publica.datajud.cnj.jus.br/api_publica_${alias}/_search`, {
     method: 'POST',
     headers: { Authorization: authorization, 'Content-Type': 'application/json' },
     body: JSON.stringify(query),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
-  const first = await attempt();
-  if (first.status !== 429) return first;
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-  return attempt();
 }
 
 export default async (req) => {
@@ -74,7 +71,10 @@ export default async (req) => {
     });
   } catch (error) {
     const timedOut = error?.name === 'TimeoutError';
-    return json(timedOut ? 504 : 502, { error: timedOut ? 'datajud_timeout' : 'datajud_unreachable', elapsedMs: Date.now() - started });
+    return new Response(JSON.stringify({ error: timedOut ? 'datajud_timeout' : 'datajud_unreachable', elapsedMs: Date.now() - started }), {
+      status: timedOut ? 504 : 502,
+      headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-datajud-via': 'netlify' },
+    });
   }
 };
 

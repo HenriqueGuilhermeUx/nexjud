@@ -156,7 +156,9 @@ Deno.serve(async (req) => {
       },
     }
 
-    const { response } = await datajudSearch(alias, query, DATAJUD_API_KEY)
+    const { response, via } = await datajudSearch(alias, query, DATAJUD_API_KEY)
+    // Operational signal only; never log process number, user identity or provider key.
+    console.info("DataJud route:", via, "HTTP status:", response.status)
 
     const text = await response.text()
 

@@ -53,6 +53,9 @@ jobs:
       - name: Predictive evidence dossier regressions
         run: npx vitest run src/intelligence/predictiveEvidenceDossier.test.ts
 
+      - name: DataJud lookup survives optional history persistence failure
+        run: npx vitest run src/intelligence/datajudLookupHistoryResilience.test.ts
+
       - name: Core process lookup survives optional intelligence outage
         run: npx vitest run src/intelligence/processLookupResilience.test.ts
 

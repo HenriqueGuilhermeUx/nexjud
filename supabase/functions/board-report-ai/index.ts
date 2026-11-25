@@ -6,146 +6,101 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
-function safeArray(value: any) {
-  return Array.isArray(value) ? value : []
+function fallback() {
+  return {
+    title: "Board Report AI",
+    decision: "AVALIAR COM CAUTELA",
+    riskLevel: "MÉDIO",
+    financialImpact: "A estimar",
+    executiveSummary:
+      "Relatório executivo preliminar: o caso exige validação documental, análise de risco e estratégia de negociação antes de decisão final.",
+    partnerBriefing:
+      "Recomenda-se seguir com análise, organizar provas e definir régua de acordo.",
+    recommendedActions: [
+      "Validar documentos.",
+      "Quantificar exposição financeira.",
+      "Definir decisão de entrada.",
+      "Preparar minuta ou proposta.",
+    ],
+    criticalAlerts: [
+      "Atenção à prova do dano.",
+      "Atenção à prescrição.",
+      "Atenção ao custo de continuidade.",
+    ],
+  }
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 
   try {
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")
-
-    if (!OPENAI_API_KEY) {
-      return Response.json(
-        { error: "OPENAI_API_KEY não configurada." },
-        { status: 500, headers: corsHeaders }
-      )
-    }
-
     const body = await req.json().catch(() => ({}))
 
-    const portfolioContext = String(body.portfolioContext || "").trim()
-    const tribunalContext = String(body.tribunalContext || "").trim()
-    const opponentContext = String(body.opponentContext || "").trim()
-    const clientRiskContext = String(body.clientRiskContext || "").trim()
+    const context = [
+      body.portfolioContext,
+      body.tribunalContext,
+      body.opponentContext,
+      body.clientRiskContext,
+      body.caseText,
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+
+    if (!context.trim()) {
+      return Response.json({ error: "contexto obrigatório." }, { status: 400, headers: corsHeaders })
+    }
+
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")
+    if (!OPENAI_API_KEY) return Response.json(fallback(), { headers: corsHeaders })
 
     const prompt = `
-Você é o NexJud Board Report AI™, uma IA executiva para escritórios de advocacia, departamentos jurídicos e sócios.
+Você é um sócio gestor de escritório de advocacia.
+Gere relatório executivo para decisão de negócio.
+Retorne SOMENTE JSON válido.
 
-Sua tarefa é transformar dados da carteira jurídica em um relatório executivo objetivo, comercial e estratégico.
+Contexto:
+${context}
 
-Contexto da carteira:
-${portfolioContext || "Sem dados detalhados de carteira."}
-
-Contexto Tribunal DNA:
-${tribunalContext || "Não informado."}
-
-Contexto Opponent Intelligence:
-${opponentContext || "Não informado."}
-
-Contexto Client Risk:
-${clientRiskContext || "Não informado."}
-
-NÃO invente números.
-NÃO invente processos.
-NÃO cite fontes externas não fornecidas.
-Se os dados forem limitados, indique que a leitura é preliminar.
-
-Responda SOMENTE JSON válido, sem markdown.
-
-Formato obrigatório:
+JSON:
 {
-  "title": "título executivo",
-  "decision": "AÇÃO IMEDIATA | MONITORAR | NEGOCIAR | REFORÇAR PROVAS | SEM DADOS",
-  "riskLevel": "BAIXO | MÉDIO | ALTO | CRÍTICO",
-  "executiveSummary": "resumo executivo em até 6 linhas",
-  "financialImpact": "impacto financeiro textual",
-  "portfolioDiagnosis": [
-    "diagnóstico 1",
-    "diagnóstico 2",
-    "diagnóstico 3"
-  ],
-  "criticalAlerts": [
-    "alerta crítico 1",
-    "alerta crítico 2",
-    "alerta crítico 3"
-  ],
-  "recommendedActions": [
-    "ação recomendada 1",
-    "ação recomendada 2",
-    "ação recomendada 3",
-    "ação recomendada 4"
-  ],
-  "partnerBriefing": "texto curto para sócios",
-  "clientBriefing": "texto curto para cliente corporativo",
-  "nextBoardAgenda": [
-    "pauta 1",
-    "pauta 2",
-    "pauta 3"
-  ],
-  "confidenceLevel": "BAIXO | MÉDIO | ALTO"
+  "title": "string",
+  "decision": "string",
+  "riskLevel": "BAIXO|MÉDIO|ALTO",
+  "financialImpact": "string",
+  "executiveSummary": "string",
+  "partnerBriefing": "string",
+  "recommendedActions": ["string"],
+  "criticalAlerts": ["string"]
 }
 `
 
-    const ai = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        input: prompt,
-        temperature: 0.18,
-        max_output_tokens: 2400,
+        model: "gpt-4o-mini",
+        temperature: 0.2,
+        messages: [
+          { role: "system", content: "Responda apenas JSON válido." },
+          { role: "user", content: prompt },
+        ],
       }),
     })
 
-    const json = await ai.json()
+    const json = await response.json()
+    const content = json?.choices?.[0]?.message?.content || ""
 
-    const text =
-      json.output_text ||
-      json.output?.[0]?.content?.[0]?.text ||
-      ""
-
-    if (!text) {
-      return Response.json(
-        { error: "OpenAI não retornou texto.", raw: json },
-        { status: 500, headers: corsHeaders }
-      )
+    try {
+      return Response.json(JSON.parse(content), { headers: corsHeaders })
+    } catch {
+      return Response.json({ ...fallback(), raw: content }, { headers: corsHeaders })
     }
-
-    const clean = text.replace(/```json/g, "").replace(/```/g, "").trim()
-    const parsed = JSON.parse(clean)
-
-    return Response.json(
-      {
-        title: parsed.title || "NexJud Board Report AI",
-        decision: parsed.decision || "MONITORAR",
-        riskLevel: parsed.riskLevel || "MÉDIO",
-        executiveSummary: parsed.executiveSummary || "",
-        financialImpact: parsed.financialImpact || "",
-        portfolioDiagnosis: safeArray(parsed.portfolioDiagnosis),
-        criticalAlerts: safeArray(parsed.criticalAlerts),
-        recommendedActions: safeArray(parsed.recommendedActions),
-        partnerBriefing: parsed.partnerBriefing || "",
-        clientBriefing: parsed.clientBriefing || "",
-        nextBoardAgenda: safeArray(parsed.nextBoardAgenda),
-        confidenceLevel: parsed.confidenceLevel || "MÉDIO",
-      },
-      { headers: corsHeaders }
-    )
   } catch (error) {
     return Response.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Erro interno no Board Report AI.",
-      },
+      { error: error instanceof Error ? error.message : "Erro board-report-ai" },
       { status: 500, headers: corsHeaders }
     )
   }

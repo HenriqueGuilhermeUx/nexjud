@@ -6,25 +6,17 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
+// deno-lint-ignore no-explicit-any
 function safeArray(value: any) {
   return Array.isArray(value) ? value : []
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 
   try {
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")
-
-    if (!OPENAI_API_KEY) {
-      return Response.json(
-        { error: "OPENAI_API_KEY não configurada." },
-        { status: 500, headers: corsHeaders }
-      )
-    }
-
+    if (!OPENAI_API_KEY) return Response.json({ error: "OPENAI_API_KEY não configurada." }, { status: 500, headers: corsHeaders })
     const body = await req.json().catch(() => ({}))
     const tribunalContext = String(body.tribunalContext || "").trim()
 
@@ -46,81 +38,39 @@ Responda SOMENTE JSON válido, sem markdown.
 Formato obrigatório:
 {
   "overview": "resumo executivo do mapa de tribunais",
-  "tribunals": [
-    {
-      "tribunal": "nome do tribunal",
-      "riskLevel": "BAIXO | MÉDIO | ALTO | CRÍTICO",
-      "efficiencyScore": 0,
-      "complexityScore": 0,
-      "movementIntensity": "BAIXA | MÉDIA | ALTA",
-      "profile": "perfil estratégico do tribunal",
-      "strategicAdvice": "orientação prática"
-    }
-  ],
-  "alerts": [
-    "alerta 1",
-    "alerta 2",
-    "alerta 3"
-  ],
-  "recommendedActions": [
-    "ação 1",
-    "ação 2",
-    "ação 3"
-  ],
+  "tribunals": [{
+    "tribunal": "nome do tribunal",
+    "riskLevel": "BAIXO | MÉDIO | ALTO | CRÍTICO",
+    "efficiencyScore": 0,
+    "complexityScore": 0,
+    "movementIntensity": "BAIXA | MÉDIA | ALTA",
+    "profile": "perfil estratégico do tribunal",
+    "strategicAdvice": "orientação prática"
+  }],
+  "alerts": ["alerta 1","alerta 2","alerta 3"],
+  "recommendedActions": ["ação 1","ação 2","ação 3"],
   "confidenceLevel": "BAIXO | MÉDIO | ALTO"
 }
 `
 
     const ai = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        input: prompt,
-        temperature: 0.18,
-        max_output_tokens: 2400,
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
+      body: JSON.stringify({ model: "gpt-4.1-mini", input: prompt, temperature: 0.18, max_output_tokens: 2400 }),
     })
-
     const json = await ai.json()
+    const text = json.output_text || json.output?.[0]?.content?.[0]?.text || ""
+    if (!text) return Response.json({ error: "OpenAI não retornou texto." }, { status: 500, headers: corsHeaders })
+    const parsed = JSON.parse(text.replace(/```json/g, "").replace(/```/g, "").trim())
 
-    const text =
-      json.output_text ||
-      json.output?.[0]?.content?.[0]?.text ||
-      ""
-
-    if (!text) {
-      return Response.json(
-        { error: "OpenAI não retornou texto.", raw: json },
-        { status: 500, headers: corsHeaders }
-      )
-    }
-
-    const clean = text.replace(/```json/g, "").replace(/```/g, "").trim()
-    const parsed = JSON.parse(clean)
-
-    return Response.json(
-      {
-        overview: parsed.overview || "",
-        tribunals: safeArray(parsed.tribunals),
-        alerts: safeArray(parsed.alerts),
-        recommendedActions: safeArray(parsed.recommendedActions),
-        confidenceLevel: parsed.confidenceLevel || "MÉDIO",
-      },
-      { headers: corsHeaders }
-    )
+    return Response.json({
+      overview: parsed.overview || "",
+      tribunals: safeArray(parsed.tribunals),
+      alerts: safeArray(parsed.alerts),
+      recommendedActions: safeArray(parsed.recommendedActions),
+      confidenceLevel: parsed.confidenceLevel || "MÉDIO",
+    }, { headers: corsHeaders })
   } catch (error) {
-    return Response.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Erro interno no Tribunal Heatmap AI.",
-      },
-      { status: 500, headers: corsHeaders }
-    )
+    return Response.json({ error: error instanceof Error ? error.message : "Erro interno no Tribunal Heatmap AI." }, { status: 500, headers: corsHeaders })
   }
 })

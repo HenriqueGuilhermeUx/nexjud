@@ -6,6 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// deno-lint-ignore no-explicit-any
 function clampScore(value: any) {
   const n = Number(value || 0);
   if (n <= 10 && n > 0) return Math.round(n * 10);
@@ -14,10 +15,12 @@ function clampScore(value: any) {
   return Math.round(n);
 }
 
+// deno-lint-ignore no-explicit-any
 function arr(value: any, limit = 6) {
   return Array.isArray(value) ? value.slice(0, limit) : [];
 }
 
+// deno-lint-ignore no-explicit-any
 function normalizeResult(result: any) {
   const caseDna = result.caseDna || {};
 
@@ -154,48 +157,6 @@ function normalizeResult(result: any) {
         result.legalCommandCenter?.boardSummary ||
         "Resumo executivo indisponível.",
     },
-
-    oneClickActions: arr(result.oneClickActions, 8),
-
-    dealEconomics: {
-      estimatedFees: result.dealEconomics?.estimatedFees || "Não informado",
-      expectedValue: result.dealEconomics?.expectedValue || "Não informado",
-      estimatedHours: result.dealEconomics?.estimatedHours || "Não informado",
-      hourlyReturn: result.dealEconomics?.hourlyReturn || "Não informado",
-      recommendation: result.dealEconomics?.recommendation || "AVALIAR",
-      reason:
-        result.dealEconomics?.reason ||
-        "Economia do caso depende de valor, complexidade, provas e tempo estimado.",
-    },
-
-    clientRisk: {
-      score: clampScore(result.clientRisk?.score),
-      level: result.clientRisk?.level || "MÉDIO",
-      findings: arr(result.clientRisk?.findings, 6),
-      recommendation:
-        result.clientRisk?.recommendation ||
-        "Alinhar expectativas e documentar premissas antes de avançar.",
-    },
-
-    opponentIntelligence: {
-      profile: result.opponentIntelligence?.profile || "Adversário não identificado",
-      settlementChance: result.opponentIntelligence?.settlementChance || "Não informado",
-      commonTactics: arr(result.opponentIntelligence?.commonTactics, 6),
-      expectedDefense: arr(result.opponentIntelligence?.expectedDefense, 6),
-      pressurePoints: arr(result.opponentIntelligence?.pressurePoints, 6),
-    },
-
-    boardReport: {
-      decision: result.boardReport?.decision || "AVALIAR",
-      risk: result.boardReport?.risk || "Médio",
-      financialImpact: result.boardReport?.financialImpact || "Não informado",
-      executiveSummary:
-        result.boardReport?.executiveSummary ||
-        "Resumo executivo para cliente/diretoria indisponível.",
-      recommendation:
-        result.boardReport?.recommendation ||
-        "Validar documentos e estratégia antes da decisão final.",
-    },
   };
 }
 
@@ -246,17 +207,20 @@ Regras:
 - Todos os scores devem ser de 0 a 100.
 - Seja específico ao caso.
 - Evite respostas genéricas.
+- Deal breakers devem ser fatores que podem derrubar ou enfraquecer o caso.
+- Red Team deve simular a tese da parte contrária.
+- Strategy Engine deve dizer exatamente o que o advogado deve fazer agora.
 - Partner Decision deve ser uma das opções:
-  "ACEITARIA", "RECUSARIA", "ACEITARIA COM CAUTELA", "NEGOCIARIA ACORDO".
+  "ACEITARIA", "RECUSARIA", "ACEITARIA COM CAUTELA", "NEGOCIARIA ACORDO"
 
 Formato obrigatório:
 {
   "title": "título curto e específico da análise",
-  "executiveSummary": "resumo executivo em até 5 linhas",
+  "executiveSummary": "resumo executivo em até 5 linhas, direto e estratégico",
   "successProbability": 0,
   "riskLevel": "Baixo | Médio | Alto",
   "complexity": "Baixa | Média | Alta",
-  "financialPotential": "estimativa textual",
+  "financialPotential": "estimativa textual, ex: R$ 80.000 ou Não informado",
 
   "caseDna": {
     "provas": 0,
@@ -266,37 +230,60 @@ Formato obrigatório:
     "danoMoral": 0
   },
 
-  "dealBreakers": ["risco crítico"],
-  "redTeam": ["argumento da parte contrária"],
-  "strategyEngine": ["ação prática"],
+  "dealBreakers": [
+    "risco crítico 1",
+    "risco crítico 2",
+    "risco crítico 3"
+  ],
+
+  "redTeam": [
+    "argumento forte que a parte contrária usaria",
+    "argumento forte que a parte contrária usaria",
+    "argumento forte que a parte contrária usaria"
+  ],
+
+  "strategyEngine": [
+    "ação prática recomendada 1",
+    "ação prática recomendada 2",
+    "ação prática recomendada 3"
+  ],
+
   "judgeDna": {
-    "valoriza": ["fator"],
-    "rejeita": ["fator"]
+    "valoriza": ["fator 1", "fator 2", "fator 3"],
+    "rejeita": ["fator 1", "fator 2", "fator 3"]
   },
-  "winningThesis": "tese mais forte",
-  "defenseThesis": "tese adversária provável",
-  "evidenceChecklist": ["prova"],
-  "settlementRecommendation": "recomendação de acordo",
-  "nextMoves": ["próximo movimento"],
+
+  "winningThesis": "tese mais forte do advogado",
+  "defenseThesis": "tese provável da parte contrária",
+  "evidenceChecklist": ["prova 1", "prova 2", "prova 3"],
+  "settlementRecommendation": "recomendação objetiva sobre acordo",
+  "nextMoves": ["movimento 1", "movimento 2", "movimento 3"],
+
   "partnerDecision": "ACEITARIA | RECUSARIA | ACEITARIA COM CAUTELA | NEGOCIARIA ACORDO",
-  "partnerReason": "motivo",
+  "partnerReason": "motivo objetivo da decisão",
 
   "jurisprudencePrediction": {
     "favorableRate": 0,
     "trend": "Favorável | Neutra | Desfavorável",
-    "favorableFactors": ["fator favorável"],
-    "unfavorableFactors": ["fator desfavorável"],
-    "thesisStrength": "força estimada da tese",
-    "warning": "aviso de predição sem consulta externa real"
+    "favorableFactors": [
+      "fundamento que tende a ajudar",
+      "prova que tende a ajudar"
+    ],
+    "unfavorableFactors": [
+      "fator que costuma enfraquecer tese",
+      "risco jurisprudencial"
+    ],
+    "thesisStrength": "força estimada da tese diante de padrões decisórios comuns",
+    "warning": "aviso de que é uma predição estratégica sem consulta externa real"
   },
 
   "financialExposure": {
     "bestCase": "R$ ...",
     "probableCase": "R$ ...",
     "worstCase": "R$ ...",
-    "costRisk": "risco financeiro",
-    "settlementRange": "faixa de acordo",
-    "financialRecommendation": "recomendação financeira"
+    "costRisk": "risco de custas, honorários, sucumbência ou impacto financeiro",
+    "settlementRange": "faixa sugerida de acordo",
+    "financialRecommendation": "recomendação financeira objetiva"
   },
 
   "partnerCouncil": [
@@ -323,101 +310,51 @@ Formato obrigatório:
   ],
 
   "warRoom": {
-    "attackPlan": ["como atacar"],
-    "defensePlan": ["como defender"],
-    "evidencePlan": ["provas"],
-    "negotiationPlan": ["negociação"],
-    "emergencyActions": ["urgente"]
+    "attackPlan": ["como atacar a tese adversária"],
+    "defensePlan": ["como defender a tese do cliente"],
+    "evidencePlan": ["quais provas organizar"],
+    "negotiationPlan": ["como negociar"],
+    "emergencyActions": ["ações urgentes"]
   },
 
   "caseTimeline": [
     {
       "date": "ano/mês ou fase",
-      "event": "evento",
-      "impact": "impacto"
+      "event": "evento relevante",
+      "impact": "impacto jurídico"
     }
   ],
 
   "tribunalDna": {
     "profile": "Formalista | Probatório | Conciliador | Técnico | Pro consumidor | Pro empresa | Indefinido",
-    "values": ["valoriza"],
-    "rejects": ["rejeita"],
-    "riskBehavior": "comportamento",
-    "strategicAdvice": "orientação"
+    "values": ["o que esse perfil tende a valorizar"],
+    "rejects": ["o que esse perfil tende a rejeitar"],
+    "riskBehavior": "comportamento de risco estimado",
+    "strategicAdvice": "como adaptar a peça ou audiência"
   },
 
   "auditorFindings": {
-    "criticalRisks": ["risco"],
-    "inconsistencies": ["inconsistência"],
+    "criticalRisks": ["risco jurídico crítico"],
+    "inconsistencies": ["inconsistência narrativa ou documental"],
     "missingDocuments": ["documento ausente"],
-    "hiddenLiabilities": ["passivo oculto"],
+    "hiddenLiabilities": ["passivo ou risco oculto"],
     "auditScore": 0
   },
 
   "dueDiligence": {
     "score": 0,
     "riskLevel": "Baixo | Médio | Alto",
-    "keyFindings": ["achado"],
-    "blockers": ["bloqueador"],
-    "recommendation": "recomendação"
+    "keyFindings": ["achado relevante"],
+    "blockers": ["bloqueador da operação ou do caso"],
+    "recommendation": "recomendação final de diligência"
   },
 
   "legalCommandCenter": {
     "overallRisk": "Baixo | Médio | Alto",
     "priority": "Baixa | Média | Alta | Crítica",
-    "actionNow": "ação agora",
-    "executiveDecision": "decisão executiva",
-    "boardSummary": "resumo para cliente/diretoria"
-  },
-
-  "oneClickActions": [
-    {
-      "label": "Gerar minuta",
-      "action": "draft",
-      "context": "contexto do que deve ser gerado"
-    },
-    {
-      "label": "Simular acordo",
-      "action": "settlement",
-      "context": "contexto para simulação"
-    },
-    {
-      "label": "Treinar audiência",
-      "action": "judge",
-      "context": "contexto para juiz simulado"
-    }
-  ],
-
-  "dealEconomics": {
-    "estimatedFees": "R$ ...",
-    "expectedValue": "R$ ...",
-    "estimatedHours": "número ou faixa",
-    "hourlyReturn": "R$ .../h",
-    "recommendation": "ACEITAR | RECUSAR | NEGOCIAR | PEDIR MAIS DADOS",
-    "reason": "motivo econômico"
-  },
-
-  "clientRisk": {
-    "score": 0,
-    "level": "BAIXO | MÉDIO | ALTO",
-    "findings": ["risco comportamental ou documental do cliente"],
-    "recommendation": "como reduzir risco do cliente"
-  },
-
-  "opponentIntelligence": {
-    "profile": "perfil do adversário",
-    "settlementChance": "percentual ou texto",
-    "commonTactics": ["tática comum"],
-    "expectedDefense": ["defesa esperada"],
-    "pressurePoints": ["ponto de pressão"]
-  },
-
-  "boardReport": {
-    "decision": "ACEITAR | RECUSAR | NEGOCIAR | PEDIR MAIS DADOS",
-    "risk": "Baixo | Médio | Alto",
-    "financialImpact": "impacto financeiro resumido",
-    "executiveSummary": "resumo de uma página para cliente/diretoria",
-    "recommendation": "recomendação executiva final"
+    "actionNow": "ação mais importante agora",
+    "executiveDecision": "decisão executiva recomendada",
+    "boardSummary": "resumo para sócio, diretoria ou cliente"
   }
 }
 `;
@@ -432,7 +369,7 @@ Formato obrigatório:
         model: "gpt-4.1-mini",
         input: prompt,
         temperature: 0.12,
-        max_output_tokens: 6200,
+        max_output_tokens: 5200,
       }),
     });
 

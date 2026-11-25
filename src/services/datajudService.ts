@@ -61,22 +61,27 @@ export async function searchProcessDatajud(
   if (userId && result.found && result.process) {
     const lastMovement = result.process.movements?.[0]
 
-    await saveProcessIntelligence({
-      user_id: userId,
-      process_number: result.process.number,
-      tribunal: result.process.court,
-      classe: result.process.className,
-      assunto: result.process.subject,
-      orgao_julgador: result.process.courtUnit,
-      ultima_movimentacao: lastMovement
-        ? `${lastMovement.date || "-"} - ${lastMovement.name}`
-        : null,
-      dados: {
-        alias: result.alias,
-        total: result.total,
-        process: result.process,
-      },
-    })
+    try {
+      await saveProcessIntelligence({
+        user_id: userId,
+        process_number: result.process.number,
+        tribunal: result.process.court,
+        classe: result.process.className,
+        assunto: result.process.subject,
+        orgao_julgador: result.process.courtUnit,
+        ultima_movimentacao: lastMovement
+          ? `${lastMovement.date || "-"} - ${lastMovement.name}`
+          : null,
+        dados: {
+          alias: result.alias,
+          total: result.total,
+          process: result.process,
+        },
+      })
+    } catch {
+      // Optional history persistence must never invalidate a successful DataJud lookup.
+      console.warn("NexJud: consulta concluída, mas não foi possível salvar no histórico.")
+    }
   }
 
   return result

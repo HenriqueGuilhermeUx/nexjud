@@ -53,6 +53,9 @@ jobs:
       - name: Predictive evidence dossier regressions
         run: npx vitest run src/intelligence/predictiveEvidenceDossier.test.ts
 
+      - name: DataJud proxy rate-limit and timeout safety
+        run: npx vitest run src/intelligence/datajudProxySafety.test.ts
+
       - name: DataJud lookup survives optional history persistence failure
         run: npx vitest run src/intelligence/datajudLookupHistoryResilience.test.ts
 

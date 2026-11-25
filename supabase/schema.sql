@@ -1,3 +1,6 @@
+-- OBSOLETO: este arquivo não reflete a produção (cobre 4 de 45 tabelas).
+-- Use supabase/schema/production_snapshot_2026-11-25.sql e supabase/schema/README.md.
+
 -- NexJud Database Schema
 -- Execute this in Supabase SQL Editor
 

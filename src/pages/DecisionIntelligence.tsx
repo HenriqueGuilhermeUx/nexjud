@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Brain, Search, Scale, FileText, AlertTriangle, Target, Database, ArrowRight } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
-import { searchProcessDatajud, buildCaseTextFromDatajud, formatCnj, detectTribunalAliasFromCnj } from "@/services/datajudService"
+import { searchProcessDatajud, DatajudLookupError, buildCaseTextFromDatajud, formatCnj, detectTribunalAliasFromCnj } from "@/services/datajudService"
 import { searchSimilarCasesDatajud } from "@/services/realJurisprudenceService"
 import { datajudCasesToEvidence } from "@/intelligence/adapters/datajudEvidenceAdapter"
 import { evidenceStore } from "@/intelligence/evidenceStore"
@@ -256,7 +256,7 @@ export default function DecisionIntelligence() {
     } catch (error) {
       if (!searchGuard.current.isCurrent(requestVersion)) return
       console.error(error)
-      setMessage("Não foi possível concluir a análise agora. Nenhum resultado anterior será apresentado como se fosse desta consulta.")
+      setMessage(error instanceof DatajudLookupError ? error.message : "Não foi possível concluir a análise agora. Nenhum resultado anterior será apresentado como se fosse desta consulta.")
     } finally {
       if (searchGuard.current.isCurrent(requestVersion)) setLoading(false)
     }

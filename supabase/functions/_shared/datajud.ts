@@ -13,13 +13,13 @@ const TIMEOUT_MS = 20_000
 export type DatajudResult = { response: Response; via: "netlify" | "direct" }
 
 async function direct(alias: string, query: unknown, authorization: string): Promise<Response> {
+  // CNJ 429 is authoritative: never retry automatically.
   return fetch(`https://api-publica.datajud.cnj.jus.br/api_publica_${alias}/_search`, {
       method: "POST",
       headers: { Authorization: authorization, "Content-Type": "application/json" },
       body: JSON.stringify(query),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
-  // CNJ 429 is authoritative: never retry automatically.
 }
 
 /** `authorization` é o valor completo do header (ex.: "APIKey xxx" ou a chave crua). */
@@ -39,7 +39,7 @@ export async function datajudSearch(alias: string, query: unknown, authorization
         // 2 tentativas de até 20 s no proxy + folga
         signal: AbortSignal.timeout(TIMEOUT_MS * 2 + 5_000),
       })
-      if (response.headers.get("x-datajud-via") === "netlify") return { response, via: "netlify" }
+      if (response.headers.get("x-datajud-via") === "netlify" || response.status === 504) return { response, via: "netlify" }
       console.error("datajud proxy indisponível", response.status)
     } catch (error) {
       console.error("datajud proxy erro", error instanceof Error ? error.message : String(error))

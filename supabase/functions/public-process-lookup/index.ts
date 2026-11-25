@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { courtFromCnj, formatCnj, isValidCnj, onlyDigits } from "../_shared/cnj.ts"
+import { datajudSearch } from "../_shared/datajud.ts"
 
 // Consulta grátis pelo número CNJ (landing page, sem login).
 // - Só DataJud (metadados públicos). Nenhuma chamada à OpenAI.
@@ -8,7 +9,8 @@ import { courtFromCnj, formatCnj, isValidCnj, onlyDigits } from "../_shared/cnj.
 // - Processos com sigilo não têm detalhes exibidos.
 // - Limite: 10 consultas por IP por hora e 3.000 por dia no total.
 // - O DataJud limita requisições (429) e às vezes demora: uma nova tentativa,
-//   tempo máximo de 20 s e cache de 6 h do resumo por hash do número.
+//   tempo máximo de 20 s, desvio pela Netlify (_shared/datajud.ts) e cache de 6 h
+//   do resumo por hash do número.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,20 +21,6 @@ const corsHeaders = {
 const PER_IP_PER_HOUR = 10
 const GLOBAL_PER_DAY = 3000
 const CACHE_HOURS = 6
-const DATAJUD_TIMEOUT_MS = 20_000
-
-async function datajudSearch(alias: string, cnj: string, key: string): Promise<Response> {
-  const attempt = () => fetch(`https://api-publica.datajud.cnj.jus.br/api_publica_${alias}/_search`, {
-    method: "POST",
-    headers: { Authorization: key, "Content-Type": "application/json" },
-    body: JSON.stringify({ size: 1, query: { match: { numeroProcesso: cnj } } }),
-    signal: AbortSignal.timeout(DATAJUD_TIMEOUT_MS),
-  })
-  const first = await attempt()
-  if (first.status !== 429) return first
-  await new Promise((resolve) => setTimeout(resolve, 1500))
-  return attempt()
-}
 
 async function sha256(value: string): Promise<string> {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))
@@ -117,9 +105,9 @@ Deno.serve(async (req) => {
       found = Boolean(cached.payload.found)
       return json({ ...cached.payload, cachedAt: cached.cached_at })
     }
-    const response = await datajudSearch(court.alias, cnj, datajudKey)
+    const { response, via } = await datajudSearch(court.alias, { size: 1, query: { match: { numeroProcesso: cnj } } }, datajudKey)
     if (!response.ok) {
-      console.error("public-process-lookup datajud", court.alias, response.status)
+      console.error("public-process-lookup datajud", court.alias, via, response.status)
       return json({ error: "O DataJud não respondeu agora. Tente de novo em alguns minutos." }, 502)
     }
     const data = await response.json()

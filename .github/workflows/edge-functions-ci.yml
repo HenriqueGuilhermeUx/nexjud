@@ -5,6 +5,7 @@ on:
     paths:
       - "supabase/functions/**"
       - "supabase/config.toml"
+      - "netlify/functions/datajud-proxy.mjs"
       - ".github/workflows/edge-functions-ci.yml"
   push:
     branches: [main]
@@ -36,6 +37,8 @@ jobs:
           deno check \
             supabase/functions/_shared/requireUser.ts \
             supabase/functions/_shared/cnj.ts \
+            supabase/functions/_shared/datajud.ts \
+            supabase/functions/datajud-search/index.ts \
             supabase/functions/public-process-lookup/index.ts \
             supabase/functions/process-check/index.ts \
             supabase/functions/red-team/index.ts \
@@ -65,3 +68,9 @@ jobs:
             grep -A1 "^\[functions\.$fn\]" supabase/config.toml | grep -q 'verify_jwt = true' || { echo "::error::$fn sem verify_jwt = true no config.toml"; exit 1; }
           done
           grep -q 'auth.getUser' supabase/functions/process-movement-impact/index.ts
+
+      - name: Netlify DataJud proxy syntax and guard
+        run: |
+          node --check netlify/functions/datajud-proxy.mjs
+          grep -q "timingSafeEqual" netlify/functions/datajud-proxy.mjs
+          grep -q "api-publica.datajud.cnj.jus.br" netlify/functions/datajud-proxy.mjs

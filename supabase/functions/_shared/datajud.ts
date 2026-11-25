@@ -24,8 +24,10 @@ async function direct(alias: string, query: unknown, authorization: string): Pro
 
 /** `authorization` é o valor completo do header (ex.: "APIKey xxx" ou a chave crua). */
 export async function datajudSearch(alias: string, query: unknown, authorization: string): Promise<DatajudResult> {
-  const secret = Deno.env.get("DATAJUD_PROXY_SECRET") || ""
-  const proxyUrl = Deno.env.get("DATAJUD_PROXY_URL") || DEFAULT_PROXY_URL
+  // Read runtime configuration without requiring Deno ambient types in the web CI.
+  const denoEnv = (globalThis as { Deno?: { env?: { get(name: string): string | undefined } } }).Deno?.env
+  const secret = denoEnv?.get("DATAJUD_PROXY_SECRET") || ""
+  const proxyUrl = denoEnv?.get("DATAJUD_PROXY_URL") || DEFAULT_PROXY_URL
   if (secret) {
     try {
       const response = await fetch(proxyUrl, {

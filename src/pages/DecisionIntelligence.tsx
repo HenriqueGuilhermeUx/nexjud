@@ -225,26 +225,34 @@ export default function DecisionIntelligence() {
       const found = await searchProcessDatajud(requestedCnj, requestedAlias, historyUserId)
       if (!searchGuard.current.isCurrent(requestVersion)) return
       if (!found.found || !found.process) { setMessage("Processo não localizado no DataJud para este tribunal."); return }
-      const similar = await searchSimilarCasesDatajud({
-        cnj: requestedCnj, tribunalAlias: requestedAlias,
-        classe: found.process.className, assunto: found.process.subject,
-      })
-      if (!searchGuard.current.isCurrent(requestVersion)) return
-      const normalized = datajudCasesToEvidence(similar.cases || [], requestedAlias)
-      const reviewed = auditDecisionEvidence(normalized, {
-        court: found.process.court || requestedAlias,
-        judgingBody: found.process.courtUnit,
-      })
-      // Persist evidence only when it still belongs to the currently selected case.
-      await evidenceStore.put(normalized)
-      if (!searchGuard.current.isCurrent(requestVersion)) return
+      // The core process lookup must succeed even when optional similar-case intelligence is unavailable.
       setProcess(found.process)
       if (!providedCase) setCaseText(buildCaseTextFromDatajud(found.process))
-      setAudit(reviewed)
-      setObservedPattern(reviewed.enoughForDescriptivePattern
-        ? buildObservedDecisionPattern(reviewed.comparableEvidence)
-        : null)
-      setEvidence({ prediction: similar.prediction, cases: similar.cases || [], normalized, argument: providedArgument })
+      setEvidence({ prediction: null, cases: [], normalized: [], argument: providedArgument })
+      try {
+        const similar = await searchSimilarCasesDatajud({
+          cnj: requestedCnj, tribunalAlias: requestedAlias,
+          classe: found.process.className, assunto: found.process.subject,
+        })
+        if (!searchGuard.current.isCurrent(requestVersion)) return
+        const normalized = datajudCasesToEvidence(similar.cases || [], requestedAlias)
+        const reviewed = auditDecisionEvidence(normalized, {
+          court: found.process.court || requestedAlias,
+          judgingBody: found.process.courtUnit,
+        })
+        // Optional in-memory evidence storage cannot hide a successfully located process.
+        try { await evidenceStore.put(normalized) }
+        catch { console.warn("NexJud: armazenamento temporário de evidências indisponível") }
+        if (!searchGuard.current.isCurrent(requestVersion)) return
+        setAudit(reviewed)
+        setObservedPattern(reviewed.enoughForDescriptivePattern
+          ? buildObservedDecisionPattern(reviewed.comparableEvidence)
+          : null)
+        setEvidence({ prediction: similar.prediction, cases: similar.cases || [], normalized, argument: providedArgument })
+      } catch {
+        if (!searchGuard.current.isCurrent(requestVersion)) return
+        setMessage("Processo localizado no DataJud. A busca complementar de casos semelhantes está temporariamente indisponível; o resultado básico permanece disponível.")
+      }
     } catch (error) {
       if (!searchGuard.current.isCurrent(requestVersion)) return
       console.error(error)

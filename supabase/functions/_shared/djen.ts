@@ -138,12 +138,16 @@ async function request(params: Record<string, string>): Promise<DjenPage> {
     const timedOut = error instanceof DOMException && error.name === "TimeoutError"
     direct = { ok: false, error: timedOut ? "timeout" : "unavailable" }
   }
-  if (direct.ok || direct.error === "rate_limited" || direct.error === "bad_format") return direct
+  if (direct.ok) return direct
+  const failure = (direct as { error?: string }).error
+  if (failure === "rate_limited" || failure === "bad_format") return direct
 
-  const secret = Deno.env.get("DJEN_PROXY_SECRET") || ""
+  // Lê o ambiente sem exigir os tipos do Deno (este arquivo também roda nos testes do frontend).
+  const denoEnv = (globalThis as { Deno?: { env?: { get(name: string): string | undefined } } }).Deno?.env
+  const secret = denoEnv?.get("DJEN_PROXY_SECRET") || ""
   if (!secret) return direct
   try {
-    const response = await fetch(Deno.env.get("DJEN_PROXY_URL") || DEFAULT_PROXY_URL, {
+    const response = await fetch(denoEnv?.get("DJEN_PROXY_URL") || DEFAULT_PROXY_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-nexjud-proxy-secret": secret },
       body: JSON.stringify({ params }),

@@ -40,6 +40,7 @@ jobs:
             supabase/functions/_shared/datajud.ts \
             supabase/functions/_shared/escavador.ts \
             supabase/functions/_shared/processData.ts \
+            supabase/functions/_shared/djen.ts \
             supabase/functions/datajud-search/index.ts \
             supabase/functions/decision-intelligence/index.ts \
             supabase/functions/public-process-lookup/index.ts \
@@ -85,4 +86,6 @@ jobs:
         run: |
           node --check netlify/functions/datajud-proxy.mjs
           grep -q "timingSafeEqual" netlify/functions/datajud-proxy.mjs
+          node --check netlify/functions/djen-proxy.mjs
+          grep -q "timingSafeEqual" netlify/functions/djen-proxy.mjs
           grep -q "api-publica.datajud.cnj.jus.br" netlify/functions/datajud-proxy.mjs

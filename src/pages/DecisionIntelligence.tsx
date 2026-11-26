@@ -11,6 +11,7 @@ import { auditDecisionEvidence, type DecisionEvidenceAudit } from "@/intelligenc
 import { DecisionSearchGuard } from "@/intelligence/decisionSearchGuard"
 import { buildDecisionReviewWorksheet } from "@/intelligence/decisionReviewWorksheet"
 import ManualCourtDecisionReview from "@/components/ManualCourtDecisionReview"
+import JudgeDossierPanel from "@/components/JudgeDossierPanel"
 import { historyUserIdForSearch } from "@/intelligence/historyWritePolicy"
 import { assessPredictiveReadiness, buildPredictiveEvidenceDossier } from "@/intelligence/predictiveEvidenceDossier"
 import { buildJudgeStrategyAdvice } from "@/intelligence/judgeStrategyAdvice"
@@ -323,6 +324,8 @@ export default function DecisionIntelligence() {
         <textarea value={caseText} onChange={e=>{ invalidateCurrentSearch(); setCaseText(e.target.value) }} placeholder="Opcional: complemente fatos, pedidos e teses que não estejam claros nos dados públicos." className="w-full h-32 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
         <textarea value={lawyerArgument} onChange={e=>{ invalidateCurrentSearch(); setLawyerArgument(e.target.value) }} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
       </section>
+
+      <JudgeDossierPanel cnj={cnj} argument={lawyerArgument} />
 
       <section className="rounded-2xl border border-[#303849] bg-[#111118] p-5 space-y-3" aria-label="DJEN consulta pública">
         <div className="flex flex-wrap items-center justify-between gap-3">

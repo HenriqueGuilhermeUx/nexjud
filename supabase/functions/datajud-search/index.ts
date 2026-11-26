@@ -1,17 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { createClient } from "jsr:@supabase/supabase-js@2"
-import { courtFromCnj } from "../_shared/cnj.ts"
-import { datajudSearch } from "../_shared/datajud.ts"
+import { requireUser } from "../_shared/requireUser.ts"
+import { courtFromCnj, formatCnj, isValidCnj, onlyDigits } from "../_shared/cnj.ts"
+import { lookupProcess } from "../_shared/processData.ts"
 
-async function authenticated(req: Request): Promise<boolean> {
-  const url = Deno.env.get("SUPABASE_URL")
-  const anon = Deno.env.get("SUPABASE_ANON_KEY")
-  const authorization = req.headers.get("authorization") || ""
-  if (!url || !anon || !/^Bearer\s+\S+$/i.test(authorization)) return false
-  const client = createClient(url, anon, { auth: { persistSession: false } })
-  const { data, error } = await client.auth.getUser(authorization.replace(/^Bearer\s+/i, ""))
-  return !error && Boolean(data.user)
-}
+// Consulta de processo para usuários logados (tela DNA do Juiz e histórico).
+// O nome "datajud-search" ficou por compatibilidade com web, PWA e app:
+// a fonte principal agora é o Escavador, com o DataJud como reserva.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,181 +13,63 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
-function onlyNumbers(value: string) {
-  return String(value || "").replace(/\D/g, "")
-}
-
-function detectAlias(cnj: string, fallback = "tjsp") {
-  const clean = onlyNumbers(cnj)
-
-  const tribunalCode = clean.slice(13, 16)
-
-  const map: Record<string, string> = {
-    "826": "tjsp",
-    "821": "tjrs",
-    "819": "tjrj",
-    "813": "tjmg",
-    "815": "tjpb",
-    "804": "tjam",
-    "405": "trf5",
-    "403": "trf3",
-    "402": "trf2",
-    "401": "trf1",
-    "404": "trf4",
-    "406": "trf6",
-    "502": "trt2",
-    "515": "trt15",
-  }
-
-  return map[tribunalCode] || ""
-}
-
-function normalizeMovements(source: any) {
-  const movements =
-    source.movimentos ||
-    source.movimentacoes ||
-    source.movimento ||
-    []
-
-  if (!Array.isArray(movements)) return []
-
-  return movements.slice(-20).reverse().map((m: any) => ({
-    date: m.dataHora || m.data || m.dtMovimento || null,
-    name:
-      m.nome ||
-      m.descricao ||
-      m.movimentoNacional?.descricao ||
-      m.codigoMovimento ||
-      "Movimentação",
-    complement:
-      m.complementosTabelados ||
-      m.complemento ||
-      m.texto ||
-      "",
-  }))
-}
-
-function normalizeProcess(source: any) {
-  return {
-    number:
-      source.numeroProcesso ||
-      source.numero ||
-      source.numero_cnj ||
-      "-",
-    court:
-      source.tribunal ||
-      source.siglaTribunal ||
-      source.orgaoJulgador?.nome ||
-      "-",
-    courtUnit:
-      source.orgaoJulgador?.nome ||
-      source.unidadeOrigem?.nome ||
-      "-",
-    className:
-      source.classe?.nome ||
-      source.classeProcessual?.nome ||
-      source.classe ||
-      "-",
-    subject:
-      Array.isArray(source.assuntos)
-        ? source.assuntos.map((a: any) => a.nome || a.descricao).filter(Boolean).join(", ")
-        : source.assunto?.nome || "-",
-    filingDate:
-      source.dataAjuizamento ||
-      source.dataDistribuicao ||
-      source.created_at ||
-      null,
-    parties:
-      source.partes ||
-      source.poloAtivo ||
-      [],
-    movements: normalizeMovements(source),
-    raw: source,
-  }
-}
-
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
-
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
   if (req.method !== "POST") return Response.json({ error: "Método não permitido." }, { status: 405, headers: corsHeaders })
-  if (!(await authenticated(req))) return Response.json({ error: "Sessão inválida ou ausente." }, { status: 401, headers: corsHeaders })
+
+  const auth = await requireUser(req, corsHeaders)
+  if (!auth.ok) return auth.response
 
   try {
-    const DATAJUD_API_KEY = Deno.env.get("DATAJUD_API_KEY")
-
-    if (!DATAJUD_API_KEY) {
-      return Response.json(
-        { error: "DATAJUD_API_KEY não configurada." },
-        { status: 500, headers: corsHeaders }
-      )
-    }
-
     const body = await req.json().catch(() => ({}))
+    const cnj = onlyDigits(String(body.cnj || ""))
+    if (cnj.length !== 20) {
+      return Response.json({ error: "Informe um número CNJ de 20 dígitos." }, { status: 400, headers: corsHeaders })
+    }
+    if (!isValidCnj(cnj)) {
+      return Response.json({ error: "Esse número CNJ não é válido. Confira os dígitos." }, { status: 400, headers: corsHeaders })
+    }
+    const court = courtFromCnj(cnj)
+    const alias = court?.alias || String(body.tribunalAlias || "").trim()
 
-    const cnj = String(body.cnj || "").trim()
-    const tribunalAlias = String(body.tribunalAlias || "").trim()
+    const lookup = await lookupProcess(cnj, { movements: true, includeParties: true, includeMovementText: true })
+    console.info("process lookup:", lookup.source, lookup.found ? "found" : lookup.reason, "credits:", lookup.credits)
 
-    if (onlyNumbers(cnj).length !== 20) {
-      return Response.json(
-        { error: "Informe um número CNJ de 20 dígitos." },
-        { status: 400, headers: corsHeaders }
-      )
+    if (!lookup.found) {
+      if (lookup.reason !== "not_found") {
+        return Response.json({ error: "As bases de processos não responderam agora. Tente de novo em alguns minutos.", status: 503, alias }, { status: 503, headers: corsHeaders })
+      }
+      return Response.json({ success: true, alias, found: false, process: null, total: 0, source: lookup.source }, { headers: corsHeaders })
     }
 
-    // Todos os TJs, TRFs e TRTs (antes, 14 tribunais em detectAlias).
-    const alias = tribunalAlias || courtFromCnj(cnj)?.alias || detectAlias(cnj)
-    if (!/^(tj[a-z]{2,4}|trf[1-6]|trt(?:[1-9]|1[0-9]|2[0-4]))$/.test(alias)) {
-      return Response.json({ error: "Tribunal não identificado ou não suportado. Informe um alias válido." }, { status: 400, headers: corsHeaders })
-    }
-    const query = {
-      size: 1,
-      query: {
-        match: {
-          numeroProcesso: onlyNumbers(cnj),
-        },
+    const p = lookup.summary
+    return Response.json({
+      success: true,
+      alias,
+      found: true,
+      total: 1,
+      source: lookup.source,
+      process: {
+        number: formatCnj(p.cnj),
+        court: p.court || court?.name || "-",
+        courtUnit: p.courtUnit || "-",
+        className: p.className || "-",
+        subject: p.subjects.join(", ") || "-",
+        area: p.area,
+        causeValue: p.causeValue,
+        filingDate: p.filingDate,
+        lastMovementDate: p.lastMovementDate,
+        movementsCount: p.movementsCount,
+        restricted: p.restricted,
+        activeSide: p.activeSide ?? null,
+        passiveSide: p.passiveSide ?? null,
+        parties: p.parties ?? [],
+        sourceUrl: p.sourceUrl ?? null,
+        movements: p.recentMovements.map((m) => ({ date: m.date, name: m.name, complement: m.content || "" })),
       },
-    }
-
-    const { response, via } = await datajudSearch(alias, query, DATAJUD_API_KEY)
-    // Operational signal only; never log process number, user identity or provider key.
-    console.info("DataJud route:", via, "HTTP status:", response.status)
-
-    const text = await response.text()
-
-    if (!response.ok) {
-      return Response.json(
-        {
-          error: "Erro ao consultar DataJud.",
-          status: response.status,
-          alias,
-        },
-        { status: response.status, headers: corsHeaders }
-      )
-    }
-
-    const data = JSON.parse(text)
-    const hits = data?.hits?.hits || []
-
-    const process = hits[0]?._source ? normalizeProcess(hits[0]._source) : null
-
-    return Response.json(
-      {
-        success: true,
-        alias,
-        found: Boolean(process),
-        process,
-        total: data?.hits?.total?.value || hits.length || 0,
-      },
-      { headers: corsHeaders }
-    )
+    }, { headers: corsHeaders })
   } catch (error) {
-    return Response.json(
-      {
-        error: "Não foi possível concluir a consulta DataJud.",
-      },
-      { status: 500, headers: corsHeaders }
-    )
+    console.error("datajud-search", error instanceof Error ? error.message : String(error))
+    return Response.json({ error: "Não foi possível concluir a consulta do processo." }, { status: 500, headers: corsHeaders })
   }
 })

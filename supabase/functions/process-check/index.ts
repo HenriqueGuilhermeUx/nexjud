@@ -1,9 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { requireUser } from "../_shared/requireUser.ts";
-import { courtFromCnj, onlyDigits } from "../_shared/cnj.ts";
-import { datajudSearch } from "../_shared/datajud.ts";
+import { courtFromCnj } from "../_shared/cnj.ts";
+import { lookupFailureMessage, lookupProcess } from "../_shared/processData.ts";
 
-// Gasta: CNJ DataJud (CNJ_API_KEY) + OpenAI (gpt-4.1-mini) só quando o processo é encontrado.
+// Gasta: Escavador (capa + movimentações; DataJud como reserva) + OpenAI (gpt-4.1-mini) só quando o processo é encontrado.
 // Regra do produto: nenhum percentual de êxito ou de "próximo evento" sem modelo validado.
 // Por isso não há successProbability, riskLevel nem probabilidades, e não existe
 // resultado de demonstração quando o DataJud não encontra o processo.
@@ -39,49 +39,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    // deno-lint-ignore no-explicit-any
-    let datajudData: any = null;
+    const lookup = await lookupProcess(processNumber, {
+      movements: true,
+      includeParties: true,
+      includeMovementText: true,
+      datajudAuthorization: CNJ_API_KEY ? `APIKey ${CNJ_API_KEY}` : undefined,
+    });
 
-    if (CNJ_API_KEY) {
-      try {
-        const { response } = await datajudSearch(
-          tribunal.alias,
-          { query: { match: { numeroProcesso: onlyDigits(processNumber) } }, size: 1 },
-          `APIKey ${CNJ_API_KEY}`,
-        );
-
-        if (response.ok) {
-          datajudData = await response.json();
-        }
-      } catch (_e) {
-        datajudData = null;
-      }
-    }
-
-    const hit = datajudData?.hits?.hits?.[0]?._source;
-
-    if (!hit) {
+    if (!lookup.found) {
+      const failure = lookupFailureMessage(lookup);
       return Response.json(
-        {
-          processNumber,
-          found: false,
-          court: tribunal.name,
-          message: CNJ_API_KEY
-            ? "Processo não encontrado na base pública do DataJud. Processos recentes ou em segredo de justiça podem não aparecer."
-            : "Consulta ao DataJud indisponível no momento.",
-        },
-        { headers: corsHeaders },
+        { processNumber, found: false, court: tribunal.name, message: failure.message },
+        { status: failure.status, headers: corsHeaders },
       );
     }
 
-    // deno-lint-ignore no-explicit-any
-    const movimentos: any[] = [...(hit.movimentos || [])].sort((a, b) =>
-      String(b.dataHora || "").localeCompare(String(a.dataHora || ""))
-    );
-    const lastMovement = movimentos[0];
+    const p = lookup.summary;
+    const sourceLabel = lookup.source === "escavador" ? "Escavador" : "DataJud (CNJ)";
+    const lastMovement = p.recentMovements[0];
 
     let executiveSummary =
-      "Processo localizado na base DataJud. Recomenda-se análise estratégica da última movimentação, fase processual e documentos disponíveis.";
+      `Processo localizado (${sourceLabel}). Recomenda-se análise estratégica da última movimentação, fase processual e documentos disponíveis.`;
 
     if (OPENAI_API_KEY) {
       try {
@@ -99,7 +77,7 @@ Deno.serve(async (req) => {
 Analise este processo brasileiro de forma estratégica. Não prometa resultado e não dê percentuais ou probabilidades. Use só os dados abaixo. Responda em um parágrafo executivo curto.
 
 Dados:
-${JSON.stringify(hit).slice(0, 8000)}
+${JSON.stringify({ ...p, parties: undefined }).slice(0, 8000)}
 `,
           }),
         });
@@ -115,23 +93,29 @@ ${JSON.stringify(hit).slice(0, 8000)}
       {
         processNumber,
         found: true,
-        source: "cnj-datajud",
-        court: tribunal.name,
-        phase: hit.classe?.nome || "Classe não informada",
-        judge: hit.orgaoJulgador?.nome || "Órgão julgador não informado",
-        // deno-lint-ignore no-explicit-any
-        subjects: Array.isArray(hit.assuntos) ? hit.assuntos.map((a: any) => a?.nome).filter(Boolean) : [],
-        filingDate: hit.dataAjuizamento || null,
-        movementsCount: movimentos.length,
-        lastMovement: lastMovement?.dataHora || null,
-        lastMovementSummary: lastMovement?.nome || "Movimentação não identificada.",
-        // deno-lint-ignore no-explicit-any
-        recentMovements: movimentos.slice(0, 8).map((m: any) => ({ date: m.dataHora || null, name: m.nome || "Movimentação" })),
+        source: lookup.source,
+        sourceLabel,
+        court: p.court || tribunal.name,
+        phase: p.className || "Classe não informada",
+        judge: p.courtUnit || "Órgão julgador não informado",
+        subjects: p.subjects,
+        area: p.area,
+        causeValue: p.causeValue,
+        filingDate: p.filingDate,
+        restricted: p.restricted,
+        activeSide: p.activeSide ?? null,
+        passiveSide: p.passiveSide ?? null,
+        parties: p.parties ?? [],
+        sourceUrl: p.sourceUrl ?? null,
+        movementsCount: p.movementsCount,
+        lastMovement: p.lastMovementDate || lastMovement?.date || null,
+        lastMovementSummary: lastMovement?.content || lastMovement?.name || "Movimentação não identificada.",
+        recentMovements: p.recentMovements.slice(0, 8),
         executiveSummary,
         radar: [
-          "Processo localizado na base DataJud.",
-          `Classe: ${hit.classe?.nome || "não informada"}.`,
-          `Órgão julgador: ${hit.orgaoJulgador?.nome || "não informado"}.`,
+          `Processo localizado (${sourceLabel}).`,
+          `Classe: ${p.className || "não informada"}.`,
+          `Órgão julgador: ${p.courtUnit || "não informado"}.`,
           "Revisar movimentações recentes antes de qualquer petição.",
         ],
         alerts: [

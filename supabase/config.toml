@@ -152,3 +152,9 @@ verify_jwt = false
 enabled = true
 port = 54327
 backend = "postgres"
+
+[functions.datajud-search]
+verify_jwt = true
+
+[functions.decision-intelligence]
+verify_jwt = true

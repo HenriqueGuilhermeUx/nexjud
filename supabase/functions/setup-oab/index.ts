@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { requireUser } from "../_shared/requireUser.ts";
+import { escavadorGet } from "../_shared/escavador.ts";
 
 // Código trazido da produção (versão 21) em 2026-11-25. O arquivo que estava no
 // repositório era uma versão antiga (DataJud + Supabase service role) que não
@@ -10,6 +11,9 @@ import { requireUser } from "../_shared/requireUser.ts";
 // - a resposta não devolve mais `debug.attempts` nem `receivedBody`, que expunham
 //   até 1.500 caracteres de cada resposta bruta do Escavador e o corpo recebido;
 // - o log registra só URL e status de cada tentativa, não o corpo.
+// 2026-11-26: uma única chamada à rota documentada da API v2
+// (GET /advogado/processos?oab_estado=&oab_numero=). Antes eram até 15 endereços
+// tentados por busca, e cada tentativa podia consumir créditos.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,6 +63,10 @@ function extractArray(data: any): any[] {
 // deno-lint-ignore no-explicit-any
 function normalizeCase(item: any, index: number) {
   const processo = item.processo || item;
+  // deno-lint-ignore no-explicit-any
+  const fontes: any[] = Array.isArray(processo.fontes) ? processo.fontes : [];
+  const fonte = fontes.find((f) => String(f?.tipo || "").toUpperCase() === "TRIBUNAL") || fontes[0] || null;
+  const capa = fonte?.capa || {};
 
   const numeroCnj =
     processo.numero_cnj ||
@@ -73,6 +81,8 @@ function normalizeCase(item: any, index: number) {
     id: String(processo.id || item.id || `esc-${index}`),
     caseNumber: numeroCnj,
     tribunal:
+      fonte?.tribunal?.sigla ||
+      fonte?.sigla ||
       processo.tribunal ||
       processo.origem ||
       processo.fonte ||
@@ -80,15 +90,20 @@ function normalizeCase(item: any, index: number) {
       item.origem ||
       "Tribunal não informado",
     natureza:
+      capa.classe ||
+      capa.assunto ||
+      capa.area ||
       processo.classe ||
       processo.assunto ||
       processo.area ||
       item.classe ||
       item.assunto ||
       "Natureza não informada",
-    valor: Number(processo.valor_causa || processo.valor || item.valor_causa || item.valor || 0),
+    valor: Number(capa.valor_causa?.valor || processo.valor_causa || processo.valor || item.valor_causa || item.valor || 0),
+    parties: [processo.titulo_polo_ativo, processo.titulo_polo_passivo].filter(Boolean).join(" x ") || null,
     status: "Aguardando",
     judge:
+      capa.orgao_julgador ||
       processo.juiz ||
       processo.orgao_julgador ||
       item.juiz ||
@@ -124,26 +139,6 @@ function buildStats(cases: any[]) {
     defeats,
     pending,
     successRate: decided > 0 ? Math.round((victories / decided) * 100) : 0,
-  };
-}
-
-async function escavadorGet(url: string, token: string) {
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-      "X-Requested-With": "XMLHttpRequest",
-    },
-  });
-
-  const text = await response.text();
-
-  return {
-    url,
-    status: response.status,
-    ok: response.ok,
-    body: text,
   };
 }
 
@@ -193,81 +188,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    const baseV2 = "https://api.escavador.com/api/v2";
-    const baseV1 = "https://api.escavador.com/api/v1";
+    const result = await escavadorGet<any>("/advogado/processos", {
+      oab_estado: oab.uf,
+      oab_numero: oab.number,
+      limit: 50,
+    });
+    console.log("setup-oab escavador", result.status, "credits:", result.credits);
 
-    const urls = [
-      // V2 — variações OAB
-      `${baseV2}/advogados/oab/${oab.number}/${oab.uf}/processos`,
-      `${baseV2}/advogados/oab/${oab.number}/${oab.uf}`,
-      `${baseV2}/advogados/oab/${oab.uf}/${oab.number}/processos`,
-      `${baseV2}/advogados/oab/${oab.uf}/${oab.number}`,
-
-      `${baseV2}/envolvidos/oab/${oab.number}/${oab.uf}/processos`,
-      `${baseV2}/envolvidos/oab/${oab.number}/${oab.uf}`,
-      `${baseV2}/envolvidos/oab/${oab.uf}/${oab.number}/processos`,
-      `${baseV2}/envolvidos/oab/${oab.uf}/${oab.number}`,
-
-      `${baseV2}/busca?q=${encodeURIComponent(`OAB ${oab.uf} ${oab.number}`)}&tipo=advogado`,
-      `${baseV2}/busca?q=${encodeURIComponent(`OAB ${oab.uf} ${oab.number}`)}&tipo=envolvido`,
-      `${baseV2}/busca?q=${encodeURIComponent(`${oab.number} ${oab.uf}`)}`,
-
-      // V1 — fallback
-      `${baseV1}/oab/${oab.uf}/${oab.number}`,
-      `${baseV1}/oab/${oab.number}/${oab.uf}`,
-      `${baseV1}/busca/termo?q=${encodeURIComponent(`OAB ${oab.uf} ${oab.number}`)}`,
-      `${baseV1}/busca/termo?q=${encodeURIComponent(oab.number)}`,
-    ];
-
-    const attempts: { url: string; status: number; ok: boolean }[] = [];
-    // deno-lint-ignore no-explicit-any
-    let selectedData: any = null;
-    let selectedSource = "";
-    // deno-lint-ignore no-explicit-any
-    let selectedItems: any[] = [];
-
-    for (const url of urls) {
-      const attempt = await escavadorGet(url, ESCAVADOR_API_KEY);
-
-      attempts.push({ url: attempt.url, status: attempt.status, ok: attempt.ok });
-
-      if (!attempt.ok) continue;
-
-      // deno-lint-ignore no-explicit-any
-      let data: any = null;
-
-      try {
-        data = JSON.parse(attempt.body);
-      } catch (_error) {
-        continue;
-      }
-
-      const items = extractArray(data);
-
-      if (items.length > 0) {
-        selectedData = data;
-        selectedItems = items;
-        selectedSource = url.includes("/processos")
-          ? "escavador-oab-processos"
-          : url.includes("/advogados/oab")
-          ? "escavador-advogado-oab"
-          : url.includes("/envolvidos/oab")
-          ? "escavador-envolvido-oab"
-          : "escavador-busca";
-        break;
-      }
-
-      if (data?.id || data?.nome || data?.advogado || data?.envolvido) {
-        selectedData = data;
-        selectedItems = extractArray(data);
-        selectedSource = url.includes("/advogados/oab")
-          ? "escavador-advogado-oab-sem-processos"
-          : "escavador-oab-sem-processos";
-        break;
-      }
+    if (!result.ok && result.status !== 404) {
+      return Response.json(
+        {
+          error: result.status === 402
+            ? "A consulta por OAB está temporariamente indisponível (saldo do provedor de dados). Avise o suporte do NexJud."
+            : "O provedor de dados não respondeu agora. Tente de novo em alguns minutos.",
+        },
+        { status: 503, headers: corsHeaders }
+      );
     }
 
-    console.log("setup-oab escavador attempts", JSON.stringify(attempts));
+    // deno-lint-ignore no-explicit-any
+    const selectedData: any = result.ok ? result.data : null;
+    // deno-lint-ignore no-explicit-any
+    const selectedItems: any[] = extractArray(selectedData);
+    const lawyer = selectedData?.advogado_encontrado || null;
+    const selectedSource = selectedItems.length ? "escavador-oab-processos" : "escavador-advogado-oab-sem-processos";
 
     if (!selectedData) {
       return Response.json(
@@ -297,7 +241,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const cases = selectedItems.slice(0, 20).map(normalizeCase);
+    const cases = selectedItems.slice(0, 50).map(normalizeCase);
 
     return Response.json(
       {
@@ -305,6 +249,7 @@ Deno.serve(async (req) => {
         oabNumber: oab.number,
         oabState: oab.uf,
         source: selectedSource,
+        lawyer: lawyer ? { name: lawyer.nome || null, totalProcesses: Number(lawyer.quantidade_processos || 0) || null } : null,
         message:
           cases.length > 0
             ? "Dados carregados via Escavador."

@@ -25,7 +25,8 @@ describe("consulta grátis pelo número CNJ", () => {
     expect(fn).not.toMatch(/api\.openai\.com|OPENAI_API_KEY/)
     expect(fn).not.toMatch(/\.partes\b|poloAtivo|poloPassivo/)
     expect(fn).toContain("PER_IP_PER_HOUR")
-    expect(fn).toContain("nivelSigilo")
+    expect(fn).toContain("p.restricted")
+    expect(fn).toContain("movements: false")
   })
 
   it("Verificar Processo não mostra percentuais inventados", () => {

@@ -38,7 +38,10 @@ jobs:
             supabase/functions/_shared/requireUser.ts \
             supabase/functions/_shared/cnj.ts \
             supabase/functions/_shared/datajud.ts \
+            supabase/functions/_shared/escavador.ts \
+            supabase/functions/_shared/processData.ts \
             supabase/functions/datajud-search/index.ts \
+            supabase/functions/decision-intelligence/index.ts \
             supabase/functions/public-process-lookup/index.ts \
             supabase/functions/process-check/index.ts \
             supabase/functions/red-team/index.ts \
@@ -62,12 +65,21 @@ jobs:
       - name: Every function that spends money requires login
         run: |
           set -e
-          for fn in process-check red-team super-responder rapid-api generate-embedding strategic-report setup-oab judge-simulator draft-generator red-team-simulator board-report-ai litigation-strategy-ai one-click-ai opponent-intelligence-ai partner-council-ai strategic-analysis tribunal-heatmap-ai war-room-ai; do
+          for fn in process-check datajud-search decision-intelligence red-team super-responder rapid-api generate-embedding strategic-report setup-oab judge-simulator draft-generator red-team-simulator board-report-ai litigation-strategy-ai one-click-ai opponent-intelligence-ai partner-council-ai strategic-analysis tribunal-heatmap-ai war-room-ai; do
             file="supabase/functions/$fn/index.ts"
             grep -q 'requireUser(req' "$file" || { echo "::error file=$file::$fn não chama requireUser"; exit 1; }
             grep -A1 "^\[functions\.$fn\]" supabase/config.toml | grep -q 'verify_jwt = true' || { echo "::error::$fn sem verify_jwt = true no config.toml"; exit 1; }
           done
           grep -q 'auth.getUser' supabase/functions/process-movement-impact/index.ts
+
+      - name: Escavador usage stays on documented routes
+        run: |
+          set -e
+          # Uma chamada por busca de OAB (antes eram até 15 endereços tentados).
+          ! grep -n 'api/v1\|advogados/oab\|envolvidos/oab' supabase/functions/setup-oab/index.ts
+          grep -q '"/advogado/processos"' supabase/functions/setup-oab/index.ts
+          # A consulta grátis nunca pede movimentações nem partes (custo e privacidade).
+          grep -q 'lookupProcess(cnj, { movements: false })' supabase/functions/public-process-lookup/index.ts
 
       - name: Netlify DataJud proxy syntax and guard
         run: |

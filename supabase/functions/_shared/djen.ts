@@ -4,11 +4,12 @@
 // pagina, itensPorPagina. O CNJ limita requisições por janela (X-RateLimit-Limit ≈ 20):
 // cada análise faz no máximo 3 chamadas e nunca repete após HTTP 429.
 //
-// Se a chamada direta do Supabase for recusada, e DJEN_PROXY_SECRET estiver configurado,
-// tenta pela função netlify/functions/djen-proxy.mjs (mesma consulta, outra rede de saída).
+// O DJEN só aceita chamadas de dentro do Brasil (CloudFront devolve 403 fora). Se a
+// chamada direta for recusada, repete pela função djen-relay invocada na região
+// sa-east-1 (São Paulo). Filtros testados em 2026-11-27: orgaoId filtra o órgão;
+// nomeOrgao é ignorado; texto faz busca no conteúdo ("julgo" traz sentenças).
 
 const BASE = "https://comunicaapi.pje.jus.br/api/v1/comunicacao"
-const DEFAULT_PROXY_URL = "https://nexjudsolucoes.com.br/api/djen-proxy"
 const TIMEOUT_MS = 15_000
 const MAX_TEXT = 6_000
 
@@ -20,6 +21,7 @@ export type DjenPublication = {
   date: string | null
   court: string | null
   judgingBody: string | null
+  judgingBodyId: string | null
   processNumber: string | null
   className: string | null
   communicationType: string | null
@@ -31,7 +33,7 @@ export type DjenPublication = {
 }
 
 export type DjenPage =
-  | { ok: true; count: number; items: DjenPublication[]; via: "direct" | "netlify" }
+  | { ok: true; count: number; items: DjenPublication[]; via: "direct" | "relay" }
   | { ok: false; error: "rate_limited" | "blocked" | "unavailable" | "timeout" | "bad_format"; status?: number }
 
 // deno-lint-ignore no-explicit-any
@@ -94,6 +96,7 @@ export function normalizeItem(record: Any): DjenPublication | null {
     date: String(record.data_disponibilizacao || record.dataDisponibilizacao || "").slice(0, 32) || null,
     court: String(record.siglaTribunal || record.sigla_tribunal || "").slice(0, 18) || null,
     judgingBody: String(record.nomeOrgao || record.nome_orgao || "").slice(0, 160) || null,
+    judgingBodyId: /^\d{1,12}$/.test(String(record.idOrgao ?? "")) ? String(record.idOrgao) : null,
     processNumber: String(record.numeroprocessocommascara || record.numero_processo || "").slice(0, 32) || null,
     className: String(record.nomeClasse || record.nome_classe || "").slice(0, 120) || null,
     communicationType: String(record.tipoComunicacao || record.tipo_comunicacao || "").slice(0, 90) || null,
@@ -105,16 +108,11 @@ export function normalizeItem(record: Any): DjenPublication | null {
   }
 }
 
-function sameBody(a: string | null, b: string | null) {
-  const norm = (v: string | null) => String(v || "").toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim()
-  return Boolean(a && b) && norm(a) === norm(b)
-}
-
 async function request(params: Record<string, string>): Promise<DjenPage> {
   const url = new URL(BASE)
   for (const [k, v] of Object.entries(params)) if (v) url.searchParams.set(k, v)
 
-  const parse = async (response: Response, via: "direct" | "netlify"): Promise<DjenPage> => {
+  const parse = async (response: Response, via: "direct" | "relay"): Promise<DjenPage> => {
     if (response.status === 429) return { ok: false, error: "rate_limited", status: 429 }
     if (!response.ok) return { ok: false, error: response.status === 403 ? "blocked" : "unavailable", status: response.status }
     try {
@@ -142,19 +140,20 @@ async function request(params: Record<string, string>): Promise<DjenPage> {
   const failure = (direct as { error?: string }).error
   if (failure === "rate_limited" || failure === "bad_format") return direct
 
-  // Lê o ambiente sem exigir os tipos do Deno (este arquivo também roda nos testes do frontend).
+  // Fora do Brasil: repete pela função djen-relay em São Paulo.
   const denoEnv = (globalThis as { Deno?: { env?: { get(name: string): string | undefined } } }).Deno?.env
-  const secret = denoEnv?.get("DJEN_PROXY_SECRET") || ""
-  if (!secret) return direct
+  const supabaseUrl = denoEnv?.get("SUPABASE_URL") || ""
+  const serviceRole = denoEnv?.get("SUPABASE_SERVICE_ROLE_KEY") || ""
+  if (!supabaseUrl || !serviceRole || denoEnv?.get("SB_REGION") === "sa-east-1") return direct
   try {
-    const response = await fetch(denoEnv?.get("DJEN_PROXY_URL") || DEFAULT_PROXY_URL, {
+    const response = await fetch(`${supabaseUrl}/functions/v1/djen-relay`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-nexjud-proxy-secret": secret },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceRole}`, "x-region": "sa-east-1" },
       body: JSON.stringify({ params }),
       signal: AbortSignal.timeout(TIMEOUT_MS + 5_000),
     })
-    if (response.headers.get("x-djen-via") !== "netlify") return direct
-    return await parse(response, "netlify")
+    if (response.headers.get("x-djen-via") !== "relay") return direct
+    return await parse(response, "relay")
   } catch {
     return direct
   }
@@ -172,39 +171,28 @@ export async function djenByProcess(cnjDigits: string, limit = 30): Promise<Djen
 }
 
 /**
- * Amostra recente de decisões do mesmo juízo (vara, câmara ou turma).
- * Filtra de novo pelo nome exato do órgão: a resposta pode trazer outros órgãos.
+ * Amostra recente de decisões do mesmo juízo (vara, UPJ, câmara ou turma), pelo código do órgão.
+ * Duas consultas: sentenças (busca "julgo" no texto) e publicações recentes (decisões e despachos).
  */
-export async function djenByJudgingBody(court: string, judgingBody: string, days = 120, pages = 2): Promise<DjenPage & { pagesRead?: number }> {
+export async function djenByJudgingBody(court: string, judgingBodyId: string, days = 120): Promise<DjenPage> {
   const end = new Date()
   const start = new Date(end.getTime() - days * 86_400_000)
   const iso = (d: Date) => d.toISOString().slice(0, 10)
-  const collected: DjenPublication[] = []
-  let count = 0
-  let via: "direct" | "netlify" = "direct"
-  let pagesRead = 0
-  for (let p = 1; p <= pages; p++) {
-    const page = await request({
-      siglaTribunal: court,
-      nomeOrgao: judgingBody,
-      dataDisponibilizacaoInicio: iso(start),
-      dataDisponibilizacaoFim: iso(end),
-      pagina: String(p),
-      itensPorPagina: "100",
-    })
-    if (!page.ok) {
-      if (p === 1) return page
-      break
-    }
-    pagesRead++
-    via = page.via
-    count = page.count
-    collected.push(...page.items.filter((i) => sameBody(i.judgingBody, judgingBody)))
-    if (page.items.length < 100) break
+  const base = {
+    siglaTribunal: court,
+    orgaoId: judgingBodyId,
+    dataDisponibilizacaoInicio: iso(start),
+    dataDisponibilizacaoFim: iso(end),
+    pagina: "1",
+    itensPorPagina: "100",
   }
+  const sentences = await request({ ...base, texto: "julgo" })
+  if (!sentences.ok) return sentences
+  const recent = await request(base)
+  const all = [...sentences.items, ...(recent.ok ? recent.items : [])].filter((i) => !i.judgingBodyId || i.judgingBodyId === judgingBodyId)
   const seen = new Set<string>()
-  const items = collected.filter((i) => (seen.has(i.id) ? false : (seen.add(i.id), true)))
-  return { ok: true, count, items, via, pagesRead }
+  const items = all.filter((i) => (seen.has(i.id) ? false : (seen.add(i.id), true)))
+  return { ok: true, count: sentences.count, items, via: sentences.via }
 }
 
 export function isDecision(p: DjenPublication) {

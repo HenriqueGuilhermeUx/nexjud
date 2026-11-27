@@ -28,13 +28,14 @@ describe("dossiê do juízo com publicações do DJEN", () => {
 
   it("normaliza um item e só aceita link de tribunal", () => {
     const item = normalizeItem({
-      hash: "abc", data_disponibilizacao: "2026-11-20", siglaTribunal: "TJSP", nomeOrgao: "2ª Vara Cível",
+      hash: "abc", idOrgao: 100590, data_disponibilizacao: "2026-11-20", siglaTribunal: "TJSP", nomeOrgao: "2ª Vara Cível",
       numeroprocessocommascara: "1000123-45.2024.8.26.0100", tipoDocumento: "Sentença",
       texto: "<p>JULGO PROCEDENTE o pedido.</p>", link: "https://esaj.tjsp.jus.br/x",
     })
     expect(item?.kind).toBe("sentenca")
     expect(item?.outcome).toBe("procedente")
     expect(item?.link).toBe("https://esaj.tjsp.jus.br/x")
+    expect(item?.judgingBodyId).toBe("100590")
     expect(normalizeItem({ hash: "x", texto: "a", link: "https://evil.example.com" })?.link).toBeNull()
     expect(outcomeCounts([item!, item!])).toEqual({ procedente: 2 })
   })
@@ -54,10 +55,14 @@ describe("dossiê do juízo com publicações do DJEN", () => {
     expect(read("../../mobile/App.tsx")).toContain("DOSSIÊ DO JUÍZO")
   })
 
-  it("o proxy do DJEN exige segredo e só repassa filtros conhecidos", () => {
-    const proxy = read("../../netlify/functions/djen-proxy.mjs")
-    expect(proxy).toContain("timingSafeEqual")
-    expect(proxy).toContain("comunicaapi.pje.jus.br/api/v1/comunicacao")
-    expect(proxy).toContain("invalid_param")
+  it("o repasse do DJEN roda em São Paulo, exige a service role e só aceita filtros conhecidos", () => {
+    const relay = read("../../supabase/functions/djen-relay/index.ts")
+    expect(relay).toContain("SUPABASE_SERVICE_ROLE_KEY")
+    expect(relay).toContain("comunicaapi.pje.jus.br/api/v1/comunicacao")
+    expect(relay).toContain("invalid_param")
+    const djen = read("../../supabase/functions/_shared/djen.ts")
+    expect(djen).toContain('"x-region": "sa-east-1"')
+    expect(djen).toContain('texto: "julgo"')
+    expect(djen).toContain("orgaoId: judgingBodyId")
   })
 })

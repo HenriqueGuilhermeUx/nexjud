@@ -61,8 +61,8 @@ export function classifyKind(documentType: string, text: string): DjenKind {
   if (/senten[çc]a/.test(doc)) return "sentenca"
   if (/ac[óo]rd[ãa]o/.test(doc)) return "acordao"
   if (/julgo (parcialmente )?(im)?procedentes?|julgo extint/.test(body)) return "sentenca"
-  if (/ementa|ac[óo]rdam/.test(body.slice(0, 800))) return "acordao"
-  const decides = /(defiro|indefiro|homologo|concedo|nego)/.test(body)
+  if (/\bementa\b|\bac[óo]rdam\b/.test(body.slice(0, 800))) return "acordao"
+  const decides = /\b(defiro|indefiro|homologo|concedo|nego)\b/.test(body)
   if (/decis[ãa]o/.test(doc) || decides) return decides || !/despacho/.test(doc) ? "decisao" : "despacho"
   if (/despacho|ato ordinat[óo]rio/.test(doc)) return "despacho"
   return "outro"

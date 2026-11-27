@@ -158,3 +158,6 @@ verify_jwt = true
 
 [functions.decision-intelligence]
 verify_jwt = true
+
+[functions.djen-relay]
+verify_jwt = true

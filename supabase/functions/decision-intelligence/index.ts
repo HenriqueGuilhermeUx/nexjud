@@ -155,21 +155,22 @@ Deno.serve(async (req) => {
     const p = lookup.found ? lookup.summary : null
     const own = ownPage.ok ? ownPage.items : []
 
-    if (!p && !own.length) {
-      if (!lookup.found) {
-        const failure = lookupFailureMessage(lookup)
-        if (failure.status !== 200) return Response.json({ error: failure.message }, { status: failure.status, headers: corsHeaders })
-        return Response.json({ success: true, found: false, alias, warning: failure.message }, { headers: corsHeaders })
-      }
+    if (!p && !own.length && !lookup.found) {
+      const failure = lookupFailureMessage(lookup)
+      if (failure.status !== 200) return Response.json({ error: failure.message }, { status: failure.status, headers: corsHeaders })
+      return Response.json({ success: true, found: false, alias, warning: failure.message }, { headers: corsHeaders })
     }
 
-    // O nome do órgão como o DJEN o escreve é o que permite achar as outras decisões do juízo.
-    const judgingBody = own.find((d) => d.judgingBody)?.judgingBody || p?.courtUnit || null
+    // O código do órgão no DJEN (idOrgao) é o que permite achar as outras decisões do juízo.
+    const ownWithBody = own.find((d) => d.judgingBodyId)
+    const judgingBody = ownWithBody?.judgingBody || p?.courtUnit || null
+    const judgingBodyId = ownWithBody?.judgingBodyId || null
     const courtSigla = own.find((d) => d.court)?.court || court?.name || null
 
     let samplePage: Awaited<ReturnType<typeof djenByJudgingBody>> | null = null
-    if (judgingBody && courtSigla) samplePage = await djenByJudgingBody(courtSigla, judgingBody, 120, 2)
+    if (judgingBodyId && courtSigla) samplePage = await djenByJudgingBody(courtSigla, judgingBodyId, 120)
     const sampleAll = samplePage?.ok ? samplePage.items : []
+    console.info("dna", JSON.stringify({ lookup: lookup.found ? lookup.source : lookup.reason, credits: lookup.credits, djenOwn: ownPage.ok ? own.length : (ownPage as { error?: string }).error, sampleRead: sampleAll.length }))
     const sampleDecisions = sampleAll
       .filter(isDecision)
       .filter((d) => onlyDigits(d.processNumber || "") !== cnj)
@@ -182,9 +183,9 @@ Deno.serve(async (req) => {
     const sources = [sourceLabel, own.length || sampleAll.length ? "DJEN/CNJ" : null].filter(Boolean).join(" + ")
 
     const djenStatus = !ownPage.ok
-      ? (ownPage.error === "rate_limited" ? "O DJEN limitou as consultas agora; tente de novo em alguns minutos." : "O DJEN não respondeu agora.")
-      : !judgingBody
-        ? "Não foi possível identificar o juízo para montar o dossiê."
+      ? ((ownPage as { error?: string }).error === "rate_limited" ? "O DJEN limitou as consultas agora; tente de novo em alguns minutos." : "O DJEN não respondeu agora.")
+      : !judgingBodyId
+        ? "Este processo ainda não tem publicações no DJEN; sem elas não dá para identificar o juízo e montar o dossiê."
         : samplePage && !samplePage.ok
           ? "As publicações do juízo não puderam ser lidas agora."
           : null

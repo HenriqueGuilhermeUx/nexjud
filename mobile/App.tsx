@@ -771,18 +771,20 @@ function Menu({ label, onPress, danger = false }: any) {
 function CourtAnalysisScreen({ route, navigation }: any) {
   const [cnj, setCnj] = useState(route.params?.cnj || "")
   const [thesis, setThesis] = useState("")
+  const [side, setSide] = useState<"autor" | "reu" | "">("")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [errorText, setErrorText] = useState("")
 
-  async function analyze() {
+  async function analyze(chosen?: string) {
     const processNumber = cnj.trim()
+    const argument = (typeof chosen === "string" ? chosen : thesis).trim()
     if (!processNumber) return Alert.alert("Informe o processo", "Digite ou cole o número CNJ.")
     if (!(await confirmIosAiConsent())) return
     setLoading(true); setResult(null); setErrorText("")
     try {
       const { data, error } = await supabase.functions.invoke("decision-intelligence", {
-        body: { cnj: processNumber, argument: thesis.trim() || undefined, source: "mobile" },
+        body: { cnj: processNumber, argument: argument || undefined, side: side || undefined, source: "mobile" },
       })
       if (error) throw error
       setResult(data)
@@ -804,8 +806,9 @@ function CourtAnalysisScreen({ route, navigation }: any) {
     <ScreenTitle eyebrow="ANÁLISE DO JUÍZO" title="Confira o contexto do seu processo" subtitle="Capa do processo, publicações oficiais do DJEN e decisões recentes do mesmo juízo, lidas contra a sua tese." />
     <View style={styles.card}>
       <TextInput style={styles.input} placeholder="Número CNJ" placeholderTextColor={colors.muted} value={cnj} onChangeText={setCnj} autoCapitalize="none" />
-      <TextInput style={[styles.input, styles.textareaSmall]} placeholder="Opcional: tese, argumento ou ponto que você quer testar" placeholderTextColor={colors.muted} multiline value={thesis} onChangeText={setThesis} />
-      <Button label={loading ? "ANALISANDO..." : "ANALISAR PROCESSO"} onPress={analyze} disabled={loading} icon={loading ? <ActivityIndicator color="#fff" /> : <Search color="#fff" size={18} />} />
+      <TextInput style={[styles.input, styles.textareaSmall]} placeholder="Sua tese (opcional — deixe em branco e sugerimos três)" placeholderTextColor={colors.muted} multiline value={thesis} onChangeText={setThesis} />
+      <View style={styles.inline}><Text style={styles.helper}>Você representa:</Text>{(["autor", "reu"] as const).map(option => <Pressable key={option} onPress={() => setSide(option)} style={[styles.chip, side === option ? styles.chipActive : null]}><Text style={styles.body}>{option === "autor" ? "o autor" : "o réu"}</Text></Pressable>)}</View>
+      <Button label={loading ? "ANALISANDO..." : "ANALISAR PROCESSO"} onPress={() => { void analyze() }} disabled={loading} icon={loading ? <ActivityIndicator color="#fff" /> : <Search color="#fff" size={18} />} />
     </View>
     {errorText ? <View style={styles.card}><View style={styles.inline}><CircleAlert color={colors.warning} size={20}/><Text style={styles.cardTitle}>Não foi possível analisar agora</Text></View><Text style={styles.helper}>{errorText}</Text></View> : null}
     {!result ? <Empty title="Comece pelo número do processo" text="Informe um CNJ para montar o dossiê do juízo com decisões publicadas no DJEN." /> : <>
@@ -814,6 +817,16 @@ function CourtAnalysisScreen({ route, navigation }: any) {
         <Metric value={found} label="Decisões do juízo" icon={<FileSearch color={colors.primary} size={18} />} />
         <Metric value={result?.period || "—"} label="Período" icon={<CalendarDays color={colors.primary} size={18} />} />
       </View>
+      {(result?.suggestedTheses || []).length ? <View style={styles.card}>
+        <Text style={styles.cardTitle}>Teses sugeridas para este caso</Text>
+        {result.suggestedTheses.map((t: any, i: number) => <View key={i} style={styles.rowCard}><View style={{flex:1}}>
+          <Text style={styles.eyebrow}>{t.type === "principal" ? "TESE PRINCIPAL" : t.type === "subsidiaria" ? "TESE SUBSIDIÁRIA" : "O QUE A OUTRA PARTE DEVE ALEGAR"}</Text>
+          <Text style={styles.cardTitle}>{t.title}</Text>
+          <Text style={styles.body}>{t.thesis}</Text>
+          {t.basis ? <Text style={styles.helper}>{t.basis}</Text> : null}
+          {t.type !== "risco" ? <Pressable onPress={() => { setThesis(t.thesis); void analyze(t.thesis) }}><Text style={styles.linkTextSmall}>Usar esta tese →</Text></Pressable> : null}
+        </View></View>)}
+      </View> : null}
       {result?.summary ? <View style={styles.card}><Text style={styles.cardTitle}>Leitura do caso</Text><Text style={styles.body}>{result.summary}</Text></View> : null}
       <AnalysisBlock title="O que favorece sua tese" items={favorable} icon={<CheckCircle2 color={colors.success} size={20} />} />
       <AnalysisBlock title="Pontos de atenção" items={attention} icon={<CircleAlert color={colors.warning} size={20} />} />
@@ -935,6 +948,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", justifyContent: "center", gap: 8, padding: 26, borderRadius: 18, borderWidth: 1, borderColor: colors.border, borderStyle: "dashed" },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   chip: { color: colors.muted, fontSize: 11, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 99, backgroundColor: colors.cardAlt },
+  chipActive: { borderWidth: 1, borderColor: colors.primary },
   horizontalChips: { gap: 8, paddingVertical: 3 },
   selectorChip: { maxWidth: 190, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 99, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
   selectorChipActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },

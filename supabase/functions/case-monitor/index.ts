@@ -276,8 +276,10 @@ function escapeHtml(v: string) {
 }
 
 async function sendDigests(admin: Any) {
-  const resendKey = Deno.env.get("RESEND_API_KEY") || ""
-  const from = Deno.env.get("DIGEST_FROM_EMAIL") || "NexJud <avisos@notify.nexjudsolucoes.com.br>"
+  const stored = await admin.from("app_secrets").select("name,value").in("name", ["resend_api_key", "digest_from_email"])
+  const secret = (name: string) => (stored.data || []).find((r: Any) => r.name === name)?.value || ""
+  const resendKey = Deno.env.get("RESEND_API_KEY") || secret("resend_api_key")
+  const from = Deno.env.get("DIGEST_FROM_EMAIL") || secret("digest_from_email") || "NexJud <avisos@notify.nexjudsolucoes.com.br>"
   if (!resendKey) return { sent: 0, skipped: "RESEND_API_KEY não configurada" }
 
   const { data: pending, error } = await admin

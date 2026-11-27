@@ -296,6 +296,7 @@ Deno.serve(async (req) => {
           oabState: oab.uf,
           source: "escavador-sem-dados",
           message: "Escavador não retornou dados para esta OAB.",
+          imported: 0,
           cases: [],
           stats: {
             totalCases: 0,

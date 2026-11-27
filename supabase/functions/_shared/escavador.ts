@@ -39,3 +39,27 @@ export async function escavadorGet<T = unknown>(path: string, params?: Record<st
     return { ok: false, status: 0, error: timedOut ? "escavador_timeout" : "escavador_unreachable", credits: 0 }
   }
 }
+
+/** POST com corpo JSON (ex.: criar monitoramento). */
+export async function escavadorPost<T = unknown>(path: string, body: Record<string, unknown>): Promise<EscavadorResult<T>> {
+  const key = Deno.env.get("ESCAVADOR_API_KEY") || ""
+  if (!key) return { ok: false, status: 0, error: "escavador_not_configured", credits: 0 }
+  try {
+    const response = await fetch(`${BASE}${path}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, Accept: "application/json", "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    })
+    const credits = Number(response.headers.get("creditos-utilizados") || 0) || 0
+    const text = await response.text()
+    if (!response.ok) {
+      console.error("escavador POST", path.split("/").slice(0, 3).join("/"), response.status)
+      return { ok: false, status: response.status, error: `escavador_${response.status}`, credits }
+    }
+    return { ok: true, status: response.status, data: (text ? JSON.parse(text) : {}) as T, credits }
+  } catch (error) {
+    const timedOut = error instanceof DOMException && error.name === "TimeoutError"
+    return { ok: false, status: 0, error: timedOut ? "escavador_timeout" : "escavador_unreachable", credits: 0 }
+  }
+}

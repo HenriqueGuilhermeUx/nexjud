@@ -2,33 +2,61 @@ import FreeProcessLookup from "@/components/FreeProcessLookup"
 import { Link } from "react-router-dom"
 import {
   ArrowRight,
-  Brain,
+  Bell,
   CheckCircle,
   Crown,
   FileText,
   Gavel,
-  ShieldAlert,
+  Link2,
+  Mail,
   Smartphone,
   Sparkles,
   Target,
-  Wand2,
-  Zap,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
+import { NEXJUD_PROMISE } from "@/navigation/toolCatalog"
+
+// Home do site. Mensagem central: a IA genérica não conhece o seu processo nem o seu juiz;
+// o NexJud conhece — e mostra a fonte de tudo que usa.
+// Os textos de marketing ficam alinhados com docs/marketing/kit-lancamento.md.
 
 export default function Landing() {
   const { user } = useAuth()
   const ctaLink = user ? "/dashboard" : "/login"
-  const ctaLabel = user ? "Acessar plataforma" : "Começar trial grátis"
+  const ctaLabel = user ? "Abrir meus processos" : "Começar 7 dias grátis"
 
-  const resources = [
-    ["Analisar documentos", "PDFs, DOCX, contratos, estatutos, atas e imagens com OCR.", FileText],
-    ["Conversar com a IA", "Pergunte usando seus documentos, casos e memória jurídica.", Brain],
-    ["DNA do Juiz — IA Preditiva", "Confronte fundamentos de decisões documentadas, identifique argumentos e provas para sua estratégia.", Target],
-    ["Criar petições", "Gere peças, contratos, notificações e minutas com IA.", Wand2],
-    ["Simular audiências", "Treine argumentos, objeções e sustentação com o Judge Simulator.", Gavel],
-    ["War Room", "Cenários, riscos, ataques prováveis e plano de ação.", ShieldAlert],
+  const steps = [
+    {
+      icon: Bell,
+      title: "Seus processos, explicados todo dia",
+      text: "Digite sua OAB e trazemos seus processos. Todo dia lemos o DJEN (CNJ) e os tribunais e mandamos por e-mail o que mudou, em português simples, com o próximo passo e o prazo para você conferir.",
+    },
+    {
+      icon: Target,
+      title: "Como o seu juiz tem decidido",
+      text: "Para cada processo, o dossiê do juízo: quantas sentenças a vara publicou nos últimos meses, quantas procedentes, parciais e improcedentes, e os fundamentos que se repetem. Cada número com o link da decisão.",
+    },
+    {
+      icon: Sparkles,
+      title: "Três teses sugeridas para o seu lado",
+      text: "Diga se representa o autor ou o réu. Sugerimos a tese principal, a subsidiária e o que a outra parte deve alegar, cada uma apoiada em decisões reais da mesma vara.",
+    },
+    {
+      icon: FileText,
+      title: "A peça pronta para revisar",
+      text: "Escolha a tese e gere a petição com os fatos do processo e as decisões da própria vara, citadas com data, número e link. Sem jurisprudência inventada.",
+    },
+  ]
+
+  const comparison: [string, boolean, boolean][] = [
+    ["Sabe o que aconteceu no seu processo ontem", false, true],
+    ["Conhece as decisões recentes da sua vara", false, true],
+    ["Sugere a tese para o seu lado, com base no juízo", false, true],
+    ["Cita decisões com link para conferir", false, true],
+    ["Avisa por e-mail quando algo muda", false, true],
+    ["Escreve textos jurídicos", true, true],
   ]
 
   return (
@@ -38,132 +66,97 @@ export default function Landing() {
           <Link to="/" className="flex items-center">
             <span className="inline-flex items-center gap-2 text-2xl md:text-3xl font-extrabold tracking-tight" aria-label="NexJud"><Gavel aria-hidden="true" className="h-7 w-7 md:h-8 md:w-8 text-[#818cf8]" /><span>Nex<span className="text-[#818cf8]">Jud</span></span></span>
           </Link>
-
           <div className="flex items-center gap-2">
-            <Link to="/companion" className="hidden md:block">
-              <Button variant="outline" className="gap-2 border-[#334155] text-white hover:bg-[#111827]">
-                <Smartphone className="w-4 h-4" /> Companion
-              </Button>
-            </Link>
+            <a href="#consulta-gratis" className="hidden md:block"><Button variant="outline" className="border-[#334155] text-white hover:bg-[#111827]">Consulta grátis</Button></a>
+            <Link to="/pricing" className="hidden md:block"><Button variant="outline" className="border-[#334155] text-white hover:bg-[#111827]">Planos</Button></Link>
             <Link to={ctaLink}>
-              <Button className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
-                {ctaLabel}<ArrowRight className="w-4 h-4" />
-              </Button>
+              <Button className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">{ctaLabel}<ArrowRight className="w-4 h-4" /></Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      <section className="pt-36 pb-20 px-4 relative overflow-hidden">
+      <section className="pt-36 pb-16 px-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#6366f1]/20 via-transparent to-transparent" />
-        <div className="relative max-w-7xl mx-auto text-center">
+        <div className="relative max-w-6xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#6366f1]/10 border border-[#6366f1]/20 mb-6">
             <Sparkles className="w-4 h-4 text-[#22d3ee]" />
             <span className="text-sm text-gray-300">7 dias de Trial Premium · sem cartão</span>
           </div>
-
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            DNA do Juiz
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+            A IA jurídica que conhece
             <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] to-[#22d3ee]">
-              IA Preditiva para decidir melhor.
-            </span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] to-[#22d3ee]">o seu processo e o seu juiz.</span>
           </h1>
-
-          <p className="text-xl text-gray-400 max-w-4xl mx-auto mb-10">
-            Analise como fundamentos e provas foram tratados em decisões documentadas, confronte sua tese com precedentes e descubra os próximos passos para atuar com mais estratégia. O resultado depende das fontes disponíveis e da revisão do advogado.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Link to={ctaLink}>
-              <Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">
-                {ctaLabel}<ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            <a href="#consulta-gratis">
-              <Button size="lg" variant="outline" className="gap-2 border-[#334155] text-white hover:bg-[#111827]">
-                Consultar processo grátis
-              </Button>
-            </a>
-            <Link to="/companion">
-              <Button size="lg" variant="outline" className="gap-2 border-[#334155] text-white hover:bg-[#111827]">
-                <Smartphone className="w-4 h-4" /> Conhecer o app
-              </Button>
-            </Link>
-          </div>
-
-          <div className="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            <Metric value="CNJ" label="processos e contexto oficial" />
-            <Metric value="IA" label="com memória jurídica" />
-            <Metric value="7 dias" label="trial premium" />
-            <Metric value="Web + App" label="um único ecossistema" />
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-4">{NEXJUD_PROMISE.subline}</p>
+          <p className="text-sm text-gray-500 max-w-3xl mx-auto mb-10">Feito para advogados e escritórios pequenos e médios que hoje usam uma IA genérica e copiam e colam o processo inteiro para ter uma resposta.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to={ctaLink}><Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">{ctaLabel}<ArrowRight className="w-4 h-4" /></Button></Link>
+            <a href="#consulta-gratis"><Button size="lg" variant="outline" className="gap-2 border-[#334155] text-white hover:bg-[#111827]">Ver o dossiê do juízo de um processo, grátis</Button></a>
           </div>
         </div>
       </section>
 
       <section id="consulta-gratis" className="py-16 px-4 bg-[#0b0b10] border-y border-[#1f2937]">
         <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-3">Consulte seu processo grátis</h2>
-          <p className="text-gray-400 mb-8">Cole o número CNJ e veja vara, classe, assuntos e últimas movimentações. Sem cadastro.</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">Teste agora com um processo seu</h2>
+          <p className="text-gray-400 mb-8">Cole o número CNJ. Mostramos a vara, a classe e quantas decisões esse juízo publicou nos últimos meses — e como decidiu. Sem cadastro.</p>
           <FreeProcessLookup ctaTo={user ? "/dashboard/decision-intelligence" : "/login"} />
         </div>
       </section>
 
-      <section id="como-funciona" className="py-20 px-4 bg-[#0f0f14]">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#22d3ee]/10 border border-[#22d3ee]/20 mb-6">
-              <Brain className="w-4 h-4 text-[#22d3ee]" />
-              <span className="text-sm text-gray-300">Como funciona</span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Do processo à evidência. Da evidência à estratégia.</h2>
-            <p className="text-gray-400 text-lg mb-8">
-              Informe um processo ou envie documentos. O NexJud organiza o contexto, consulta as fontes disponíveis e coloca a evidência antes da interpretação para apoiar sua estratégia.
-            </p>
-            <Link to={ctaLink}><Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">Começar agora<ArrowRight className="w-4 h-4" /></Button></Link>
-          </div>
-
-          <div className="space-y-4">
-            {["Informe o processo, documento ou tese", "O NexJud organiza fatos, pedidos e contexto", "As fontes e a amostra aparecem antes da interpretação", "Você identifica aderências, divergências, riscos e oportunidades", "Continue no dossiê, minuta, jurisprudência ou Companion"].map((step, index) => (
-              <div key={step} className="flex gap-4 rounded-2xl border border-[#1e293b] bg-[#121218] p-5">
-                <div className="w-10 h-10 rounded-full bg-[#6366f1]/10 flex items-center justify-center shrink-0"><span className="font-bold text-[#6366f1]">{index + 1}</span></div>
-                <p className="text-gray-300">{step}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 px-4">
+      <section id="como-funciona" className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Inteligência jurídica que vira ação.</h2>
-            <p className="text-gray-400 text-lg">Mantenha o que já funciona no escritório. Use o NexJud para investigar, comparar, decidir, produzir e acompanhar.</p>
+          <div className="text-center mb-14 max-w-3xl mx-auto">
+            <p className="text-sm font-bold tracking-widest text-[#22d3ee] mb-3">COMO FUNCIONA</p>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">Do aviso à peça, sem copiar e colar nada.</h2>
+            <p className="text-gray-400 text-lg">Fontes oficiais: DJEN (CNJ), tribunais e Escavador. Você confere tudo antes de usar.</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {resources.map(([title, desc, Icon]: any) => (
-              <div key={title} className="rounded-3xl border border-[#1e293b] bg-[#121218] p-6">
-                <Icon className="text-[#6366f1] mb-4" size={32} />
-                <h3 className="text-xl font-bold">{title}</h3>
-                <p className="text-gray-400 mt-2 text-sm leading-relaxed">{desc}</p>
+          <div className="grid md:grid-cols-2 gap-5">
+            {steps.map(({ icon: Icon, title, text }, i) => (
+              <div key={title} className="rounded-3xl border border-[#1e293b] bg-[#121218] p-7">
+                <div className="flex items-center gap-3"><span className="w-9 h-9 rounded-full bg-[#6366f1]/15 flex items-center justify-center font-bold text-[#a5b4fc]">{i + 1}</span><Icon className="text-[#6366f1]" size={24} /></div>
+                <h3 className="text-xl font-bold mt-4">{title}</h3>
+                <p className="text-gray-400 mt-2 leading-relaxed">{text}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="solucoes" className="py-20 px-4 bg-[#0f0f14]">
+      <section className="py-20 px-4 bg-[#0f0f14]">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3">IA genérica × NexJud</h2>
+          <p className="text-gray-400 text-center mb-10">A IA genérica responde sobre Direito. O NexJud responde sobre o seu caso.</p>
+          <div className="rounded-3xl border border-[#1e293b] overflow-hidden">
+            <div className="grid grid-cols-[1fr_120px_120px] bg-[#121218] px-5 py-3 text-sm font-semibold text-gray-300"><span></span><span className="text-center">IA genérica</span><span className="text-center text-[#a5b4fc]">NexJud</span></div>
+            {comparison.map(([label, generic, nexjud]) => (
+              <div key={label} className="grid grid-cols-[1fr_120px_120px] px-5 py-3 border-t border-[#1e293b] text-sm">
+                <span className="text-gray-200">{label}</span>
+                <span className="flex justify-center">{generic ? <CheckCircle className="w-5 h-5 text-gray-400" /> : <X className="w-5 h-5 text-gray-600" />}</span>
+                <span className="flex justify-center">{nexjud ? <CheckCircle className="w-5 h-5 text-green-400" /> : <X className="w-5 h-5 text-gray-600" />}</span>
+              </div>
+            ))}
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4 mt-8 text-sm">
+            <p className="flex gap-2 text-gray-300"><Link2 className="w-5 h-5 text-[#22d3ee] shrink-0" />Cada decisão citada tem link para o tribunal.</p>
+            <p className="flex gap-2 text-gray-300"><Mail className="w-5 h-5 text-[#22d3ee] shrink-0" />Resumo diário por e-mail, só quando algo muda.</p>
+            <p className="flex gap-2 text-gray-300"><Gavel className="w-5 h-5 text-[#22d3ee] shrink-0" />Sem percentual de êxito inventado: mostramos o que as decisões dizem.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="solucoes" className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="max-w-3xl mb-10">
-            <p className="text-sm font-bold tracking-widest text-[#22d3ee] mb-4">DO PROFISSIONAL AUTÔNOMO À OPERAÇÃO JURÍDICA</p>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Comece simples. Evolua com sua operação.</h2>
-            <p className="text-gray-400 text-lg">IA para ampliar a produtividade jurídica sem exigir uma grande equipe. Para operações maiores, avaliação de controles, integrações e fluxos de trabalho sob medida.</p>
+            <p className="text-sm font-bold tracking-widest text-[#22d3ee] mb-4">PARA QUEM É</p>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">Estrutura de escritório grande, no tamanho do seu.</h2>
           </div>
           <div className="grid lg:grid-cols-3 gap-5">
             {[
-              { name: "Profissional e escritório pequeno", headline: "Do documento à primeira estratégia", description: "Analise documentos, consulte processos, organize argumentos e prepare minutas em um único workspace.", links: ["Análise assistida de documentos", "Pesquisa e contexto de processos", "Minutas para revisão profissional"] },
-              { name: "Escritório em crescimento", headline: "Mais trabalho, menos retrabalho", description: "Reaproveite contexto de casos, teste teses e estruture a produção jurídica com rotinas consistentes.", links: ["Memória e organização de casos", "Análise de riscos e cenários", "Acesso por web e Companion"] },
-              { name: "Departamento jurídico e Enterprise", headline: "Estrutura para escalar com controle", description: "Conheça uma trilha de implantação para equipes, auditoria e contencioso de volume. Recursos corporativos sujeitos a escopo e homologação.", links: ["Diagnóstico da operação", "Fluxos e permissões a validar", "Implantação assistida sob consulta"] },
+              { name: "Profissional e escritório pequeno", headline: "Pare de copiar e colar processo na IA", description: "Seus processos acompanhados todo dia, a estratégia de cada caso com base no seu juiz e a peça pronta para revisar.", links: ["Importação pela OAB", "Resumo diário por e-mail", "DNA do Juiz com teses sugeridas"] },
+              { name: "Escritório em crescimento", headline: "Ninguém perde um prazo, todo mundo usa a mesma estratégia", description: "Uma visão única do que mudou em todos os processos, com o próximo passo de cada um e a memória do escritório.", links: ["Visão de todos os processos", "Peças com decisões da própria vara", "Web, PWA e app"] },
+              { name: "Departamento jurídico e Enterprise", headline: "Estrutura para escalar com controle", description: "Trilha de implantação para equipes, auditoria e contencioso de volume. Recursos corporativos sujeitos a escopo e homologação.", links: ["Diagnóstico da operação", "Fluxos e permissões a validar", "Implantação assistida sob consulta"] },
             ].map((segment) => (
               <article key={segment.name} className="rounded-3xl border border-[#283347] bg-[#121821] p-7 flex flex-col">
                 <p className="text-xs font-bold uppercase tracking-wide text-[#22d3ee]">{segment.name}</p>
@@ -180,39 +173,40 @@ export default function Landing() {
       <section className="py-20 px-4 bg-[#0f0f14]">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#6366f1]/10 border border-[#6366f1]/20 mb-6"><Smartphone size={16} className="text-[#22d3ee]" /> NexJud Companion</div>
-            <h2 className="text-4xl md:text-5xl font-bold">O escritório no computador. O advogado no celular.</h2>
-            <p className="text-gray-400 text-lg mt-5 leading-relaxed">
-              Escaneie documentos, consulte casos e converse com o mesmo Legal Brain usando o mesmo login da plataforma.
-            </p>
-            <div className="space-y-3 mt-7">
-              {["Mesmo Supabase e autenticação", "Casos e documentos sincronizados", "Upload direto para a Knowledge Base", "Legal Brain compartilhado entre web e app"].map((item) => <p key={item} className="flex gap-2 text-gray-200"><CheckCircle className="w-5 h-5 text-green-400 shrink-0" />{item}</p>)}
-            </div>
-            <Link to="/companion"><Button size="lg" className="mt-8 gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">Conhecer o Companion<ArrowRight size={18} /></Button></Link>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#6366f1]/10 border border-[#6366f1]/20 mb-6"><Smartphone size={16} className="text-[#22d3ee]" /> Web, PWA e app</div>
+            <h2 className="text-4xl md:text-5xl font-bold">No computador e no celular, a mesma conta.</h2>
+            <p className="text-gray-400 text-lg mt-5 leading-relaxed">Veja as novidades dos seus processos e a estratégia do caso no celular, antes da audiência ou no fórum.</p>
+            <Link to="/companion"><Button size="lg" className="mt-8 gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">Conhecer o app<ArrowRight size={18} /></Button></Link>
           </div>
           <div className="mx-auto w-full max-w-sm rounded-[42px] border-8 border-[#252535] bg-[#121218] p-6 shadow-2xl">
-            <div className="w-24 h-5 rounded-full bg-[#272738] mx-auto mb-8" />
-            <p className="text-xs font-bold tracking-widest text-[#818cf8]">NEXJUD COMPANION</p>
-            <h3 className="text-3xl font-bold mt-2">O que você precisa agora?</h3>
-            <div className="grid grid-cols-2 gap-3 mt-6">{["Escanear", "Perguntar à IA", "Meus casos", "Audiência"].map((item) => <div key={item} className="min-h-28 rounded-2xl border border-[#2b2b3d] bg-[#171721] p-4 flex flex-col justify-end"><span className="font-bold">{item}</span></div>)}</div>
+            <div className="w-24 h-5 rounded-full bg-[#272738] mx-auto mb-6" />
+            <p className="text-xs font-bold tracking-widest text-[#818cf8]">MEUS PROCESSOS</p>
+            <div className="mt-4 rounded-2xl border border-amber-500/40 bg-[#171721] p-4">
+              <p className="text-[11px] font-bold text-amber-300">ATENÇÃO</p>
+              <p className="font-bold mt-1">Sentença publicada</p>
+              <p className="text-sm text-gray-300 mt-1">Pedido parcialmente procedente. Próximo passo: avaliar apelação. Prazo provável: 15 dias úteis — confirme no tribunal.</p>
+            </div>
+            <div className="mt-3 rounded-2xl border border-[#2b2b3d] bg-[#171721] p-4">
+              <p className="text-[11px] font-bold text-[#a5b4fc]">ESTRATÉGIA DO CASO</p>
+              <p className="text-sm text-gray-300 mt-1">99 sentenças desta vara em 4 meses · 3 teses sugeridas</p>
+            </div>
           </div>
         </div>
       </section>
 
       <section id="planos" className="py-20 px-4">
-        <div className="max-w-5xl mx-auto text-center mb-12"><h2 className="text-4xl md:text-5xl font-bold mb-4">Comece com Trial Premium</h2><p className="text-gray-400 text-lg">Conheça os planos, preços e recursos disponíveis na página de contratação. O trial segue as condições de elegibilidade.</p></div>
+        <div className="max-w-5xl mx-auto text-center mb-12"><h2 className="text-4xl md:text-5xl font-bold mb-4">Comece com 7 dias grátis</h2><p className="text-gray-400 text-lg">Sem cartão. Depois, escolha o plano. O DNA do Juiz — IA Preditiva de padrões decisórios, sem promessa de resultado — está em todos os planos pagos.</p></div>
         <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
-          <Plan name="Trial Premium" price="7 dias grátis" badge="SEM CARTÃO" items={["Conheça a experiência", "Documentos e IA jurídica", "Teste sujeito às condições do plano", "Consulte a página de acesso"]} />
-          <Plan name="Pro e Intelligence" price="A partir de R$ 197/mês" featured items={["Pro: R$ 197 por mês", "Intelligence: R$ 397 por mês", "DNA do Juiz e IA jurídica conforme o plano", "Pagamento Pix mensal, sem renovação automática"]} />
+          <Plan name="Trial Premium" price="7 dias grátis" badge="SEM CARTÃO" items={["Importação pela OAB", "Acompanhamento diário pelo DJEN", "Dossiê do juízo e teses sugeridas", "Resumo por e-mail"]} />
+          <Plan name="Pro e Intelligence" price="A partir de R$ 197/mês" featured items={["Pro: R$ 197 por mês", "Intelligence: R$ 397 por mês", "Monitoramento também nos tribunais", "Pagamento Pix mensal, sem renovação automática"]} />
           <Plan name="Enterprise e Plus" price="R$ 797 ou R$ 1.497/mês" items={["Recursos adicionais conforme o plano", "Enterprise Plus: operações e integrações sujeitas à validação", "Implantação e condições especiais sob consulta", "Consulte os detalhes antes de contratar"]} />
         </div>
       </section>
 
       <section className="py-20 px-4 bg-[#0f0f14]">
         <div className="max-w-5xl mx-auto rounded-3xl border border-[#6366f1]/30 bg-gradient-to-r from-[#6366f1]/20 to-[#22d3ee]/10 p-10 text-center">
-          <Zap className="mx-auto text-[#22d3ee] mb-4" size={44} />
-          <h2 className="text-4xl font-bold mb-4">Veja o NexJud trabalhando em um caso real.</h2>
-          <p className="text-gray-300 text-lg mb-8">Comece com 7 dias grátis. Consulte um processo, confira as evidências encontradas e transforme a análise em estratégia e produção jurídica.</p>
+          <h2 className="text-4xl font-bold mb-4">Digite sua OAB. Em um minuto você vê seus processos e como o seu juiz decide.</h2>
+          <p className="text-gray-300 text-lg mb-8">7 dias grátis, sem cartão.</p>
           <Link to={ctaLink}><Button size="lg" className="gap-2 bg-[#6366f1] hover:bg-[#5558e3] text-white">{ctaLabel}<ArrowRight className="w-4 h-4" /></Button></Link>
         </div>
       </section>
@@ -220,16 +214,12 @@ export default function Landing() {
       <footer className="border-t border-[#1e293b] py-8 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <img src="/nexjud-logo.svg" alt="NexJud" className="h-14 w-auto object-contain" />
-          <p className="text-sm text-gray-400">© 2026 NexJud. Todos os direitos reservados.</p>
+          <p className="text-sm text-gray-400">© 2026 NexJud. Fontes: DJEN/CNJ, tribunais e Escavador. O NexJud não prevê nem garante resultados.</p>
           <Link to="/companion" className="text-xs text-[#818cf8] hover:underline">NexJud Companion</Link>
         </div>
       </footer>
     </div>
   )
-}
-
-function Metric({ value, label }: { value: string; label: string }) {
-  return <div className="rounded-2xl border border-[#1e293b] bg-[#121218] p-6"><div className="text-4xl font-bold text-[#6366f1] mb-1">{value}</div><div className="text-sm text-gray-400">{label}</div></div>
 }
 
 function Plan({ name, price, items, featured, badge }: any) {

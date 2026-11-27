@@ -249,11 +249,14 @@ function HomeScreenPWA({ userId, navigate }: { userId: string; navigate: (path: 
   const [agenda, setAgenda] = useState<AgendaItem[]>([])
   const [processNumber, setProcessNumber] = useState("")
   const [refreshing, setRefreshing] = useState(false)
+  const [notices, setNotices] = useState<any[]>([])
 
   async function load() {
     setRefreshing(true)
     try {
       const client = getSupabase()
+      const updates = await client.from("automation_notifications").select("id,title,message,priority,metadata,read_at,created_at").eq("user_id", userId).eq("type", "process_movement").is("read_at", null).order("created_at", { ascending: false }).limit(5)
+      setNotices(updates.data || [])
       const [p, c, d, h, n] = await Promise.all([
         client.from("profiles").select("*").eq("id", userId).maybeSingle(),
         client.from("legal_cases").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).limit(5),
@@ -292,6 +295,15 @@ function HomeScreenPWA({ userId, navigate }: { userId: string; navigate: (path: 
       <div className="flex-1"><p className="text-[12px] font-extrabold tracking-[0.13em]" style={{ color: colors.primary }}>NEXJUD · INTELIGÊNCIA DECISÓRIA</p><h1 className="mt-1 text-[30px] font-extrabold" style={{ color: colors.text }}>Olá, {firstName}.</h1></div>
       <button onClick={() => navigate("/app/agenda")} className="h-11 w-11 rounded-2xl border flex items-center justify-center" style={{ background: colors.card, borderColor: colors.border, color: colors.text }}><Bell size={21} /></button>
     </div>
+
+    <ShellCard>
+      <p className="text-[12px] font-extrabold tracking-[0.13em]" style={{ color: colors.primary }}>MEUS PROCESSOS</p>
+      {notices.length ? notices.map(n => <div key={n.id} className="mt-3 rounded-[14px] border p-3" style={{ borderColor: n.priority === "critical" || n.priority === "high" ? colors.warning : colors.border, background: colors.cardAlt }}>
+        <p className="text-sm font-bold" style={{ color: colors.text }}>{n.title}</p>
+        <p className="mt-1 text-sm leading-6 whitespace-pre-line" style={{ color: colors.text }}>{String(n.message || "").split("\n").slice(0, 2).join("\n")}</p>
+        {n.metadata?.process_number ? <button type="button" onClick={() => navigate("/app/analise?cnj=" + encodeURIComponent(String(n.metadata.process_number)))} className="mt-2 text-xs font-bold underline" style={{ color: colors.primary }}>Estratégia do caso</button> : null}
+      </div>) : <p className="mt-2 text-sm leading-6" style={{ color: colors.text }}>Nenhuma novidade nova. Acompanhamos o DJEN todos os dias e avisamos por e-mail o que mudar. Para trazer seus processos pela OAB, abra "Meus processos" no site.</p>}
+    </ShellCard>
 
     <ShellCard>
       <div className="flex items-center gap-2"><Scale size={21} style={{ color: colors.primary }} /><p className="font-bold" style={{ color: colors.text }}>Como este juízo costuma decidir casos como o seu?</p></div>

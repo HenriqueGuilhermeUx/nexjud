@@ -85,7 +85,7 @@ const [notificationUnreadCount, setNotificationUnreadCount] = useState(0)
   const isTrial = subscription?.status === "trialing"
   const hasActiveAccess = Boolean(subscription?.active)
 
-  const isHomeActive = location.pathname === "/dashboard"
+  const isHomeActive = location.pathname === "/dashboard" || location.pathname === "/dashboard/meus-processos"
   const isDecisionIntelligenceActive = location.pathname.includes("decision-intelligence")
 
 const isAICopilotHistoryActive =
@@ -134,7 +134,6 @@ const isHistoryActive =
   location.pathname.includes("chief-legal-officer")
   const isKnowledgeBaseActive = location.pathname.includes("knowledge-base")
 const isLegalMemoryActive = location.pathname.includes("legal-memory")
-const isLegalCasesActive = location.pathname.includes("legal-cases")
 const isOfficeIntelligenceActive = location.pathname.includes("office-intelligence")
 const isNotificationsActive = location.pathname.includes("notifications")
   const isJurisprudenceLibraryActive =
@@ -330,20 +329,12 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
 
 <nav aria-label="Navegação principal" className="flex-1 overflow-y-auto p-3 space-y-1 pb-6">
   <p className="px-4 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Seu trabalho</p>
-  <NavItem
-    to="/dashboard"
-  icon={Brain}
-  label="Início"
-  description="Comece por aqui."
-  active={isHomeActive}
-/>
-
-<NavItem to="/dashboard/legal-chat" icon={Brain} label="Assistente IA" description="Pergunte, pesquise e avance." active={isLegalChatActive} />
-<NavItem to="/dashboard/legal-cases" icon={Database} label="Processos" description="Seus casos em um só lugar." active={isLegalCasesActive} />
-<NavItem to="/dashboard/draft-generator" icon={Wand2} label="Documentos" description="Crie peças e contratos." active={isDraftGeneratorActive} />
-<NavItem to="/dashboard/decision-intelligence" icon={Target} label="DNA do Juiz — IA Preditiva" description="Estratégia do caso com fontes judiciais." active={isDecisionIntelligenceActive} />
+  <NavItem to="/dashboard" icon={Database} label="Meus processos" description="O que mudou e o próximo passo." active={isHomeActive} />
+<NavItem to="/dashboard/decision-intelligence" icon={Target} label="DNA do Juiz — IA Preditiva" description="Estratégia do caso: como o juízo decide e qual tese usar." active={isDecisionIntelligenceActive} />
+<NavItem to="/dashboard/draft-generator" icon={Wand2} label="Escrever peça" description="Com decisões reais da sua vara." active={isDraftGeneratorActive} />
+<NavItem to="/dashboard/legal-chat" icon={Brain} label="Assistente IA" description="Pergunte e pesquise." active={isLegalChatActive} />
 <NavItem to="/dashboard/notifications" icon={Bell} label="Alertas" description="O que precisa da sua atenção." active={isNotificationsActive} badge={notificationUnreadCount > 0 ? String(notificationUnreadCount) : undefined} />
-<button type="button" aria-expanded={showAllTools} onClick={() => setShowAllTools(v => !v)} className="w-full flex items-center justify-between rounded-lg border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted"><span>{showAllTools ? "Ocultar ferramentas" : "Todas as ferramentas"}</span>{showAllTools ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
+<button type="button" aria-expanded={showAllTools} onClick={() => setShowAllTools(v => !v)} className="w-full flex items-center justify-between rounded-lg border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted"><span>{showAllTools ? "Ocultar ferramentas" : "Mais ferramentas"}</span>{showAllTools ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
 {showAllTools && <div className="space-y-2 border-l border-border/60 pl-1">
 {TOOL_GROUPS.map((group) => (
   <NavGroup

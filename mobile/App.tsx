@@ -183,11 +183,14 @@ function HomeScreen({ navigation }: any) {
   const [agenda, setAgenda] = useState<AgendaItem[]>([])
   const [refreshing, setRefreshing] = useState(false)
   const [processNumber, setProcessNumber] = useState("")
+  const [notices, setNotices] = useState<any[]>([])
 
   async function load() {
     setRefreshing(true)
     const uid = await getUserId()
     if (!uid) return setRefreshing(false)
+    const updates = await supabase.from("automation_notifications").select("id,title,message,priority,metadata,read_at,created_at").eq("user_id", uid).eq("type", "process_movement").is("read_at", null).order("created_at", { ascending: false }).limit(5)
+    setNotices(updates.data || [])
     const [p, c, d, h, n] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
       supabase.from("legal_cases").select("*").eq("user_id", uid).order("updated_at", { ascending: false }).limit(5),
@@ -227,16 +230,24 @@ function HomeScreen({ navigation }: any) {
   return (
     <ScrollView style={styles.safe} contentContainerStyle={styles.page} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} tintColor={colors.primary} />}>
       <View style={styles.topRow}>
-        <View style={{ flex: 1 }}><Text style={styles.eyebrow}>NEXJUD · INTELIGÊNCIA DECISÓRIA</Text><Text style={styles.hero}>Olá, {firstName}.</Text></View>
+        <View style={{ flex: 1 }}><Text style={styles.eyebrow}>NEXJUD · CONHECE SEU PROCESSO E SEU JUIZ</Text><Text style={styles.hero}>Olá, {firstName}.</Text></View>
         <Pressable style={styles.iconButton} onPress={() => navigation.navigate("Agenda")}><Bell color={colors.text} size={21} /></Pressable>
       </View>
 
+      <View style={styles.card}>
+        <Text style={styles.eyebrow}>MEUS PROCESSOS</Text>
+        {notices.length ? notices.map((n: any) => <Pressable key={n.id} style={styles.rowCard} onPress={() => n.metadata?.process_number && navigation.getParent()?.navigate("CourtAnalysis", { cnj: String(n.metadata.process_number) })}>
+          <Bell color={n.priority === "critical" || n.priority === "high" ? colors.warning : colors.primary} size={18} />
+          <View style={{ flex: 1 }}><Text style={styles.cardTitle}>{n.title}</Text><Text style={styles.body}>{String(n.message || "").split("\n").slice(0, 2).join("\n")}</Text></View>
+        </Pressable>) : <Text style={styles.helper}>Nenhuma novidade nova. Acompanhamos o DJEN todos os dias e avisamos por e-mail o que mudar.</Text>}
+      </View>
+
       <View style={styles.statusCard}>
-        <View style={styles.inline}><Scale color={colors.primary} size={21} /><Text style={styles.cardTitle}>Como este juízo costuma decidir casos como o seu?</Text></View>
-        <Text style={styles.body}>1. Digite um CNJ. 2. Confira as fontes e os registros disponíveis. 3. Acrescente sua tese para organizar os próximos passos.</Text>
+        <View style={styles.inline}><Scale color={colors.primary} size={21} /><Text style={styles.cardTitle}>Estratégia do caso</Text></View>
+        <Text style={styles.body}>Digite o CNJ: mostramos como o juízo tem decidido e sugerimos três teses, com as decisões que as sustentam.</Text>
         <TextInput style={styles.input} placeholder="Digite ou cole o número CNJ" placeholderTextColor={colors.muted} value={processNumber} onChangeText={setProcessNumber} autoCapitalize="none" />
         <Button label="ANALISAR PROCESSO" onPress={analyzeCourt} icon={<Search color="#fff" size={18} />} />
-        <Text style={styles.helper}>O DataJud traz dados processuais; fundamentos judiciais completos só aparecem quando há documento identificável. A NexJud não prevê êxito.</Text>
+        <Text style={styles.helper}>Fontes oficiais (DJEN/CNJ e tribunais), com link de cada decisão. A NexJud não prevê êxito.</Text>
       </View>
 
       <Text style={styles.sectionTitle}>O que você quer fazer agora?</Text>

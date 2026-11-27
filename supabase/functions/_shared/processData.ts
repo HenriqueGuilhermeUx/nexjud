@@ -58,9 +58,12 @@ function mainSource(process: Any): Any {
 function fromEscavador(cnj: string, process: Any, movements: Any[], options: LookupOptions): ProcessSummary {
   const source = mainSource(process)
   const capa = source?.capa || {}
-  const subjects: string[] = Array.isArray(capa.assuntos_normalizados)
+  const normalized: string[] = Array.isArray(capa.assuntos_normalizados)
     ? capa.assuntos_normalizados.map((a: Any) => a?.nome).filter(Boolean)
-    : capa.assunto ? [String(capa.assunto)] : []
+    : []
+  const subjects: string[] = normalized.length
+    ? normalized
+    : [capa.assunto_principal_normalizado?.nome, capa.assunto].filter(Boolean).map(String)
   const restricted = Boolean(source?.segredo_justica)
   const summary: ProcessSummary = {
     cnj: formatCnj(process?.numero_cnj || cnj),

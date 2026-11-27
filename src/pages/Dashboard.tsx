@@ -330,7 +330,7 @@ const QuickAction = ({ to, icon: Icon, title, description }: any) => (
 <nav aria-label="Navegação principal" className="flex-1 overflow-y-auto p-3 space-y-1 pb-6">
   <p className="px-4 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Seu trabalho</p>
   <NavItem to="/dashboard" icon={Database} label="Meus processos" description="O que mudou e o próximo passo." active={isHomeActive} />
-<NavItem to="/dashboard/decision-intelligence" icon={Target} label="Estratégia do caso" description="Como o juízo decide e qual tese usar." active={isDecisionIntelligenceActive} />
+<NavItem to="/dashboard/decision-intelligence" icon={Target} label="DNA do Juiz — IA Preditiva" description="Estratégia do caso: como o juízo decide e qual tese usar." active={isDecisionIntelligenceActive} />
 <NavItem to="/dashboard/draft-generator" icon={Wand2} label="Escrever peça" description="Com decisões reais da sua vara." active={isDraftGeneratorActive} />
 <NavItem to="/dashboard/legal-chat" icon={Brain} label="Assistente IA" description="Pergunte e pesquise." active={isLegalChatActive} />
 <NavItem to="/dashboard/notifications" icon={Bell} label="Alertas" description="O que precisa da sua atenção." active={isNotificationsActive} badge={notificationUnreadCount > 0 ? String(notificationUnreadCount) : undefined} />

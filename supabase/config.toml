@@ -160,4 +160,5 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.djen-relay]
-verify_jwt = true
+# Autenticação própria: só aceita a service role (chamada servidor a servidor).
+verify_jwt = false

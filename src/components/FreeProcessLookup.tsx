@@ -3,7 +3,18 @@ import { Link } from "react-router-dom"
 import { ArrowRight, Loader2, Search } from "lucide-react"
 import { getSupabase } from "@/lib/supabase"
 
+const OUTCOME_LABEL: Record<string, string> = {
+  procedente: "Procedentes",
+  parcialmente_procedente: "Parciais",
+  improcedente: "Improcedentes",
+  extinto_sem_merito: "Extintos sem mérito",
+  homologacao: "Acordos homologados",
+  deferido: "Pedidos deferidos",
+  indeferido: "Pedidos indeferidos",
+}
+
 type LookupResult = {
+  judgeTeaser?: { judgingBody: string | null; windowDays: number; decisions: number; outcomes: Record<string, number> } | null
   cnj: string
   court: { alias: string; name: string }
   found: boolean
@@ -143,11 +154,22 @@ export default function FreeProcessLookup({ ctaTo = "/login" }: { ctaTo?: string
 
           {result.found && !result.restricted && (
             <div className="mt-6 rounded-xl border border-[#6366f1]/40 bg-[#6366f1]/10 p-4">
-              <p className="text-sm text-gray-200">
-                No DNA do Juiz você vê como este juízo tem fundamentado casos parecidos, com as decisões citadas, e monta a estratégia do caso.
-              </p>
+              {result.judgeTeaser && result.judgeTeaser.decisions > 0 ? <>
+                <p className="text-xs uppercase tracking-widest text-[#a5b4fc]">Dossiê do juízo · DJEN (CNJ)</p>
+                <p className="mt-1 text-white font-semibold">
+                  {result.judgeTeaser.judgingBody || "O juízo deste processo"} publicou {result.judgeTeaser.decisions} decisões nos últimos {Math.round(result.judgeTeaser.windowDays / 30)} meses.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {Object.entries(result.judgeTeaser.outcomes).map(([k, n]) => (
+                    <span key={k} className="rounded-full border border-[#6366f1]/40 px-3 py-1 text-xs text-gray-200">{OUTCOME_LABEL[k] || k}: {n}</span>
+                  ))}
+                </div>
+                <p className="mt-3 text-sm text-gray-200">Crie sua conta para ver as decisões, os fundamentos que se repetem e três teses sugeridas para o seu caso.</p>
+              </> : <p className="text-sm text-gray-200">
+                Na Estratégia do caso você vê como este juízo tem decidido, com as decisões citadas, e recebe três teses sugeridas para o seu lado.
+              </p>}
               <Link to={ctaTo} className="mt-3 inline-flex items-center gap-2 font-semibold text-white hover:underline">
-                Abrir o DNA do Juiz deste processo · 7 dias grátis <ArrowRight className="w-4 h-4" />
+                Ver o dossiê completo deste juízo · 7 dias grátis <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           )}

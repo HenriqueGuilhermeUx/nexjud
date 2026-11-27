@@ -35,6 +35,19 @@ export type ToolGroup = {
   tools: readonly Tool[]
 }
 
+// Mensagem central do produto (home do site, tela inicial, app e marketing).
+export const NEXJUD_PROMISE = {
+  headline: "A IA jurídica que conhece o seu processo e o seu juiz.",
+  subline: "IA genérica responde sobre Direito. O NexJud lê os seus processos e as decisões reais da sua vara em fontes oficiais, avisa o que mudou, sugere a tese e escreve a peça — com o link de cada decisão que usa.",
+} as const
+
+// As três portas da tela inicial (web, PWA e app). O resto fica em "Mais ferramentas".
+export const PRIMARY_DOORS: readonly Tool[] = [
+  { path: "/dashboard/meus-processos", label: "Meus processos", description: "O que mudou em cada processo, explicado em português simples e com o próximo passo.", icon: "database" },
+  { path: "/dashboard/decision-intelligence", label: "Estratégia do caso", description: "Como o juízo do seu processo tem decidido e três teses sugeridas, com as decisões que as sustentam.", icon: "target" },
+  { path: "/dashboard/draft-generator", label: "Escrever peça", description: "Petição com a tese escolhida e decisões reais da própria vara, sem jurisprudência inventada.", icon: "wand" },
+] as const
+
 export const TOOL_GROUPS: readonly ToolGroup[] = [
   {
     id: "analisar",
@@ -64,7 +77,9 @@ export const TOOL_GROUPS: readonly ToolGroup[] = [
     tools: [
       { path: "/dashboard/office-intelligence", label: "Office Intelligence", description: "Morning Brief, riscos, prioridades e memória do escritório.", icon: "sparkles" },
       { path: "/dashboard/notifications", label: "Central de Alertas", description: "Movimentações, riscos e ações que exigem atenção.", icon: "bell" },
-      { path: "/dashboard/legal-cases", label: "Meus processos", description: "Organize clientes, processos, riscos e estratégia.", icon: "database" },
+      { path: "/dashboard/meus-processos", label: "Meus processos", description: "Novidades de cada processo, com o próximo passo.", icon: "bell" },
+      { path: "/dashboard/legal-cases", label: "Casos e clientes", description: "Organize clientes, processos, riscos e estratégia.", icon: "database" },
+      { path: "/dashboard/visao-geral", label: "Visão geral do escritório", description: "O painel completo com indicadores e atalhos.", icon: "sparkles" },
       { path: "/dashboard/live-dossier", label: "Dossiê vivo", description: "Fatos, provas, riscos e próximos passos de cada caso.", icon: "scale" },
       { path: "/dashboard/process-portfolio", label: "Carteira de processos", description: "Visualize todos os casos em andamento.", icon: "database" },
       { path: "/dashboard/history", label: "Histórico", description: "Veja tudo que já foi feito na plataforma.", icon: "history" },

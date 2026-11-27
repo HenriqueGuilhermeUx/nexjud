@@ -162,3 +162,11 @@ verify_jwt = true
 [functions.djen-relay]
 # Autenticação própria: só aceita a service role (chamada servidor a servidor).
 verify_jwt = false
+
+[functions.case-monitor]
+# Autenticação própria: header x-nexjud-secret (MONITOR_CRON_SECRET).
+verify_jwt = false
+
+[functions.escavador-webhook]
+# Autenticação própria: ?token=ESCAVADOR_WEBHOOK_TOKEN.
+verify_jwt = false

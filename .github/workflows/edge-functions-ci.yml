@@ -42,6 +42,10 @@ jobs:
             supabase/functions/_shared/processData.ts \
             supabase/functions/_shared/djen.ts \
             supabase/functions/djen-relay/index.ts \
+            supabase/functions/case-monitor/index.ts \
+            supabase/functions/escavador-webhook/index.ts \
+            supabase/functions/setup-oab/index.ts \
+            supabase/functions/public-process-lookup/index.ts \
             supabase/functions/datajud-search/index.ts \
             supabase/functions/decision-intelligence/index.ts \
             supabase/functions/public-process-lookup/index.ts \
@@ -88,4 +92,5 @@ jobs:
           node --check netlify/functions/datajud-proxy.mjs
           grep -q "timingSafeEqual" netlify/functions/datajud-proxy.mjs
           grep -q "SUPABASE_SERVICE_ROLE_KEY" supabase/functions/djen-relay/index.ts
+          node --check netlify/functions/monitor-schedule.mjs
           grep -q "api-publica.datajud.cnj.jus.br" netlify/functions/datajud-proxy.mjs

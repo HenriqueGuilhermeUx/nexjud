@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { courtFromCnj, formatCnj, isValidCnj, onlyDigits } from "../_shared/cnj.ts"
 import { lookupProcess } from "../_shared/processData.ts"
+import { djenByJudgingBody, djenByProcess, isDecision, outcomeCounts } from "../_shared/djen.ts"
 
 // Consulta grátis pelo número CNJ (landing page, sem login).
 // - Fonte: Escavador (licença comercial), com DataJud como reserva. Nenhuma chamada à OpenAI.
@@ -115,8 +116,23 @@ Deno.serve(async (req) => {
     if (p.restricted) {
       return respond({ ...base, found: true, restricted: true, message: "Este processo tem sigilo. Não exibimos detalhes." })
     }
+    // Amostra do dossiê do juízo (DJEN, gratuito): só contagens, nunca nomes ou textos.
+    let judgeTeaser: Record<string, unknown> | null = null
+    try {
+      const own = await djenByProcess(cnj, 20)
+      const withBody = own.ok ? own.items.find((i) => i.judgingBodyId) : null
+      if (withBody?.judgingBodyId && withBody.court) {
+        const sample = await djenByJudgingBody(withBody.court, withBody.judgingBodyId, 120)
+        if (sample.ok) {
+          const decisions = sample.items.filter(isDecision).filter((d) => (d.processNumber || "").replace(/\D/g, "") !== cnj)
+          judgeTeaser = { judgingBody: withBody.judgingBody, windowDays: 120, decisions: decisions.length, outcomes: outcomeCounts(decisions) }
+        }
+      }
+    } catch { /* a consulta grátis segue sem a amostra */ }
+
     // Nunca inclui partes, polos ou texto de movimentações na consulta grátis.
     return respond({
+      judgeTeaser,
       ...base,
       found: true,
       restricted: false,

@@ -27,6 +27,9 @@ export default function DecisionIntelligence() {
   // Número consultado na landing (consulta grátis) chega aqui depois do cadastro.
   const [cnj, setCnj] = useState(() => {
     try {
+      // Vindo de "Meus processos" ou do e-mail: /dashboard/decision-intelligence?cnj=...
+      const fromUrl = new URLSearchParams(window.location.search).get("cnj") || ""
+      if (/^[\d.\-\s]{20,25}$/.test(fromUrl)) return fromUrl
       const pending = localStorage.getItem("nexjud_pending_cnj") || ""
       if (pending) localStorage.removeItem("nexjud_pending_cnj")
       return pending

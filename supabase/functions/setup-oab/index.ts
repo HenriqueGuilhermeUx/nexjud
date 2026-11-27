@@ -27,6 +27,33 @@ async function sha256(value: string): Promise<string> {
 // (GET /advogado/processos?oab_estado=&oab_numero=). Antes eram até 15 endereços
 // tentados por busca, e cada tentativa podia consumir créditos.
 
+// Salva os processos encontrados em "Meus processos" (legal_cases), sem duplicar.
+// Depois disso o case-monitor passa a acompanhá-los (DJEN; Escavador para assinantes).
+// deno-lint-ignore no-explicit-any
+async function importCases(admin: any, userId: string, oabRaw: string, cases: any[]): Promise<number> {
+  const valid = cases.filter((c) => String(c.caseNumber || "").replace(/\D/g, "").length === 20).slice(0, 100);
+  if (!valid.length) return 0;
+  const { data: existing } = await admin.from("legal_cases").select("process_number").eq("user_id", userId).limit(2000);
+  const known = new Set((existing || []).map((e: { process_number: string | null }) => String(e.process_number || "").replace(/\D/g, "")));
+  const rows = valid
+    .filter((c) => !known.has(String(c.caseNumber).replace(/\D/g, "")))
+    .map((c) => ({
+      user_id: userId,
+      title: [c.natureza && c.natureza !== "Natureza não informada" ? c.natureza : "Processo", c.parties].filter(Boolean).join(" — ").slice(0, 200),
+      process_number: String(c.caseNumber),
+      court: c.tribunal && c.tribunal !== "Tribunal não informado" ? String(c.tribunal) : null,
+      status: "active",
+      metadata: { source: "oab", oab: oabRaw, judge: c.judge || null, imported_at: new Date().toISOString() },
+    }));
+  if (!rows.length) return 0;
+  const { error } = await admin.from("legal_cases").insert(rows);
+  if (error) {
+    console.error("setup-oab import", error.message);
+    return 0;
+  }
+  return rows.length;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -211,7 +238,8 @@ Deno.serve(async (req) => {
       .gte("cached_at", new Date(Date.now() - OAB_CACHE_DAYS * 86_400_000).toISOString())
       .maybeSingle();
     if (cached?.payload) {
-      return Response.json({ ...cached.payload, cachedAt: cached.cached_at }, { status: 200, headers: corsHeaders });
+      const imported = body.importCases === false ? 0 : await importCases(admin, auth.userId, oab.raw, cached.payload.cases || []);
+      return Response.json({ ...cached.payload, cachedAt: cached.cached_at, imported }, { status: 200, headers: corsHeaders });
     }
 
     const { count: paidCount } = await admin
@@ -324,7 +352,8 @@ Deno.serve(async (req) => {
     if (cases.length > 0) {
       await admin.from("oab_lookup_cache").upsert({ oab_key: oabKey, payload, cached_at: new Date().toISOString() });
     }
-    return Response.json(payload, { headers: corsHeaders });
+    const imported = body.importCases === false ? 0 : await importCases(admin, auth.userId, oab.raw, cases);
+    return Response.json({ ...payload, imported }, { headers: corsHeaders });
   } catch (error) {
     return Response.json(
       {

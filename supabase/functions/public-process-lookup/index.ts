@@ -84,6 +84,9 @@ Deno.serve(async (req) => {
       return json({ ...cached.payload, cachedAt: cached.cached_at })
     }
     const lookup = await lookupProcess(cnj, { movements: false })
+    if (lookup.credits > 0) {
+      await admin.from("provider_usage").insert({ user_id: null, provider: "escavador", route: "public-lookup/capa", credits_cents: Math.round(lookup.credits) })
+    }
     const respond = async (payload: Record<string, unknown>) => {
       await admin.from("public_process_lookup_cache").upsert({ cnj_hash: cnjHash, payload, cached_at: new Date().toISOString() })
       return json(payload)

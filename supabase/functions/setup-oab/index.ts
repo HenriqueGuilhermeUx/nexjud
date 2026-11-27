@@ -1,6 +1,18 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { requireUser } from "../_shared/requireUser.ts";
 import { escavadorGet } from "../_shared/escavador.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+// Custo: R$ 4,50 por busca (até 200 processos). Por isso:
+// - cache de 30 dias por OAB (oab_lookup_cache);
+// - no máximo 3 buscas pagas por usuário a cada 30 dias (provider_usage).
+const OAB_CACHE_DAYS = 30;
+const OAB_PAID_PER_USER_30D = 3;
+
+async function sha256(value: string): Promise<string> {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 // Código trazido da produção (versão 21) em 2026-11-25. O arquivo que estava no
 // repositório era uma versão antiga (DataJud + Supabase service role) que não
@@ -188,12 +200,47 @@ Deno.serve(async (req) => {
       );
     }
 
+    const admin = createClient(Deno.env.get("SUPABASE_URL") || "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "", {
+      auth: { persistSession: false },
+    });
+    const oabKey = await sha256(`${oab.uf}|${oab.number}`);
+    const { data: cached } = await admin
+      .from("oab_lookup_cache")
+      .select("payload,cached_at")
+      .eq("oab_key", oabKey)
+      .gte("cached_at", new Date(Date.now() - OAB_CACHE_DAYS * 86_400_000).toISOString())
+      .maybeSingle();
+    if (cached?.payload) {
+      return Response.json({ ...cached.payload, cachedAt: cached.cached_at }, { status: 200, headers: corsHeaders });
+    }
+
+    const { count: paidCount } = await admin
+      .from("provider_usage")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", auth.userId)
+      .eq("route", "advogado/processos")
+      .gte("created_at", new Date(Date.now() - 30 * 86_400_000).toISOString());
+    if ((paidCount || 0) >= OAB_PAID_PER_USER_30D) {
+      return Response.json(
+        { error: "Você já fez o número máximo de buscas por OAB neste mês. Fale com o suporte se precisar de outra." },
+        { status: 429, headers: corsHeaders }
+      );
+    }
+
     const result = await escavadorGet<any>("/advogado/processos", {
       oab_estado: oab.uf,
       oab_numero: oab.number,
-      limit: 50,
+      limit: 100,
     });
     console.log("setup-oab escavador", result.status, "credits:", result.credits);
+    if (result.credits > 0) {
+      await admin.from("provider_usage").insert({
+        user_id: auth.userId,
+        provider: "escavador",
+        route: "advogado/processos",
+        credits_cents: Math.round(result.credits),
+      });
+    }
 
     if (!result.ok && result.status !== 404) {
       return Response.json(
@@ -241,10 +288,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const cases = selectedItems.slice(0, 50).map(normalizeCase);
+    const cases = selectedItems.slice(0, 100).map(normalizeCase);
 
-    return Response.json(
-      {
+    const payload = {
         oab: oab.raw,
         oabNumber: oab.number,
         oabState: oab.uf,
@@ -274,9 +320,11 @@ Deno.serve(async (req) => {
               ? "Revise os processos carregados e rode Verificar Processo nos casos prioritários."
               : "Use a busca por processo individual enquanto liberamos a rota completa de processos por OAB.",
         },
-      },
-      { headers: corsHeaders }
-    );
+    };
+    if (cases.length > 0) {
+      await admin.from("oab_lookup_cache").upsert({ oab_key: oabKey, payload, cached_at: new Date().toISOString() });
+    }
+    return Response.json(payload, { headers: corsHeaders });
   } catch (error) {
     return Response.json(
       {

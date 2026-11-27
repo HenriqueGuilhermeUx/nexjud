@@ -18,15 +18,20 @@ function sameSecret(a: string, b: string) {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return Response.json({ error: "method_not_allowed" }, { status: 405 })
+  const admin = createClient(Deno.env.get("SUPABASE_URL") || "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "", { auth: { persistSession: false } })
   const token = new URL(req.url).searchParams.get("token") || ""
-  if (!sameSecret(token, Deno.env.get("ESCAVADOR_WEBHOOK_TOKEN") || "")) return Response.json({ error: "unauthorized" }, { status: 401 })
+  let expected = Deno.env.get("ESCAVADOR_WEBHOOK_TOKEN") || ""
+  if (!expected) {
+    const { data } = await admin.from("app_secrets").select("value").eq("name", "escavador_webhook").maybeSingle()
+    expected = data?.value || ""
+  }
+  if (!sameSecret(token, expected)) return Response.json({ error: "unauthorized" }, { status: 401 })
 
   const raw = (await req.text()).slice(0, 2_000_000)
   const numbers = new Set<string>()
   for (const m of raw.matchAll(CNJ_RE)) numbers.add(m.slice(1).join(""))
   if (!numbers.size) return Response.json({ ok: true, matched: 0 })
 
-  const admin = createClient(Deno.env.get("SUPABASE_URL") || "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "", { auth: { persistSession: false } })
   const variants = [...numbers].slice(0, 50).flatMap((d) => [d, formatCnj(d)])
   const { data: cases } = await admin.from("legal_cases").select("id,metadata").in("process_number", variants).eq("status", "active")
   for (const c of cases || []) {

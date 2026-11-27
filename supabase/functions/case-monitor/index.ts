@@ -343,8 +343,14 @@ async function sendDigests(admin: Any) {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" })
-  if (!sameSecret(req.headers.get("x-nexjud-secret") || "", Deno.env.get("MONITOR_CRON_SECRET") || "")) return json(401, { error: "unauthorized" })
   const admin = createClient(Deno.env.get("SUPABASE_URL") || "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "", { auth: { persistSession: false } })
+  // O segredo pode vir do ambiente (MONITOR_CRON_SECRET) ou da tabela protegida app_secrets.
+  let expected = Deno.env.get("MONITOR_CRON_SECRET") || ""
+  if (!expected) {
+    const { data } = await admin.from("app_secrets").select("value").eq("name", "monitor_cron").maybeSingle()
+    expected = data?.value || ""
+  }
+  if (!sameSecret(req.headers.get("x-nexjud-secret") || "", expected)) return json(401, { error: "unauthorized" })
   const body = await req.json().catch(() => ({}))
   try {
     if (body.job === "digest") return json(200, { ok: true, ...(await sendDigests(admin)) })

@@ -9,6 +9,7 @@ describe("monitor de processos, resumo por e-mail e nova home", () => {
 
   it("o monitor exige segredo, usa o DJEN e só usa o Escavador (pago) para assinantes", () => {
     expect(monitor).toContain('Deno.env.get("MONITOR_CRON_SECRET")')
+    expect(monitor).toContain('eq("name", "monitor_cron")')
     expect(monitor).toContain("djenByProcess(")
     expect(monitor).toContain("payingUsers.has(c.user_id)")
     expect(monitor).toContain('frequencia: "SEMANAL"')

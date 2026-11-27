@@ -15,6 +15,8 @@ describe("dossiê do juízo com publicações do DJEN", () => {
     expect(classifyKind("Intimação", "Vistos. Defiro a tutela.")).toBe("decisao")
     expect(classifyKind("Despacho", "Cite-se.")).toBe("despacho")
     expect(classifyKind("Intimação", "Fica intimada a parte para recolher custas.")).toBe("outro")
+    expect(classifyKind("DESPACHO/DECISÃO", "Cumprimento de Sentença. Manifeste-se o exequente.")).toBe("despacho")
+    expect(classifyKind("DESPACHO/DECISÃO", "Cumprimento de Sentença. Defiro a penhora on-line.")).toBe("decisao")
   })
 
   it("lê o dispositivo sem confundir parcial com total", () => {

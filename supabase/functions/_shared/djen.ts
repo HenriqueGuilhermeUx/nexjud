@@ -1,6 +1,6 @@
 // DJEN — Diário de Justiça Eletrônico Nacional (CNJ), API pública de comunicações.
 // GET https://comunicaapi.pje.jus.br/api/v1/comunicacao (sem chave).
-// Filtros usados: numeroProcesso, siglaTribunal, nomeOrgao, dataDisponibilizacaoInicio/Fim,
+// Filtros usados: numeroProcesso, siglaTribunal, orgaoId, texto, dataDisponibilizacaoInicio/Fim,
 // pagina, itensPorPagina. O CNJ limita requisições por janela (X-RateLimit-Limit ≈ 20):
 // cada análise faz no máximo 3 chamadas e nunca repete após HTTP 429.
 //
@@ -55,14 +55,16 @@ export function cleanText(html: string): string {
 }
 
 export function classifyKind(documentType: string, text: string): DjenKind {
-  const head = `${documentType} ${text.slice(0, 400)}`.toLocaleLowerCase("pt-BR")
-  if (/senten[çc]a/.test(head)) return "sentenca"
-  if (/ac[óo]rd[ãa]o|ementa/.test(head)) return "acordao"
-  if (/decis[ãa]o/.test(head)) return "decisao"
-  if (/despacho|ato ordinat[óo]rio/.test(head)) return "despacho"
+  // O tipo do documento vem primeiro: "Cumprimento de Sentença" no texto não faz de um despacho uma sentença.
+  const doc = documentType.toLocaleLowerCase("pt-BR")
   const body = text.toLocaleLowerCase("pt-BR")
-  if (/julgo (parcialmente )?(im)?procedente|julgo extint/.test(body)) return "sentenca"
-  if (/\b(defiro|indefiro)\b/.test(body)) return "decisao"
+  if (/senten[çc]a/.test(doc)) return "sentenca"
+  if (/ac[óo]rd[ãa]o/.test(doc)) return "acordao"
+  if (/julgo (parcialmente )?(im)?procedentes?|julgo extint/.test(body)) return "sentenca"
+  if (/ementa|ac[óo]rdam/.test(body.slice(0, 800))) return "acordao"
+  const decides = /(defiro|indefiro|homologo|concedo|nego)/.test(body)
+  if (/decis[ãa]o/.test(doc) || decides) return decides || !/despacho/.test(doc) ? "decisao" : "despacho"
+  if (/despacho|ato ordinat[óo]rio/.test(doc)) return "despacho"
   return "outro"
 }
 

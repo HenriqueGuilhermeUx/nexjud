@@ -615,17 +615,19 @@ function AnalysisScreenPWA() {
   const initial = new URLSearchParams(location.search).get("cnj") || ""
   const [cnj, setCnj] = useState(initial)
   const [thesis, setThesis] = useState("")
+  const [side, setSide] = useState<"autor" | "reu" | "">("")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [errorText, setErrorText] = useState("")
 
-  async function analyze() {
+  async function analyze(chosen?: string) {
     if (!cnj.trim()) return
+    const argument = (chosen ?? thesis).trim()
     setLoading(true)
     setErrorText("")
     setResult(null)
     try {
-      const { data, error } = await getSupabase().functions.invoke("decision-intelligence", { body: { cnj: cnj.trim(), argument: thesis.trim() || undefined, source: "pwa" } })
+      const { data, error } = await getSupabase().functions.invoke("decision-intelligence", { body: { cnj: cnj.trim(), argument: argument || undefined, side: side || undefined, source: "pwa" } })
       if (error) throw error
       setResult(data)
     } catch (err: any) {
@@ -642,11 +644,27 @@ function AnalysisScreenPWA() {
   const opportunities = Array.isArray(result?.opportunities) ? result.opportunities : Array.isArray(result?.recommendations) ? result.recommendations : []
 
   return <div className="space-y-4"><Back /><ScreenTitle eyebrow="ANÁLISE DO JUÍZO" title="Como este juízo costuma decidir casos como o seu?" subtitle="Compare o processo com decisões públicas relevantes e confira as evidências que sustentam a análise." />
-    <ShellCard><input className="nexjud-pwa-input w-full rounded-[15px] border px-4 py-3.5" style={{ background: colors.cardAlt, borderColor: colors.border, color: colors.text }} placeholder="Número CNJ" value={cnj} onChange={e => setCnj(e.target.value)} /><textarea className="nexjud-pwa-input mt-3 min-h-24 w-full rounded-[15px] border px-4 py-3.5" style={{ background: colors.cardAlt, borderColor: colors.border, color: colors.text }} placeholder="Opcional: tese, argumento ou ponto que você quer testar" value={thesis} onChange={e => setThesis(e.target.value)} /><PrimaryButton className="mt-3 w-full" onClick={analyze} disabled={loading}><Search size={18} /> {loading ? "ANALISANDO..." : "ANALISAR PROCESSO"}</PrimaryButton></ShellCard>
+    <ShellCard><input className="nexjud-pwa-input w-full rounded-[15px] border px-4 py-3.5" style={{ background: colors.cardAlt, borderColor: colors.border, color: colors.text }} placeholder="Número CNJ" value={cnj} onChange={e => setCnj(e.target.value)} /><textarea className="nexjud-pwa-input mt-3 min-h-24 w-full rounded-[15px] border px-4 py-3.5" style={{ background: colors.cardAlt, borderColor: colors.border, color: colors.text }} placeholder="Sua tese (opcional — deixe em branco e sugerimos três)" value={thesis} onChange={e => setThesis(e.target.value)} /><PrimaryButton className="mt-3 w-full" onClick={() => { void analyze() }} disabled={loading}><Search size={18} /> {loading ? "ANALISANDO..." : "ANALISAR PROCESSO"}</PrimaryButton></ShellCard>
+    <div className="flex items-center gap-2"><span className="text-sm" style={{ color: colors.muted }}>Você representa:</span>{(["autor", "reu"] as const).map(option => <button key={option} type="button" onClick={() => setSide(option)} className="rounded-full border px-4 py-2 text-sm font-bold" style={{ borderColor: side === option ? colors.primary : colors.border, color: side === option ? colors.primary : colors.text }}>{option === "autor" ? "o autor" : "o réu"}</button>)}</div>
     {errorText ? <ShellCard className="flex items-start gap-2"><CircleAlert size={20} style={{ color: colors.warning }} /><p className="text-sm" style={{ color: colors.text }}>{errorText}</p></ShellCard> : null}
-    {result ? <><div className="flex gap-2"><Metric value={sample} label="Analisadas" icon={<Scale size={18} style={{ color: colors.primary }} />} /><Metric value={found} label="Encontradas" icon={<FileSearch size={18} style={{ color: colors.primary }} />} /><Metric value={result?.period || "—"} label="Período" icon={<CalendarDays size={18} style={{ color: colors.primary }} />} /></div>{result?.summary ? <ShellCard><h2 className="font-bold" style={{ color: colors.text }}>Leitura do caso</h2><p className="mt-2 text-sm leading-6" style={{ color: colors.text }}>{result.summary}</p></ShellCard> : null}<JudgeDossierPWA dossier={result?.dossier} patterns={result?.judgePatterns} grounds={result?.recurringGrounds} /><AnalysisBlock title="O que favorece sua tese" items={favorable} /><AnalysisBlock title="Pontos de atenção" items={attention} /><AnalysisBlock title="Como fortalecer o caso" items={opportunities} /><PublicationsPWA title="Publicações deste processo (DJEN)" items={result?.processPublications} /></> : !loading ? <Empty title="Comece pelo número do processo" text="A NexJud mostrará a amostra, o período e as decisões públicas que sustentam cada padrão observado." /> : null}
+    {result ? <><ThesesPWA theses={result?.suggestedTheses} loading={loading} onUse={(t: string) => { setThesis(t); void analyze(t) }} /><div className="flex gap-2"><Metric value={sample} label="Analisadas" icon={<Scale size={18} style={{ color: colors.primary }} />} /><Metric value={found} label="Encontradas" icon={<FileSearch size={18} style={{ color: colors.primary }} />} /><Metric value={result?.period || "—"} label="Período" icon={<CalendarDays size={18} style={{ color: colors.primary }} />} /></div>{result?.summary ? <ShellCard><h2 className="font-bold" style={{ color: colors.text }}>Leitura do caso</h2><p className="mt-2 text-sm leading-6" style={{ color: colors.text }}>{result.summary}</p></ShellCard> : null}<JudgeDossierPWA dossier={result?.dossier} patterns={result?.judgePatterns} grounds={result?.recurringGrounds} /><AnalysisBlock title="O que favorece sua tese" items={favorable} /><AnalysisBlock title="Pontos de atenção" items={attention} /><AnalysisBlock title="Como fortalecer o caso" items={opportunities} /><PublicationsPWA title="Publicações deste processo (DJEN)" items={result?.processPublications} /></> : !loading ? <Empty title="Comece pelo número do processo" text="A NexJud mostrará a amostra, o período e as decisões públicas que sustentam cada padrão observado." /> : null}
     <p className="text-center text-xs leading-5" style={{ color: colors.muted }}>A NexJud analisa padrões observados em decisões públicas. Não prevê nem garante o resultado do processo.</p>
   </div>
+}
+
+function ThesesPWA({ theses, loading, onUse }: { theses?: any[]; loading: boolean; onUse: (thesis: string) => void }) {
+  if (!Array.isArray(theses) || !theses.length) return null
+  const label: Record<string, string> = { principal: "TESE PRINCIPAL", subsidiaria: "TESE SUBSIDIÁRIA", risco: "O QUE A OUTRA PARTE DEVE ALEGAR" }
+  return <ShellCard><h2 className="font-bold" style={{ color: colors.text }}>Teses sugeridas para este caso</h2>
+    <div className="mt-2 space-y-2">{theses.map((t: any, i: number) => <div key={i} className="rounded-[14px] border p-3" style={{ borderColor: t.type === "risco" ? colors.warning : colors.border, background: colors.cardAlt }}>
+      <p className="text-xs font-extrabold tracking-[0.1em]" style={{ color: t.type === "risco" ? colors.warning : colors.primary }}>{label[t.type] || "TESE"}</p>
+      <p className="mt-1 font-bold" style={{ color: colors.text }}>{t.title}</p>
+      <p className="mt-1 text-sm leading-6" style={{ color: colors.text }}>{t.thesis}</p>
+      {t.basis ? <p className="mt-1 text-xs" style={{ color: colors.muted }}>{t.basis}</p> : null}
+      {(t.refs || []).map((r: any) => r.link ? <a key={r.label} className="mr-3 text-xs font-bold underline" style={{ color: colors.primary }} href={r.link} target="_blank" rel="noreferrer">{r.kind} {r.date ? new Date(r.date).toLocaleDateString("pt-BR") : ""}</a> : null)}
+      {t.type !== "risco" ? <button type="button" disabled={loading} onClick={() => onUse(t.thesis)} className="mt-2 block rounded-[12px] px-3 py-2 text-xs font-bold text-white disabled:opacity-40" style={{ background: colors.primary }}>Usar esta tese</button> : null}
+    </div>)}</div>
+  </ShellCard>
 }
 
 function JudgeDossierPWA({ dossier, patterns, grounds }: { dossier: any; patterns?: string[]; grounds?: string[] }) {

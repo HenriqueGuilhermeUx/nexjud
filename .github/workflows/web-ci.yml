@@ -90,7 +90,7 @@ jobs:
         run: npx vitest run src/intelligence/precedentReviewGate.test.ts
 
       - name: Edge function auth headers regression
-        run: npx vitest run src/lib/functionAuth.test.ts src/lib/knowledgeFiles.test.ts src/navigation/toolCatalog.test.ts src/intelligence/cnjCourt.test.ts src/intelligence/freeProcessLookup.test.ts src/intelligence/djenDossier.test.ts
+        run: npx vitest run src/lib/functionAuth.test.ts src/lib/knowledgeFiles.test.ts src/navigation/toolCatalog.test.ts src/intelligence/cnjCourt.test.ts src/intelligence/freeProcessLookup.test.ts src/intelligence/djenDossier.test.ts src/intelligence/dnaSuggestedTheses.test.ts
 
       - name: Vite build
         run: npx vite build

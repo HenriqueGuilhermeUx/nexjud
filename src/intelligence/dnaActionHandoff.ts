@@ -72,3 +72,58 @@ export function readDnaActionContext(value: unknown, authenticatedUserId: string
     focus: context.focus.slice(0, 10000),
   }
 }
+
+type DossierRef = { date?: string | null; kindLabel?: string; kind?: string; outcomeLabel?: string | null; processNumber?: string | null; excerpt?: string; link?: string | null }
+
+/**
+ * Leva o dossiê do juízo para o gerador de peças: fatos do processo, tese escolhida e
+ * decisões reais da mesma vara (com link) para a IA citar — nada inventado.
+ */
+export function buildDossierDraftContext(input: {
+  userId: string | null | undefined
+  thesis: string
+  result: {
+    process?: Record<string, unknown> | null
+    summary?: unknown
+    judgePatterns?: unknown
+    recurringGrounds?: unknown
+    dossier?: { judgingBody?: unknown; items?: unknown } | null
+    processPublications?: unknown
+  } | null
+}): DnaActionContext | null {
+  if (!input.userId || !input.result || !excerpt(input.thesis)) return null
+  const p = (input.result.process || {}) as Record<string, unknown>
+  const strings = (value: unknown, max = 300) => Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === "string").map(v => excerpt(v, max)).filter(Boolean).slice(0, 6)
+    : []
+  const refs = (value: unknown, max: number) => Array.isArray(value)
+    ? (value as DossierRef[]).slice(0, max).map((d) => [
+      [d.kindLabel, d.outcomeLabel, d.date ? String(d.date).slice(0, 10) : "", d.processNumber].filter(Boolean).join(" · "),
+      excerpt(d.excerpt, 380),
+      d.link ? `Fonte: ${d.link}` : "",
+    ].filter(Boolean).join("\n"))
+    : []
+  const facts = [
+    `Processo ${excerpt(p.number, 40)} — ${excerpt(p.court, 40)} — ${excerpt(p.courtUnit, 160)}`,
+    `Classe: ${excerpt(p.className, 160)}. Assunto: ${excerpt(p.subject, 300)}.`,
+    p.activeSide || p.passiveSide ? `Partes: ${excerpt(p.activeSide, 200)} x ${excerpt(p.passiveSide, 200)}.` : "",
+    p.causeValue ? `Valor da causa: ${excerpt(p.causeValue, 40)}.` : "",
+    excerpt(input.result.summary, 1200),
+    ...refs(input.result.processPublications, 4).map((r) => `Publicação do processo:\n${r}`),
+  ].filter(Boolean).join("\n\n")
+  const judgingBody = excerpt(input.result.dossier?.judgingBody, 160)
+  return {
+    source: "dna-do-juiz",
+    userId: input.userId,
+    caseText: facts.slice(0, 10000),
+    argument: excerpt(input.thesis, 2500),
+    focus: [
+      `Tese escolhida: ${excerpt(input.thesis, 2500)}`,
+      "Use como apoio apenas as decisões reais abaixo, do mesmo juízo, citando data e número do processo e indicando a fonte. Não invente jurisprudência. Não afirme que o magistrado adotará a tese.",
+      judgingBody ? `Juízo: ${judgingBody}` : "",
+      strings(input.result.judgePatterns).length ? `Padrões observados no juízo: ${strings(input.result.judgePatterns).join("; ")}` : "",
+      strings(input.result.recurringGrounds).length ? `Fundamentos que se repetem: ${strings(input.result.recurringGrounds).join("; ")}` : "",
+      ...refs(input.result.dossier?.items, 6).map((r) => `Decisão do juízo:\n${r}`),
+    ].filter(Boolean).join("\n\n").slice(0, 10000),
+  }
+}

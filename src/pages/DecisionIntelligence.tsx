@@ -325,7 +325,7 @@ export default function DecisionIntelligence() {
         <textarea value={lawyerArgument} onChange={e=>{ invalidateCurrentSearch(); setLawyerArgument(e.target.value) }} placeholder="Opcional: cole o argumento, tese ou trecho da peça que você quer testar contra o padrão observado." className="w-full h-28 rounded-xl bg-[#0f0f15] border border-[#2a2a35] p-4"/>
       </section>
 
-      <JudgeDossierPanel cnj={cnj} argument={lawyerArgument} />
+      <JudgeDossierPanel cnj={cnj} argument={lawyerArgument} onUseThesis={setLawyerArgument} />
 
       <section className="rounded-2xl border border-[#303849] bg-[#111118] p-5 space-y-3" aria-label="DJEN consulta pública">
         <div className="flex flex-wrap items-center justify-between gap-3">
